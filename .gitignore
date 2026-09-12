@@ -1,0 +1,13 @@
+# Godot 4+ specific ignores
+.godot/
+
+# build outputs, screenshots, trace overlays
+build/
+
+# 2.9 GB source pack (only the species in use are copied into assets/nature_pack)
+assets/high fidelity assets/
+
+# editor / OS noise
+*.TMP
+desktop.ini
+Thumbs.db

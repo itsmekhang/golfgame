@@ -1,0 +1,6516 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Claude/Godot reconstruction handoff; locator geometry plus proposed terrain parameters, not an exact replica or surveyed model",
+  "source": "User supplied hole diagrams.zip; full descriptions in Augusta_Godot_Build_Brief.md",
+  "units": "meters unless marked otherwise",
+  "image_uv_definition": "Entire original hole-map-N.jpg: u rightward, v downward, range 0..1. Multiply u by original W and v by original H before measuring or scaling.",
+  "outline_provenance": "Connected low-saturation sand regions isolated from each full map, then outline simplified and reviewed against the source. No. 12 rear-left uses a smooth estimated edge where canopy obscures it, as flagged per item. Visible sand edge is not the outer turf lip or a recovered hidden boundary.",
+  "elevation_status": "All numeric heights, profiles, slopes, widths and depths are proposed modeling values; none are recovered survey elevations.",
+  "route_status": "Approximate golf routing for scale; not a cart path or automatic fairway mask.",
+  "water_status": "Water locators are not polygons or levels. Trace banks from source; reconcile shared course drainage.",
+  "global_assembly": "Each hole uses a local independent tee datum. Fit one coherent course terrain from the overall routing map before joining holes.",
+  "holes": [
+    {
+      "hole": 1,
+      "name": "Tea Olive",
+      "par": 4,
+      "yards_from_supplied_info": 445,
+      "nominal_route_length_m": 406.908,
+      "references": {
+        "full_map": "hole diagrams/hole 1/hole-map-1.jpg",
+        "full_map_size_px": [
+          4970,
+          1620
+        ],
+        "green_closeup": "hole diagrams/hole 1/hole 1 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.1,
+          0.487
+        ],
+        [
+          0.29,
+          0.465
+        ],
+        [
+          0.48,
+          0.415
+        ],
+        [
+          0.64,
+          0.435
+        ],
+        [
+          0.75,
+          0.51
+        ],
+        [
+          0.854,
+          0.569
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1078107,
+      "green_center_uv_approx": [
+        0.854,
+        0.569
+      ],
+      "owned_bunker_count": 2,
+      "bunkers": [
+        {
+          "id": "h01_fairway_right",
+          "role": "fairway",
+          "locator_uv": [
+            0.596953,
+            0.486217
+          ],
+          "outline_uv": [
+            [
+              0.61025,
+              0.447853
+            ],
+            [
+              0.6135,
+              0.447086
+            ],
+            [
+              0.6165,
+              0.453221
+            ],
+            [
+              0.6245,
+              0.451687
+            ],
+            [
+              0.62675,
+              0.458589
+            ],
+            [
+              0.62675,
+              0.47546
+            ],
+            [
+              0.62525,
+              0.489264
+            ],
+            [
+              0.6195,
+              0.502301
+            ],
+            [
+              0.6145,
+              0.503834
+            ],
+            [
+              0.6095,
+              0.494632
+            ],
+            [
+              0.60575,
+              0.51227
+            ],
+            [
+              0.6025,
+              0.520706
+            ],
+            [
+              0.594,
+              0.525307
+            ],
+            [
+              0.5895,
+              0.520706
+            ],
+            [
+              0.584,
+              0.522239
+            ],
+            [
+              0.583,
+              0.517638
+            ],
+            [
+              0.581,
+              0.517638
+            ],
+            [
+              0.58,
+              0.520706
+            ],
+            [
+              0.574,
+              0.519172
+            ],
+            [
+              0.57025,
+              0.507669
+            ],
+            [
+              0.56875,
+              0.498466
+            ],
+            [
+              0.56925,
+              0.476994
+            ],
+            [
+              0.573,
+              0.46089
+            ],
+            [
+              0.581,
+              0.462423
+            ],
+            [
+              0.5845,
+              0.456288
+            ],
+            [
+              0.588,
+              0.456288
+            ],
+            [
+              0.59025,
+              0.461656
+            ],
+            [
+              0.59125,
+              0.467791
+            ],
+            [
+              0.59175,
+              0.483129
+            ],
+            [
+              0.5935,
+              0.486963
+            ],
+            [
+              0.59625,
+              0.480061
+            ],
+            [
+              0.599,
+              0.465491
+            ],
+            [
+              0.605,
+              0.453221
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.569,
+            0.447853,
+            0.6265,
+            0.52454
+          ]
+        },
+        {
+          "id": "h01_green_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.830258,
+            0.490957
+          ],
+          "outline_uv": [
+            [
+              0.84225,
+              0.455521
+            ],
+            [
+              0.8475,
+              0.454755
+            ],
+            [
+              0.8515,
+              0.459356
+            ],
+            [
+              0.85275,
+              0.46319
+            ],
+            [
+              0.85375,
+              0.473926
+            ],
+            [
+              0.85325,
+              0.481595
+            ],
+            [
+              0.85,
+              0.491564
+            ],
+            [
+              0.8465,
+              0.496166
+            ],
+            [
+              0.8395,
+              0.494632
+            ],
+            [
+              0.837,
+              0.497699
+            ],
+            [
+              0.83075,
+              0.518405
+            ],
+            [
+              0.82875,
+              0.529141
+            ],
+            [
+              0.8255,
+              0.536043
+            ],
+            [
+              0.8205,
+              0.534509
+            ],
+            [
+              0.8155,
+              0.516104
+            ],
+            [
+              0.812,
+              0.513037
+            ],
+            [
+              0.80975,
+              0.504601
+            ],
+            [
+              0.80875,
+              0.48773
+            ],
+            [
+              0.8105,
+              0.479294
+            ],
+            [
+              0.8225,
+              0.476227
+            ],
+            [
+              0.828,
+              0.471626
+            ],
+            [
+              0.835,
+              0.46089
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.809,
+            0.455521,
+            0.8535,
+            0.535276
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.15,
+            -2
+          ],
+          [
+            0.35,
+            2
+          ],
+          [
+            0.62,
+            10
+          ],
+          [
+            0.78,
+            12
+          ],
+          [
+            0.93,
+            15
+          ],
+          [
+            1,
+            16
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 32,
+        "depth_along_approach_m": 30,
+        "internal_relief_range_m": [
+          0.35,
+          0.7
+        ],
+        "shape_and_contours": "Irregular broad rear and narrower front; two low intersecting rolls."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h01_opening_dip",
+          "s_range_approx": [
+            0.06,
+            0.3
+          ]
+        },
+        {
+          "id": "h01_landing_crest",
+          "s_range_approx": [
+            0.5,
+            0.72
+          ]
+        },
+        {
+          "id": "h01_rising_green_shoulder",
+          "s_range_approx": [
+            0.8,
+            1.05
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 2,
+      "name": "Pink Dogwood",
+      "par": 5,
+      "yards_from_supplied_info": 585,
+      "nominal_route_length_m": 534.924,
+      "references": {
+        "full_map": "hole diagrams/hole 2/hole-map-2.jpg",
+        "full_map_size_px": [
+          4337,
+          1792
+        ],
+        "green_closeup": "hole diagrams/hole 2/hole 2 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.074,
+          0.211
+        ],
+        [
+          0.23,
+          0.475
+        ],
+        [
+          0.44,
+          0.67
+        ],
+        [
+          0.65,
+          0.67
+        ],
+        [
+          0.8,
+          0.56
+        ],
+        [
+          0.895,
+          0.437
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1386219,
+      "green_center_uv_approx": [
+        0.895,
+        0.437
+      ],
+      "owned_bunker_count": 3,
+      "bunkers": [
+        {
+          "id": "h02_fairway_right",
+          "role": "fairway",
+          "locator_uv": [
+            0.505734,
+            0.745007
+          ],
+          "outline_uv": [
+            [
+              0.51175,
+              0.713075
+            ],
+            [
+              0.5175,
+              0.71247
+            ],
+            [
+              0.52275,
+              0.72155
+            ],
+            [
+              0.52375,
+              0.726392
+            ],
+            [
+              0.52375,
+              0.737288
+            ],
+            [
+              0.52275,
+              0.742131
+            ],
+            [
+              0.52,
+              0.747579
+            ],
+            [
+              0.5145,
+              0.748789
+            ],
+            [
+              0.51225,
+              0.754237
+            ],
+            [
+              0.51175,
+              0.762712
+            ],
+            [
+              0.51,
+              0.766949
+            ],
+            [
+              0.5045,
+              0.773002
+            ],
+            [
+              0.4985,
+              0.775424
+            ],
+            [
+              0.4965,
+              0.779056
+            ],
+            [
+              0.4925,
+              0.779056
+            ],
+            [
+              0.48875,
+              0.765133
+            ],
+            [
+              0.48875,
+              0.753027
+            ],
+            [
+              0.49075,
+              0.74092
+            ],
+            [
+              0.4955,
+              0.735472
+            ],
+            [
+              0.499,
+              0.735472
+            ],
+            [
+              0.5065,
+              0.716102
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.489,
+            0.713075,
+            0.5235,
+            0.77845
+          ]
+        },
+        {
+          "id": "h02_green_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.864286,
+            0.419677
+          ],
+          "outline_uv": [
+            [
+              0.86375,
+              0.389831
+            ],
+            [
+              0.868,
+              0.389225
+            ],
+            [
+              0.87225,
+              0.399516
+            ],
+            [
+              0.87175,
+              0.412833
+            ],
+            [
+              0.86725,
+              0.42615
+            ],
+            [
+              0.86875,
+              0.446731
+            ],
+            [
+              0.867,
+              0.452179
+            ],
+            [
+              0.863,
+              0.452179
+            ],
+            [
+              0.8595,
+              0.448547
+            ],
+            [
+              0.85675,
+              0.439467
+            ],
+            [
+              0.85925,
+              0.417676
+            ],
+            [
+              0.85925,
+              0.399516
+            ],
+            [
+              0.862,
+              0.391646
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.857,
+            0.389831,
+            0.872,
+            0.451574
+          ]
+        },
+        {
+          "id": "h02_green_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.89127,
+            0.503308
+          ],
+          "outline_uv": [
+            [
+              0.88575,
+              0.483051
+            ],
+            [
+              0.897,
+              0.482446
+            ],
+            [
+              0.9025,
+              0.486077
+            ],
+            [
+              0.90625,
+              0.492736
+            ],
+            [
+              0.90675,
+              0.5
+            ],
+            [
+              0.9055,
+              0.503027
+            ],
+            [
+              0.904,
+              0.504237
+            ],
+            [
+              0.901,
+              0.501816
+            ],
+            [
+              0.89975,
+              0.504843
+            ],
+            [
+              0.90325,
+              0.513317
+            ],
+            [
+              0.90325,
+              0.51937
+            ],
+            [
+              0.901,
+              0.526029
+            ],
+            [
+              0.8975,
+              0.52845
+            ],
+            [
+              0.892,
+              0.522397
+            ],
+            [
+              0.885,
+              0.524818
+            ],
+            [
+              0.87775,
+              0.510896
+            ],
+            [
+              0.87675,
+              0.506053
+            ],
+            [
+              0.87775,
+              0.490315
+            ],
+            [
+              0.8795,
+              0.486077
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.877,
+            0.483051,
+            0.9065,
+            0.527845
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.15,
+            -3
+          ],
+          [
+            0.35,
+            -12
+          ],
+          [
+            0.6,
+            -21
+          ],
+          [
+            0.85,
+            -25
+          ],
+          [
+            1,
+            -24
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 40,
+        "depth_along_approach_m": 30,
+        "internal_relief_range_m": [
+          0.5,
+          0.9
+        ],
+        "shape_and_contours": "Wishbone/Y outline; forward tongue and unequal rear wings."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h02_tee_bench",
+          "s_range_approx": [
+            0,
+            0.14
+          ]
+        },
+        {
+          "id": "h02_long_dogleg_descent",
+          "s_range_approx": [
+            0.14,
+            0.78
+          ]
+        },
+        {
+          "id": "h02_bunker_outer_shoulder",
+          "s_range_approx": [
+            0.48,
+            0.66
+          ]
+        },
+        {
+          "id": "h02_flattening_approach",
+          "s_range_approx": [
+            0.8,
+            1.02
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 3,
+      "name": "Flowering Peach",
+      "par": 4,
+      "yards_from_supplied_info": 350,
+      "nominal_route_length_m": 320.04,
+      "references": {
+        "full_map": "hole diagrams/hole 3/hole-map-3.jpg",
+        "full_map_size_px": [
+          4342,
+          1714
+        ],
+        "green_closeup": "hole diagrams/hole 3/hole 3 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.085,
+          0.563
+        ],
+        [
+          0.34,
+          0.55
+        ],
+        [
+          0.57,
+          0.575
+        ],
+        [
+          0.76,
+          0.61
+        ],
+        [
+          0.881,
+          0.63
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.0924792,
+      "green_center_uv_approx": [
+        0.881,
+        0.63
+      ],
+      "owned_bunker_count": 5,
+      "bunkers": [
+        {
+          "id": "h03_fairway_left_a",
+          "role": "fairway",
+          "locator_uv": [
+            0.629363,
+            0.371298
+          ],
+          "outline_uv": [
+            [
+              0.62125,
+              0.346008
+            ],
+            [
+              0.632,
+              0.346641
+            ],
+            [
+              0.6395,
+              0.363118
+            ],
+            [
+              0.6435,
+              0.368188
+            ],
+            [
+              0.64475,
+              0.372624
+            ],
+            [
+              0.64475,
+              0.382763
+            ],
+            [
+              0.64325,
+              0.391635
+            ],
+            [
+              0.64,
+              0.397338
+            ],
+            [
+              0.6375,
+              0.397338
+            ],
+            [
+              0.634,
+              0.392269
+            ],
+            [
+              0.625,
+              0.393536
+            ],
+            [
+              0.619,
+              0.385932
+            ],
+            [
+              0.61475,
+              0.372624
+            ],
+            [
+              0.61475,
+              0.361217
+            ],
+            [
+              0.61575,
+              0.35488
+            ],
+            [
+              0.618,
+              0.349176
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.615,
+            0.346008,
+            0.6445,
+            0.396705
+          ]
+        },
+        {
+          "id": "h03_fairway_left_b",
+          "role": "fairway",
+          "locator_uv": [
+            0.616912,
+            0.431611
+          ],
+          "outline_uv": [
+            [
+              0.61125,
+              0.403042
+            ],
+            [
+              0.6205,
+              0.403676
+            ],
+            [
+              0.627,
+              0.412548
+            ],
+            [
+              0.6305,
+              0.412548
+            ],
+            [
+              0.633,
+              0.415082
+            ],
+            [
+              0.63425,
+              0.419518
+            ],
+            [
+              0.63425,
+              0.430925
+            ],
+            [
+              0.63075,
+              0.448669
+            ],
+            [
+              0.6285,
+              0.453105
+            ],
+            [
+              0.625,
+              0.45564
+            ],
+            [
+              0.601,
+              0.454373
+            ],
+            [
+              0.59875,
+              0.447402
+            ],
+            [
+              0.59925,
+              0.435995
+            ],
+            [
+              0.60525,
+              0.420786
+            ],
+            [
+              0.60825,
+              0.406844
+            ],
+            [
+              0.6095,
+              0.403676
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.599,
+            0.403042,
+            0.634,
+            0.455006
+          ]
+        },
+        {
+          "id": "h03_fairway_left_c",
+          "role": "fairway",
+          "locator_uv": [
+            0.652687,
+            0.419922
+          ],
+          "outline_uv": [
+            [
+              0.65475,
+              0.361217
+            ],
+            [
+              0.6635,
+              0.360583
+            ],
+            [
+              0.6665,
+              0.363118
+            ],
+            [
+              0.66925,
+              0.370089
+            ],
+            [
+              0.66975,
+              0.382763
+            ],
+            [
+              0.66575,
+              0.420786
+            ],
+            [
+              0.65925,
+              0.447402
+            ],
+            [
+              0.654,
+              0.45564
+            ],
+            [
+              0.647,
+              0.477186
+            ],
+            [
+              0.643,
+              0.482256
+            ],
+            [
+              0.6375,
+              0.479721
+            ],
+            [
+              0.635,
+              0.475919
+            ],
+            [
+              0.63375,
+              0.470215
+            ],
+            [
+              0.63375,
+              0.457541
+            ],
+            [
+              0.63825,
+              0.443599
+            ],
+            [
+              0.64175,
+              0.418251
+            ],
+            [
+              0.64925,
+              0.392902
+            ],
+            [
+              0.64975,
+              0.378961
+            ],
+            [
+              0.65125,
+              0.367554
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.6335,
+            0.361217,
+            0.6695,
+            0.481622
+          ]
+        },
+        {
+          "id": "h03_fairway_left_d",
+          "role": "fairway",
+          "locator_uv": [
+            0.690523,
+            0.403719
+          ],
+          "outline_uv": [
+            [
+              0.69125,
+              0.356147
+            ],
+            [
+              0.696,
+              0.356781
+            ],
+            [
+              0.7,
+              0.36185
+            ],
+            [
+              0.70625,
+              0.380228
+            ],
+            [
+              0.70775,
+              0.396705
+            ],
+            [
+              0.70725,
+              0.401774
+            ],
+            [
+              0.70275,
+              0.416984
+            ],
+            [
+              0.6915,
+              0.448035
+            ],
+            [
+              0.687,
+              0.451838
+            ],
+            [
+              0.683,
+              0.451838
+            ],
+            [
+              0.68,
+              0.446768
+            ],
+            [
+              0.67525,
+              0.43346
+            ],
+            [
+              0.67425,
+              0.419518
+            ],
+            [
+              0.67775,
+              0.39417
+            ],
+            [
+              0.68225,
+              0.375158
+            ],
+            [
+              0.6875,
+              0.360583
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.6745,
+            0.356147,
+            0.7075,
+            0.451204
+          ]
+        },
+        {
+          "id": "h03_green_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.884229,
+            0.481359
+          ],
+          "outline_uv": [
+            [
+              0.86225,
+              0.446134
+            ],
+            [
+              0.8665,
+              0.445501
+            ],
+            [
+              0.8795,
+              0.456907
+            ],
+            [
+              0.888,
+              0.453105
+            ],
+            [
+              0.8945,
+              0.456907
+            ],
+            [
+              0.90075,
+              0.471483
+            ],
+            [
+              0.90275,
+              0.479087
+            ],
+            [
+              0.90425,
+              0.489227
+            ],
+            [
+              0.90425,
+              0.505703
+            ],
+            [
+              0.90325,
+              0.512041
+            ],
+            [
+              0.8965,
+              0.522814
+            ],
+            [
+              0.8925,
+              0.524081
+            ],
+            [
+              0.888,
+              0.519011
+            ],
+            [
+              0.88375,
+              0.501901
+            ],
+            [
+              0.881,
+              0.49493
+            ],
+            [
+              0.869,
+              0.492395
+            ],
+            [
+              0.86375,
+              0.480355
+            ],
+            [
+              0.86075,
+              0.467681
+            ],
+            [
+              0.86075,
+              0.452471
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.861,
+            0.446134,
+            0.904,
+            0.523447
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.25,
+            -1
+          ],
+          [
+            0.5,
+            1
+          ],
+          [
+            0.72,
+            2
+          ],
+          [
+            0.9,
+            4
+          ],
+          [
+            1,
+            6
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 30,
+        "depth_along_approach_m": 22,
+        "internal_relief_range_m": [
+          0.6,
+          1.0
+        ],
+        "shape_and_contours": "Asymmetric wedge/pear; higher right and lower left/front."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h03_fairway_bunker_shoulders",
+          "s_range_approx": [
+            0.55,
+            0.77
+          ]
+        },
+        {
+          "id": "h03_front_runoff",
+          "s_range_approx": [
+            0.88,
+            0.97
+          ]
+        },
+        {
+          "id": "h03_right_rear_green_mound",
+          "s_range_approx": [
+            0.98,
+            1.08
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 4,
+      "name": "Flowering Crab Apple",
+      "par": 3,
+      "yards_from_supplied_info": 240,
+      "nominal_route_length_m": 219.456,
+      "references": {
+        "full_map": "hole diagrams/hole 4/hole-map-4.jpg",
+        "full_map_size_px": [
+          4684,
+          1930
+        ],
+        "green_closeup": "hole diagrams/hole 4/hole 4 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.151,
+          0.504
+        ],
+        [
+          0.53,
+          0.5
+        ],
+        [
+          0.816,
+          0.534
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.0704178,
+      "green_center_uv_approx": [
+        0.816,
+        0.534
+      ],
+      "owned_bunker_count": 2,
+      "bunkers": [
+        {
+          "id": "h04_green_front_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.802245,
+            0.378468
+          ],
+          "outline_uv": [
+            [
+              0.78975,
+              0.342233
+            ],
+            [
+              0.793,
+              0.341626
+            ],
+            [
+              0.796,
+              0.344053
+            ],
+            [
+              0.8065,
+              0.357403
+            ],
+            [
+              0.8205,
+              0.348908
+            ],
+            [
+              0.828,
+              0.348908
+            ],
+            [
+              0.832,
+              0.353762
+            ],
+            [
+              0.83375,
+              0.359223
+            ],
+            [
+              0.83475,
+              0.364078
+            ],
+            [
+              0.83475,
+              0.376214
+            ],
+            [
+              0.83225,
+              0.387136
+            ],
+            [
+              0.8295,
+              0.393811
+            ],
+            [
+              0.8215,
+              0.404733
+            ],
+            [
+              0.816,
+              0.409587
+            ],
+            [
+              0.8085,
+              0.410801
+            ],
+            [
+              0.806,
+              0.413228
+            ],
+            [
+              0.7925,
+              0.413228
+            ],
+            [
+              0.7815,
+              0.40716
+            ],
+            [
+              0.7765,
+              0.402306
+            ],
+            [
+              0.77425,
+              0.396845
+            ],
+            [
+              0.77225,
+              0.384709
+            ],
+            [
+              0.77275,
+              0.368932
+            ],
+            [
+              0.77425,
+              0.360437
+            ],
+            [
+              0.7775,
+              0.351335
+            ],
+            [
+              0.785,
+              0.344053
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.7725,
+            0.342233,
+            0.8345,
+            0.412621
+          ]
+        },
+        {
+          "id": "h04_green_front_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.784443,
+            0.5719
+          ],
+          "outline_uv": [
+            [
+              0.77125,
+              0.497573
+            ],
+            [
+              0.7775,
+              0.496966
+            ],
+            [
+              0.781,
+              0.500607
+            ],
+            [
+              0.794,
+              0.522451
+            ],
+            [
+              0.79875,
+              0.535194
+            ],
+            [
+              0.80325,
+              0.557039
+            ],
+            [
+              0.80475,
+              0.570388
+            ],
+            [
+              0.80475,
+              0.583738
+            ],
+            [
+              0.80175,
+              0.603155
+            ],
+            [
+              0.80125,
+              0.614078
+            ],
+            [
+              0.80375,
+              0.623786
+            ],
+            [
+              0.80525,
+              0.639563
+            ],
+            [
+              0.8025,
+              0.648665
+            ],
+            [
+              0.7975,
+              0.648665
+            ],
+            [
+              0.784,
+              0.635316
+            ],
+            [
+              0.773,
+              0.620752
+            ],
+            [
+              0.76725,
+              0.606796
+            ],
+            [
+              0.76575,
+              0.599515
+            ],
+            [
+              0.76525,
+              0.588592
+            ],
+            [
+              0.76725,
+              0.578883
+            ],
+            [
+              0.77075,
+              0.571602
+            ],
+            [
+              0.77125,
+              0.56068
+            ],
+            [
+              0.7695,
+              0.555218
+            ],
+            [
+              0.765,
+              0.550364
+            ],
+            [
+              0.76325,
+              0.546117
+            ],
+            [
+              0.76225,
+              0.53034
+            ],
+            [
+              0.76475,
+              0.509709
+            ],
+            [
+              0.7685,
+              0.499393
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.7625,
+            0.497573,
+            0.805,
+            0.649272
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.15,
+            -1
+          ],
+          [
+            0.45,
+            -7
+          ],
+          [
+            0.75,
+            -11
+          ],
+          [
+            0.92,
+            -10.5
+          ],
+          [
+            1,
+            -10
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 38,
+        "depth_along_approach_m": 27,
+        "internal_relief_range_m": [
+          0.5,
+          0.9
+        ],
+        "shape_and_contours": "Wide rear bar and narrow front tongue; rear higher than entrance."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h04_elevated_tee",
+          "s_range_approx": [
+            0,
+            0.13
+          ]
+        },
+        {
+          "id": "h04_descending_carry",
+          "s_range_approx": [
+            0.15,
+            0.7
+          ]
+        },
+        {
+          "id": "h04_local_green_platform",
+          "s_range_approx": [
+            0.9,
+            1.05
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 5,
+      "name": "Magnolia",
+      "par": 4,
+      "yards_from_supplied_info": 495,
+      "nominal_route_length_m": 452.628,
+      "references": {
+        "full_map": "hole diagrams/hole 5/hole-map-5.jpg",
+        "full_map_size_px": [
+          4685,
+          1763
+        ],
+        "green_closeup": "hole diagrams/hole 5/hole 5 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.104,
+          0.422
+        ],
+        [
+          0.34,
+          0.548
+        ],
+        [
+          0.56,
+          0.64
+        ],
+        [
+          0.7,
+          0.58
+        ],
+        [
+          0.866,
+          0.35
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1219172,
+      "green_center_uv_approx": [
+        0.866,
+        0.35
+      ],
+      "owned_bunker_count": 3,
+      "bunkers": [
+        {
+          "id": "h05_fairway_left_a",
+          "role": "fairway",
+          "locator_uv": [
+            0.559232,
+            0.538346
+          ],
+          "outline_uv": [
+            [
+              0.55925,
+              0.492696
+            ],
+            [
+              0.563,
+              0.492032
+            ],
+            [
+              0.5655,
+              0.494688
+            ],
+            [
+              0.56825,
+              0.50332
+            ],
+            [
+              0.56875,
+              0.513944
+            ],
+            [
+              0.56475,
+              0.536521
+            ],
+            [
+              0.56675,
+              0.552457
+            ],
+            [
+              0.56625,
+              0.569721
+            ],
+            [
+              0.5625,
+              0.578353
+            ],
+            [
+              0.557,
+              0.579681
+            ],
+            [
+              0.5525,
+              0.575697
+            ],
+            [
+              0.55075,
+              0.571049
+            ],
+            [
+              0.54875,
+              0.561753
+            ],
+            [
+              0.54875,
+              0.553785
+            ],
+            [
+              0.55425,
+              0.517928
+            ],
+            [
+              0.55575,
+              0.501992
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.549,
+            0.492696,
+            0.5685,
+            0.579017
+          ]
+        },
+        {
+          "id": "h05_fairway_left_b",
+          "role": "fairway",
+          "locator_uv": [
+            0.592988,
+            0.52911
+          ],
+          "outline_uv": [
+            [
+              0.59275,
+              0.4834
+            ],
+            [
+              0.5985,
+              0.482736
+            ],
+            [
+              0.6005,
+              0.485392
+            ],
+            [
+              0.60275,
+              0.492696
+            ],
+            [
+              0.60325,
+              0.507304
+            ],
+            [
+              0.60025,
+              0.52324
+            ],
+            [
+              0.60075,
+              0.556441
+            ],
+            [
+              0.59875,
+              0.567065
+            ],
+            [
+              0.596,
+              0.571713
+            ],
+            [
+              0.589,
+              0.571713
+            ],
+            [
+              0.5855,
+              0.567729
+            ],
+            [
+              0.58375,
+              0.563081
+            ],
+            [
+              0.58225,
+              0.553785
+            ],
+            [
+              0.58225,
+              0.536521
+            ],
+            [
+              0.58925,
+              0.492696
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.5825,
+            0.4834,
+            0.603,
+            0.571049
+          ]
+        },
+        {
+          "id": "h05_green_rear_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.885307,
+            0.282094
+          ],
+          "outline_uv": [
+            [
+              0.88175,
+              0.256308
+            ],
+            [
+              0.887,
+              0.255644
+            ],
+            [
+              0.8905,
+              0.2583
+            ],
+            [
+              0.89275,
+              0.262948
+            ],
+            [
+              0.89625,
+              0.276228
+            ],
+            [
+              0.89775,
+              0.288181
+            ],
+            [
+              0.89725,
+              0.297477
+            ],
+            [
+              0.8955,
+              0.303453
+            ],
+            [
+              0.8915,
+              0.306109
+            ],
+            [
+              0.8845,
+              0.306109
+            ],
+            [
+              0.878,
+              0.302125
+            ],
+            [
+              0.87425,
+              0.294821
+            ],
+            [
+              0.87325,
+              0.289509
+            ],
+            [
+              0.87325,
+              0.278884
+            ],
+            [
+              0.87475,
+              0.266932
+            ],
+            [
+              0.877,
+              0.260956
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.8735,
+            0.256308,
+            0.8975,
+            0.305445
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.2,
+            2
+          ],
+          [
+            0.42,
+            6
+          ],
+          [
+            0.65,
+            10
+          ],
+          [
+            0.84,
+            14
+          ],
+          [
+            1,
+            18
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 31,
+        "depth_along_approach_m": 34,
+        "internal_relief_range_m": [
+          0.7,
+          1.2
+        ],
+        "shape_and_contours": "Rounded front and narrower rear with rear-left indentation; diagonal shoulder."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h05_first_fairway_roll",
+          "s_range_approx": [
+            0.28,
+            0.46
+          ]
+        },
+        {
+          "id": "h05_inside_bunker_bank",
+          "s_range_approx": [
+            0.53,
+            0.72
+          ]
+        },
+        {
+          "id": "h05_upper_green_complex",
+          "s_range_approx": [
+            0.87,
+            1.06
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 6,
+      "name": "Juniper",
+      "par": 3,
+      "yards_from_supplied_info": 180,
+      "nominal_route_length_m": 164.592,
+      "references": {
+        "full_map": "hole diagrams/hole 6/hole-map-6.jpg",
+        "full_map_size_px": [
+          3887,
+          1823
+        ],
+        "green_closeup": "hole diagrams/hole 6/hole 6 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.154,
+          0.487
+        ],
+        [
+          0.55,
+          0.52
+        ],
+        [
+          0.817,
+          0.487
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.0637954,
+      "green_center_uv_approx": [
+        0.817,
+        0.487
+      ],
+      "owned_bunker_count": 1,
+      "bunkers": [
+        {
+          "id": "h06_green_front_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.724093,
+            0.419375
+          ],
+          "outline_uv": [
+            [
+              0.74325,
+              0.321962
+            ],
+            [
+              0.75,
+              0.321429
+            ],
+            [
+              0.756,
+              0.326759
+            ],
+            [
+              0.76075,
+              0.335821
+            ],
+            [
+              0.76275,
+              0.34435
+            ],
+            [
+              0.76275,
+              0.356077
+            ],
+            [
+              0.76125,
+              0.364606
+            ],
+            [
+              0.7595,
+              0.368337
+            ],
+            [
+              0.75,
+              0.376866
+            ],
+            [
+              0.74675,
+              0.383795
+            ],
+            [
+              0.74525,
+              0.391258
+            ],
+            [
+              0.74525,
+              0.397655
+            ],
+            [
+              0.747,
+              0.402452
+            ],
+            [
+              0.7575,
+              0.414179
+            ],
+            [
+              0.76425,
+              0.426439
+            ],
+            [
+              0.76575,
+              0.432836
+            ],
+            [
+              0.76575,
+              0.441365
+            ],
+            [
+              0.76175,
+              0.459488
+            ],
+            [
+              0.7585,
+              0.464286
+            ],
+            [
+              0.755,
+              0.466418
+            ],
+            [
+              0.7475,
+              0.466418
+            ],
+            [
+              0.7335,
+              0.455757
+            ],
+            [
+              0.7265,
+              0.456823
+            ],
+            [
+              0.7235,
+              0.460021
+            ],
+            [
+              0.72025,
+              0.466951
+            ],
+            [
+              0.71525,
+              0.491471
+            ],
+            [
+              0.7135,
+              0.495203
+            ],
+            [
+              0.7075,
+              0.500533
+            ],
+            [
+              0.697,
+              0.500533
+            ],
+            [
+              0.6815,
+              0.490938
+            ],
+            [
+              0.67975,
+              0.487207
+            ],
+            [
+              0.67775,
+              0.477612
+            ],
+            [
+              0.67775,
+              0.462687
+            ],
+            [
+              0.68725,
+              0.428571
+            ],
+            [
+              0.69575,
+              0.411514
+            ],
+            [
+              0.70325,
+              0.389126
+            ],
+            [
+              0.708,
+              0.378998
+            ],
+            [
+              0.7205,
+              0.367271
+            ],
+            [
+              0.72675,
+              0.353945
+            ],
+            [
+              0.735,
+              0.329957
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.678,
+            0.321962,
+            0.7655,
+            0.501066
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.12,
+            0
+          ],
+          [
+            0.35,
+            -7
+          ],
+          [
+            0.65,
+            -13
+          ],
+          [
+            0.85,
+            -14
+          ],
+          [
+            1,
+            -12
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 34,
+        "depth_along_approach_m": 31,
+        "internal_relief_range_m": [
+          0.8,
+          1.3
+        ],
+        "shape_and_contours": "Broad lower front/left body, raised back-right shelf, curved face."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h06_high_tee_bench",
+          "s_range_approx": [
+            0,
+            0.15
+          ]
+        },
+        {
+          "id": "h06_broad_downhill_face",
+          "s_range_approx": [
+            0.17,
+            0.7
+          ]
+        },
+        {
+          "id": "h06_green_platform",
+          "s_range_approx": [
+            0.9,
+            1.05
+          ]
+        },
+        {
+          "id": "h06_green_back_right_shelf",
+          "s_range_approx": [
+            0.97,
+            1.05
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 7,
+      "name": "Pampas",
+      "par": 4,
+      "yards_from_supplied_info": 450,
+      "nominal_route_length_m": 411.48,
+      "references": {
+        "full_map": "hole diagrams/hole 7/hole-map-7.jpg",
+        "full_map_size_px": [
+          4705,
+          1338
+        ],
+        "green_closeup": "hole diagrams/hole 7/hole 7 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.11,
+          0.478
+        ],
+        [
+          0.35,
+          0.47
+        ],
+        [
+          0.57,
+          0.5
+        ],
+        [
+          0.75,
+          0.51
+        ],
+        [
+          0.888,
+          0.53
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1123656,
+      "green_center_uv_approx": [
+        0.888,
+        0.53
+      ],
+      "owned_bunker_count": 5,
+      "bunkers": [
+        {
+          "id": "h07_green_front_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.870366,
+            0.447079
+          ],
+          "outline_uv": [
+            [
+              0.86925,
+              0.400703
+            ],
+            [
+              0.8775,
+              0.401582
+            ],
+            [
+              0.88175,
+              0.411248
+            ],
+            [
+              0.88325,
+              0.42355
+            ],
+            [
+              0.88225,
+              0.441125
+            ],
+            [
+              0.87725,
+              0.458699
+            ],
+            [
+              0.87825,
+              0.476274
+            ],
+            [
+              0.87725,
+              0.486819
+            ],
+            [
+              0.875,
+              0.494728
+            ],
+            [
+              0.8685,
+              0.494728
+            ],
+            [
+              0.864,
+              0.491213
+            ],
+            [
+              0.861,
+              0.48594
+            ],
+            [
+              0.85775,
+              0.471002
+            ],
+            [
+              0.85775,
+              0.45167
+            ],
+            [
+              0.86275,
+              0.43058
+            ],
+            [
+              0.86375,
+              0.40949
+            ],
+            [
+              0.866,
+              0.403339
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.858,
+            0.400703,
+            0.883,
+            0.493849
+          ]
+        },
+        {
+          "id": "h07_green_front_middle",
+          "role": "greenside",
+          "locator_uv": [
+            0.8639,
+            0.534282
+          ],
+          "outline_uv": [
+            [
+              0.86125,
+              0.502636
+            ],
+            [
+              0.867,
+              0.501757
+            ],
+            [
+              0.872,
+              0.505272
+            ],
+            [
+              0.87425,
+              0.513181
+            ],
+            [
+              0.87475,
+              0.525483
+            ],
+            [
+              0.8715,
+              0.550967
+            ],
+            [
+              0.864,
+              0.568541
+            ],
+            [
+              0.859,
+              0.570299
+            ],
+            [
+              0.85475,
+              0.558875
+            ],
+            [
+              0.85325,
+              0.546573
+            ],
+            [
+              0.85575,
+              0.528998
+            ],
+            [
+              0.85575,
+              0.518453
+            ],
+            [
+              0.85675,
+              0.511424
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.8535,
+            0.502636,
+            0.8745,
+            0.56942
+          ]
+        },
+        {
+          "id": "h07_green_front_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.867608,
+            0.628501
+          ],
+          "outline_uv": [
+            [
+              0.86825,
+              0.592267
+            ],
+            [
+              0.8745,
+              0.593146
+            ],
+            [
+              0.87775,
+              0.604569
+            ],
+            [
+              0.87925,
+              0.620387
+            ],
+            [
+              0.87925,
+              0.634446
+            ],
+            [
+              0.87825,
+              0.643234
+            ],
+            [
+              0.877,
+              0.64587
+            ],
+            [
+              0.8745,
+              0.64587
+            ],
+            [
+              0.8735,
+              0.642355
+            ],
+            [
+              0.87125,
+              0.644991
+            ],
+            [
+              0.87275,
+              0.652021
+            ],
+            [
+              0.87275,
+              0.660808
+            ],
+            [
+              0.8715,
+              0.66696
+            ],
+            [
+              0.8655,
+              0.670475
+            ],
+            [
+              0.8615,
+              0.665202
+            ],
+            [
+              0.85875,
+              0.655536
+            ],
+            [
+              0.85725,
+              0.646749
+            ],
+            [
+              0.85675,
+              0.630931
+            ],
+            [
+              0.85775,
+              0.609842
+            ],
+            [
+              0.8605,
+              0.598418
+            ],
+            [
+              0.8635,
+              0.593146
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.857,
+            0.592267,
+            0.879,
+            0.669596
+          ]
+        },
+        {
+          "id": "h07_green_back_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.910248,
+            0.428972
+          ],
+          "outline_uv": [
+            [
+              0.90775,
+              0.400703
+            ],
+            [
+              0.91,
+              0.399824
+            ],
+            [
+              0.913,
+              0.403339
+            ],
+            [
+              0.91625,
+              0.421793
+            ],
+            [
+              0.91725,
+              0.441125
+            ],
+            [
+              0.9145,
+              0.457821
+            ],
+            [
+              0.911,
+              0.459578
+            ],
+            [
+              0.909,
+              0.456063
+            ],
+            [
+              0.90275,
+              0.427065
+            ],
+            [
+              0.90325,
+              0.413005
+            ],
+            [
+              0.9045,
+              0.406854
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.903,
+            0.400703,
+            0.917,
+            0.458699
+          ]
+        },
+        {
+          "id": "h07_green_back_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.91293,
+            0.574828
+          ],
+          "outline_uv": [
+            [
+              0.91275,
+              0.527241
+            ],
+            [
+              0.917,
+              0.52812
+            ],
+            [
+              0.92125,
+              0.541301
+            ],
+            [
+              0.92325,
+              0.56942
+            ],
+            [
+              0.92275,
+              0.581722
+            ],
+            [
+              0.92125,
+              0.592267
+            ],
+            [
+              0.9165,
+              0.607206
+            ],
+            [
+              0.91,
+              0.619508
+            ],
+            [
+              0.906,
+              0.619508
+            ],
+            [
+              0.90275,
+              0.609842
+            ],
+            [
+              0.90225,
+              0.594025
+            ],
+            [
+              0.90925,
+              0.537786
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.9025,
+            0.527241,
+            0.923,
+            0.618629
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.25,
+            1
+          ],
+          [
+            0.5,
+            2
+          ],
+          [
+            0.75,
+            3
+          ],
+          [
+            0.9,
+            5
+          ],
+          [
+            1,
+            8
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 34,
+        "depth_along_approach_m": 22,
+        "internal_relief_range_m": [
+          0.35,
+          0.7
+        ],
+        "shape_and_contours": "Compact wide shallow platform; small central/back shoulder and side pockets."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h07_subtle_fairway_rolls",
+          "s_range_approx": [
+            0.2,
+            0.76
+          ]
+        },
+        {
+          "id": "h07_final_climb",
+          "s_range_approx": [
+            0.86,
+            0.97
+          ]
+        },
+        {
+          "id": "h07_five_bunker_platform",
+          "s_range_approx": [
+            0.94,
+            1.06
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 8,
+      "name": "Yellow Jasmine",
+      "par": 5,
+      "yards_from_supplied_info": 570,
+      "nominal_route_length_m": 521.208,
+      "references": {
+        "full_map": "hole diagrams/hole 8/hole-map-8.jpg",
+        "full_map_size_px": [
+          4662,
+          1434
+        ],
+        "green_closeup": "hole diagrams/hole 8/hole 8 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.088,
+          0.616
+        ],
+        [
+          0.33,
+          0.5
+        ],
+        [
+          0.47,
+          0.455
+        ],
+        [
+          0.68,
+          0.565
+        ],
+        [
+          0.79,
+          0.62
+        ],
+        [
+          0.879,
+          0.493
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1386234,
+      "green_center_uv_approx": [
+        0.879,
+        0.493
+      ],
+      "owned_bunker_count": 1,
+      "bunkers": [
+        {
+          "id": "h08_fairway_right",
+          "role": "fairway",
+          "locator_uv": [
+            0.487873,
+            0.571444
+          ],
+          "outline_uv": [
+            [
+              0.46875,
+              0.528455
+            ],
+            [
+              0.4745,
+              0.529268
+            ],
+            [
+              0.47725,
+              0.536585
+            ],
+            [
+              0.47875,
+              0.56748
+            ],
+            [
+              0.48175,
+              0.58374
+            ],
+            [
+              0.4855,
+              0.592683
+            ],
+            [
+              0.487,
+              0.591057
+            ],
+            [
+              0.48925,
+              0.580488
+            ],
+            [
+              0.48925,
+              0.569106
+            ],
+            [
+              0.48675,
+              0.549593
+            ],
+            [
+              0.48675,
+              0.536585
+            ],
+            [
+              0.4885,
+              0.529268
+            ],
+            [
+              0.49,
+              0.527642
+            ],
+            [
+              0.4965,
+              0.527642
+            ],
+            [
+              0.5015,
+              0.537398
+            ],
+            [
+              0.505,
+              0.534146
+            ],
+            [
+              0.5115,
+              0.535772
+            ],
+            [
+              0.51825,
+              0.554472
+            ],
+            [
+              0.51975,
+              0.564228
+            ],
+            [
+              0.51975,
+              0.580488
+            ],
+            [
+              0.517,
+              0.592683
+            ],
+            [
+              0.512,
+              0.600813
+            ],
+            [
+              0.501,
+              0.605691
+            ],
+            [
+              0.4935,
+              0.618699
+            ],
+            [
+              0.488,
+              0.623577
+            ],
+            [
+              0.4815,
+              0.623577
+            ],
+            [
+              0.472,
+              0.610569
+            ],
+            [
+              0.47025,
+              0.604878
+            ],
+            [
+              0.46875,
+              0.586992
+            ],
+            [
+              0.467,
+              0.581301
+            ],
+            [
+              0.464,
+              0.579675
+            ],
+            [
+              0.461,
+              0.584553
+            ],
+            [
+              0.458,
+              0.584553
+            ],
+            [
+              0.45625,
+              0.578862
+            ],
+            [
+              0.45375,
+              0.552846
+            ],
+            [
+              0.45425,
+              0.541463
+            ],
+            [
+              0.4565,
+              0.535772
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.454,
+            0.528455,
+            0.5195,
+            0.622764
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.2,
+            3
+          ],
+          [
+            0.4,
+            8
+          ],
+          [
+            0.62,
+            13
+          ],
+          [
+            0.82,
+            19
+          ],
+          [
+            1,
+            22
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 23,
+        "depth_along_approach_m": 42,
+        "internal_relief_range_m": [
+          0.4,
+          0.8
+        ],
+        "shape_and_contours": "Long bent outline, narrow front, wider rear; mild internal saddle inside mound enclosure."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h08_long_uphill_fairway",
+          "s_range_approx": [
+            0.1,
+            0.9
+          ]
+        },
+        {
+          "id": "h08_right_fairway_bunker_bank",
+          "s_range_approx": [
+            0.4,
+            0.59
+          ]
+        },
+        {
+          "id": "h08_approach_mound_chain",
+          "s_range_approx": [
+            0.78,
+            0.97
+          ]
+        },
+        {
+          "id": "h08_green_mound_enclosure",
+          "s_range_approx": [
+            0.93,
+            1.08
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 9,
+      "name": "Carolina Cherry",
+      "par": 4,
+      "yards_from_supplied_info": 460,
+      "nominal_route_length_m": 420.624,
+      "references": {
+        "full_map": "hole diagrams/hole 9/hole-map-9.jpg",
+        "full_map_size_px": [
+          4374,
+          1666
+        ],
+        "green_closeup": "hole diagrams/hole 9/hole 9 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.091,
+          0.285
+        ],
+        [
+          0.32,
+          0.495
+        ],
+        [
+          0.6,
+          0.68
+        ],
+        [
+          0.75,
+          0.6
+        ],
+        [
+          0.9,
+          0.36
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1118166,
+      "green_center_uv_approx": [
+        0.9,
+        0.36
+      ],
+      "owned_bunker_count": 2,
+      "bunkers": [
+        {
+          "id": "h09_green_left_rear",
+          "role": "greenside",
+          "locator_uv": [
+            0.881704,
+            0.297173
+          ],
+          "outline_uv": [
+            [
+              0.88375,
+              0.269029
+            ],
+            [
+              0.8945,
+              0.269685
+            ],
+            [
+              0.897,
+              0.27231
+            ],
+            [
+              0.89975,
+              0.282152
+            ],
+            [
+              0.89925,
+              0.292651
+            ],
+            [
+              0.89625,
+              0.308399
+            ],
+            [
+              0.892,
+              0.320866
+            ],
+            [
+              0.89,
+              0.323491
+            ],
+            [
+              0.884,
+              0.323491
+            ],
+            [
+              0.8795,
+              0.318241
+            ],
+            [
+              0.876,
+              0.318241
+            ],
+            [
+              0.873,
+              0.322178
+            ],
+            [
+              0.8655,
+              0.322178
+            ],
+            [
+              0.8635,
+              0.320866
+            ],
+            [
+              0.86175,
+              0.316273
+            ],
+            [
+              0.86225,
+              0.30315
+            ],
+            [
+              0.869,
+              0.285433
+            ],
+            [
+              0.8755,
+              0.273622
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.862,
+            0.269029,
+            0.8995,
+            0.322835
+          ]
+        },
+        {
+          "id": "h09_green_left_front",
+          "role": "greenside",
+          "locator_uv": [
+            0.867597,
+            0.362968
+          ],
+          "outline_uv": [
+            [
+              0.86025,
+              0.332021
+            ],
+            [
+              0.879,
+              0.331365
+            ],
+            [
+              0.882,
+              0.33399
+            ],
+            [
+              0.88325,
+              0.338583
+            ],
+            [
+              0.88325,
+              0.350394
+            ],
+            [
+              0.88225,
+              0.355643
+            ],
+            [
+              0.87875,
+              0.367454
+            ],
+            [
+              0.87375,
+              0.395013
+            ],
+            [
+              0.8695,
+              0.403543
+            ],
+            [
+              0.864,
+              0.403543
+            ],
+            [
+              0.8605,
+              0.399606
+            ],
+            [
+              0.85875,
+              0.393701
+            ],
+            [
+              0.85825,
+              0.380577
+            ],
+            [
+              0.85225,
+              0.368766
+            ],
+            [
+              0.85225,
+              0.363517
+            ],
+            [
+              0.85575,
+              0.341207
+            ],
+            [
+              0.858,
+              0.33399
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.8525,
+            0.332021,
+            0.883,
+            0.402887
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.2,
+            -5
+          ],
+          [
+            0.5,
+            -13
+          ],
+          [
+            0.7,
+            -10
+          ],
+          [
+            0.87,
+            -2
+          ],
+          [
+            1,
+            6
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 30,
+        "depth_along_approach_m": 34,
+        "internal_relief_range_m": [
+          1.2,
+          2.0
+        ],
+        "shape_and_contours": "Three proposed connected height regions with strong overall back-to-front rise."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h09_fairway_valley",
+          "s_range_approx": [
+            0.18,
+            0.75
+          ]
+        },
+        {
+          "id": "h09_uphill_approach",
+          "s_range_approx": [
+            0.73,
+            0.96
+          ]
+        },
+        {
+          "id": "h09_front_runoff",
+          "s_range_approx": [
+            0.89,
+            0.98
+          ]
+        },
+        {
+          "id": "h09_green_height_regions",
+          "s_range_approx": [
+            0.95,
+            1.05
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 10,
+      "name": "Camellia",
+      "par": 4,
+      "yards_from_supplied_info": 495,
+      "nominal_route_length_m": 452.628,
+      "references": {
+        "full_map": "hole diagrams/hole 10/hole-map-10.jpg",
+        "full_map_size_px": [
+          4507,
+          1678
+        ],
+        "green_closeup": "hole diagrams/hole 10/hole 10 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.092,
+          0.286
+        ],
+        [
+          0.3,
+          0.51
+        ],
+        [
+          0.5,
+          0.59
+        ],
+        [
+          0.68,
+          0.52
+        ],
+        [
+          0.81,
+          0.39
+        ],
+        [
+          0.891,
+          0.332
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1208917,
+      "green_center_uv_approx": [
+        0.891,
+        0.332
+      ],
+      "owned_bunker_count": 2,
+      "bunkers": [
+        {
+          "id": "h10_fairway_branching",
+          "role": "fairway",
+          "locator_uv": [
+            0.751436,
+            0.428396
+          ],
+          "outline_uv": [
+            [
+              0.75825,
+              0.381208
+            ],
+            [
+              0.774,
+              0.381879
+            ],
+            [
+              0.77475,
+              0.387919
+            ],
+            [
+              0.77125,
+              0.397315
+            ],
+            [
+              0.7725,
+              0.400671
+            ],
+            [
+              0.7785,
+              0.389933
+            ],
+            [
+              0.7835,
+              0.388591
+            ],
+            [
+              0.78475,
+              0.393289
+            ],
+            [
+              0.78475,
+              0.402685
+            ],
+            [
+              0.7865,
+              0.407383
+            ],
+            [
+              0.7915,
+              0.407383
+            ],
+            [
+              0.79525,
+              0.412081
+            ],
+            [
+              0.79575,
+              0.422819
+            ],
+            [
+              0.795,
+              0.426174
+            ],
+            [
+              0.793,
+              0.430201
+            ],
+            [
+              0.7895,
+              0.431544
+            ],
+            [
+              0.7825,
+              0.42349
+            ],
+            [
+              0.7805,
+              0.42349
+            ],
+            [
+              0.77925,
+              0.426846
+            ],
+            [
+              0.77925,
+              0.430872
+            ],
+            [
+              0.784,
+              0.436913
+            ],
+            [
+              0.78525,
+              0.441611
+            ],
+            [
+              0.78525,
+              0.445638
+            ],
+            [
+              0.782,
+              0.450336
+            ],
+            [
+              0.779,
+              0.448993
+            ],
+            [
+              0.7725,
+              0.438255
+            ],
+            [
+              0.7715,
+              0.438255
+            ],
+            [
+              0.76925,
+              0.444295
+            ],
+            [
+              0.76875,
+              0.449664
+            ],
+            [
+              0.767,
+              0.45302
+            ],
+            [
+              0.765,
+              0.45302
+            ],
+            [
+              0.7595,
+              0.438255
+            ],
+            [
+              0.7545,
+              0.450336
+            ],
+            [
+              0.7475,
+              0.447651
+            ],
+            [
+              0.74525,
+              0.452349
+            ],
+            [
+              0.7435,
+              0.462416
+            ],
+            [
+              0.7385,
+              0.465101
+            ],
+            [
+              0.7355,
+              0.475839
+            ],
+            [
+              0.7325,
+              0.479866
+            ],
+            [
+              0.73075,
+              0.477852
+            ],
+            [
+              0.73075,
+              0.471141
+            ],
+            [
+              0.74025,
+              0.442953
+            ],
+            [
+              0.74075,
+              0.438926
+            ],
+            [
+              0.739,
+              0.432886
+            ],
+            [
+              0.7365,
+              0.432886
+            ],
+            [
+              0.7345,
+              0.43557
+            ],
+            [
+              0.73275,
+              0.441611
+            ],
+            [
+              0.72825,
+              0.468456
+            ],
+            [
+              0.724,
+              0.483893
+            ],
+            [
+              0.719,
+              0.489262
+            ],
+            [
+              0.714,
+              0.489262
+            ],
+            [
+              0.70975,
+              0.480537
+            ],
+            [
+              0.70975,
+              0.471141
+            ],
+            [
+              0.72175,
+              0.432215
+            ],
+            [
+              0.7325,
+              0.404698
+            ],
+            [
+              0.739,
+              0.39396
+            ],
+            [
+              0.7475,
+              0.385906
+            ],
+            [
+              0.753,
+              0.387248
+            ],
+            [
+              0.75425,
+              0.391946
+            ],
+            [
+              0.75475,
+              0.4
+            ],
+            [
+              0.75075,
+              0.413423
+            ],
+            [
+              0.75075,
+              0.41745
+            ],
+            [
+              0.752,
+              0.420805
+            ],
+            [
+              0.755,
+              0.419463
+            ],
+            [
+              0.75825,
+              0.406711
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.71,
+            0.381208,
+            0.7955,
+            0.488591
+          ]
+        },
+        {
+          "id": "h10_green_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.869005,
+            0.407517
+          ],
+          "outline_uv": [
+            [
+              0.88875,
+              0.38255
+            ],
+            [
+              0.894,
+              0.384564
+            ],
+            [
+              0.89625,
+              0.390604
+            ],
+            [
+              0.89725,
+              0.395973
+            ],
+            [
+              0.8965,
+              0.408725
+            ],
+            [
+              0.8935,
+              0.399329
+            ],
+            [
+              0.892,
+              0.403356
+            ],
+            [
+              0.891,
+              0.403356
+            ],
+            [
+              0.89,
+              0.399329
+            ],
+            [
+              0.889,
+              0.404698
+            ],
+            [
+              0.8865,
+              0.397987
+            ],
+            [
+              0.8855,
+              0.397987
+            ],
+            [
+              0.885,
+              0.402013
+            ],
+            [
+              0.88175,
+              0.405369
+            ],
+            [
+              0.8825,
+              0.410067
+            ],
+            [
+              0.8775,
+              0.411409
+            ],
+            [
+              0.8725,
+              0.418121
+            ],
+            [
+              0.8655,
+              0.438255
+            ],
+            [
+              0.863,
+              0.442282
+            ],
+            [
+              0.8565,
+              0.44094
+            ],
+            [
+              0.853,
+              0.43557
+            ],
+            [
+              0.85025,
+              0.425503
+            ],
+            [
+              0.85025,
+              0.410738
+            ],
+            [
+              0.85175,
+              0.401342
+            ],
+            [
+              0.8615,
+              0.385906
+            ],
+            [
+              0.8695,
+              0.384564
+            ],
+            [
+              0.88,
+              0.388591
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.8505,
+            0.38255,
+            0.897,
+            0.441611
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.2,
+            -9
+          ],
+          [
+            0.45,
+            -23
+          ],
+          [
+            0.7,
+            -30
+          ],
+          [
+            0.85,
+            -31
+          ],
+          [
+            1,
+            -28
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 26,
+        "depth_along_approach_m": 36,
+        "internal_relief_range_m": [
+          0.6,
+          1.1
+        ],
+        "shape_and_contours": "Long rounded rectangle; high right, low left and a smaller longitudinal roll."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h10_major_downhill_fairway",
+          "s_range_approx": [
+            0.08,
+            0.77
+          ]
+        },
+        {
+          "id": "h10_low_fairway",
+          "s_range_approx": [
+            0.76,
+            0.89
+          ]
+        },
+        {
+          "id": "h10_finishing_rise",
+          "s_range_approx": [
+            0.88,
+            1.05
+          ]
+        },
+        {
+          "id": "h10_green_cross_slope",
+          "s_range_approx": [
+            0.96,
+            1.05
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 11,
+      "name": "White Dogwood",
+      "par": 4,
+      "yards_from_supplied_info": 520,
+      "nominal_route_length_m": 475.488,
+      "references": {
+        "full_map": "hole diagrams/hole 11/hole-map-11.jpg",
+        "full_map_size_px": [
+          4353,
+          1302
+        ],
+        "green_closeup": "hole diagrams/hole 11/hole 11 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.08,
+          0.562
+        ],
+        [
+          0.36,
+          0.43
+        ],
+        [
+          0.58,
+          0.39
+        ],
+        [
+          0.71,
+          0.42
+        ],
+        [
+          0.852,
+          0.527
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1402272,
+      "green_center_uv_approx": [
+        0.852,
+        0.527
+      ],
+      "owned_bunker_count": 1,
+      "bunkers": [
+        {
+          "id": "h11_green_back_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.878646,
+            0.583214
+          ],
+          "outline_uv": [
+            [
+              0.88125,
+              0.551839
+            ],
+            [
+              0.8835,
+              0.552676
+            ],
+            [
+              0.88525,
+              0.558528
+            ],
+            [
+              0.88525,
+              0.570234
+            ],
+            [
+              0.88375,
+              0.576923
+            ],
+            [
+              0.88375,
+              0.583612
+            ],
+            [
+              0.88675,
+              0.595318
+            ],
+            [
+              0.88725,
+              0.607023
+            ],
+            [
+              0.8855,
+              0.612876
+            ],
+            [
+              0.8805,
+              0.612876
+            ],
+            [
+              0.877,
+              0.616221
+            ],
+            [
+              0.87425,
+              0.608696
+            ],
+            [
+              0.87375,
+              0.595318
+            ],
+            [
+              0.86925,
+              0.578595
+            ],
+            [
+              0.86875,
+              0.571906
+            ],
+            [
+              0.8705,
+              0.562709
+            ],
+            [
+              0.8745,
+              0.55602
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.869,
+            0.551839,
+            0.887,
+            0.615385
+          ]
+        }
+      ],
+      "water_locators_approx": [
+        {
+          "name": "pond_left_of_green",
+          "uv": [
+            0.827,
+            0.418
+          ]
+        },
+        {
+          "name": "channel_beyond_green",
+          "uv": [
+            0.917,
+            0.361
+          ]
+        }
+      ],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.18,
+            2
+          ],
+          [
+            0.4,
+            -4
+          ],
+          [
+            0.65,
+            -14
+          ],
+          [
+            0.87,
+            -23
+          ],
+          [
+            1,
+            -22
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 28,
+        "depth_along_approach_m": 33,
+        "internal_relief_range_m": [
+          0.4,
+          0.8
+        ],
+        "shape_and_contours": "Elongated kidney; narrow waterside back region, broader front/right region."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h11_upper_crest",
+          "s_range_approx": [
+            0.08,
+            0.25
+          ]
+        },
+        {
+          "id": "h11_descending_open_fairway",
+          "s_range_approx": [
+            0.28,
+            0.9
+          ]
+        },
+        {
+          "id": "h11_waterside_green_bank",
+          "s_range_approx": [
+            0.94,
+            1.05
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 12,
+      "name": "Golden Bell",
+      "par": 3,
+      "yards_from_supplied_info": 155,
+      "nominal_route_length_m": 141.732,
+      "references": {
+        "full_map": "hole diagrams/hole 12/hole-map-12.jpg",
+        "full_map_size_px": [
+          4149,
+          1884
+        ],
+        "green_closeup": "hole diagrams/hole 12/hole 12 green.jpg"
+      },
+      "route_uv_approx": [
+        [
+          0.159,
+          0.517
+        ],
+        [
+          0.736,
+          0.513
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.0592034,
+      "green_center_uv_approx": [
+        0.736,
+        0.513
+      ],
+      "owned_bunker_count": 3,
+      "bunkers": [
+        {
+          "id": "h12_green_front",
+          "role": "greenside",
+          "locator_uv": [
+            0.706698,
+            0.523521
+          ],
+          "outline_uv": [
+            [
+              0.69425,
+              0.479075
+            ],
+            [
+              0.7,
+              0.478524
+            ],
+            [
+              0.706,
+              0.485132
+            ],
+            [
+              0.71175,
+              0.497797
+            ],
+            [
+              0.71175,
+              0.511013
+            ],
+            [
+              0.71275,
+              0.51652
+            ],
+            [
+              0.7145,
+              0.519273
+            ],
+            [
+              0.7195,
+              0.519273
+            ],
+            [
+              0.72525,
+              0.529736
+            ],
+            [
+              0.72675,
+              0.539648
+            ],
+            [
+              0.72625,
+              0.551762
+            ],
+            [
+              0.72475,
+              0.560573
+            ],
+            [
+              0.721,
+              0.567731
+            ],
+            [
+              0.718,
+              0.571035
+            ],
+            [
+              0.7135,
+              0.571035
+            ],
+            [
+              0.711,
+              0.567731
+            ],
+            [
+              0.70525,
+              0.555066
+            ],
+            [
+              0.70225,
+              0.539648
+            ],
+            [
+              0.692,
+              0.52478
+            ],
+            [
+              0.68775,
+              0.513216
+            ],
+            [
+              0.68625,
+              0.505507
+            ],
+            [
+              0.68675,
+              0.492291
+            ],
+            [
+              0.691,
+              0.481828
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.6865,
+            0.479075,
+            0.7265,
+            0.570485
+          ]
+        },
+        {
+          "id": "h12_green_back_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.793031,
+            0.473552
+          ],
+          "outline_uv": [
+            [
+              0.778501,
+              0.451168
+            ],
+            [
+              0.785249,
+              0.441083
+            ],
+            [
+              0.792962,
+              0.443206
+            ],
+            [
+              0.802121,
+              0.453822
+            ],
+            [
+              0.807423,
+              0.473461
+            ],
+            [
+              0.809352,
+              0.493631
+            ],
+            [
+              0.802603,
+              0.504246
+            ],
+            [
+              0.796095,
+              0.511146
+            ],
+            [
+              0.790552,
+              0.511677
+            ],
+            [
+              0.785732,
+              0.494692
+            ],
+            [
+              0.781393,
+              0.475584
+            ],
+            [
+              0.778501,
+              0.464437
+            ]
+          ],
+          "outline_status": "Partly tree-occluded: visible main sand body with a smooth estimated canopy-side edge. Hidden full extent is unresolved; do not model leaf-shaped sand fingers.",
+          "visible_boundary_bbox_uv": [
+            0.778501,
+            0.441083,
+            0.809352,
+            0.511677
+          ]
+        },
+        {
+          "id": "h12_green_back_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.81119,
+            0.53232
+          ],
+          "outline_uv": [
+            [
+              0.81175,
+              0.503304
+            ],
+            [
+              0.813,
+              0.502753
+            ],
+            [
+              0.8155,
+              0.50826
+            ],
+            [
+              0.8165,
+              0.507159
+            ],
+            [
+              0.81725,
+              0.508811
+            ],
+            [
+              0.81725,
+              0.514317
+            ],
+            [
+              0.81875,
+              0.517621
+            ],
+            [
+              0.81825,
+              0.520925
+            ],
+            [
+              0.822,
+              0.530286
+            ],
+            [
+              0.82325,
+              0.529736
+            ],
+            [
+              0.82325,
+              0.536344
+            ],
+            [
+              0.82525,
+              0.540749
+            ],
+            [
+              0.82525,
+              0.546256
+            ],
+            [
+              0.8245,
+              0.547907
+            ],
+            [
+              0.816,
+              0.553414
+            ],
+            [
+              0.8065,
+              0.554515
+            ],
+            [
+              0.8035,
+              0.552313
+            ],
+            [
+              0.80025,
+              0.544053
+            ],
+            [
+              0.79825,
+              0.535242
+            ],
+            [
+              0.79825,
+              0.526432
+            ],
+            [
+              0.8075,
+              0.50826
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.7985,
+            0.503304,
+            0.825,
+            0.553965
+          ]
+        }
+      ],
+      "water_locators_approx": [
+        {
+          "name": "diagonal_creek_crossing",
+          "uv": [
+            0.599,
+            0.534
+          ]
+        }
+      ],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.62,
+            -0.5
+          ],
+          [
+            0.78,
+            -3
+          ],
+          [
+            0.86,
+            -2.5
+          ],
+          [
+            0.94,
+            -1
+          ],
+          [
+            1,
+            -1
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 38,
+        "depth_along_approach_m": 18,
+        "internal_relief_range_m": [
+          0.3,
+          0.6
+        ],
+        "shape_and_contours": "Long diagonal banana/bean; unequal end lobes and shallow connecting saddle."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h12_creek_channel",
+          "s_range_approx": [
+            0.72,
+            0.91
+          ]
+        },
+        {
+          "id": "h12_narrow_green_bank",
+          "s_range_approx": [
+            0.92,
+            1.04
+          ]
+        },
+        {
+          "id": "h12_rear_wooded_bank",
+          "s_range_approx": [
+            1.02,
+            1.13
+          ]
+        }
+      ],
+      "neighbor_context": {
+        "adjacent_tee_rectangle_uv_approx": [
+          0.843,
+          0.711
+        ],
+        "not_this_holes_starting_tee": true
+      }
+    },
+    {
+      "hole": 13,
+      "name": "Azalea",
+      "par": 5,
+      "yards_from_supplied_info": 545,
+      "nominal_route_length_m": 498.348,
+      "references": {
+        "full_map": "hole diagrams/hole 13/hole-map-13.jpg",
+        "full_map_size_px": [
+          4333,
+          2071
+        ],
+        "green_closeup": "hole diagrams/hole 13/hole 13 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.078,
+          0.172
+        ],
+        [
+          0.29,
+          0.58
+        ],
+        [
+          0.49,
+          0.75
+        ],
+        [
+          0.7,
+          0.67
+        ],
+        [
+          0.805,
+          0.51
+        ],
+        [
+          0.864,
+          0.348
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1217551,
+      "green_center_uv_approx": [
+        0.864,
+        0.348
+      ],
+      "owned_bunker_count": 4,
+      "bunkers": [
+        {
+          "id": "h13_green_arc_image_west",
+          "role": "greenside",
+          "locator_uv": [
+            0.804858,
+            0.332912
+          ],
+          "outline_uv": [
+            [
+              0.81325,
+              0.309623
+            ],
+            [
+              0.8185,
+              0.3091
+            ],
+            [
+              0.82075,
+              0.312762
+            ],
+            [
+              0.82075,
+              0.320084
+            ],
+            [
+              0.81925,
+              0.328452
+            ],
+            [
+              0.8135,
+              0.345711
+            ],
+            [
+              0.803,
+              0.355126
+            ],
+            [
+              0.795,
+              0.354079
+            ],
+            [
+              0.79075,
+              0.348326
+            ],
+            [
+              0.78925,
+              0.339958
+            ],
+            [
+              0.78925,
+              0.33159
+            ],
+            [
+              0.7935,
+              0.320607
+            ],
+            [
+              0.795,
+              0.318515
+            ],
+            [
+              0.7995,
+              0.317469
+            ],
+            [
+              0.804,
+              0.325837
+            ],
+            [
+              0.80575,
+              0.323222
+            ],
+            [
+              0.8085,
+              0.312238
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.7895,
+            0.309623,
+            0.8205,
+            0.354603
+          ]
+        },
+        {
+          "id": "h13_green_arc_upper_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.853053,
+            0.277951
+          ],
+          "outline_uv": [
+            [
+              0.84975,
+              0.259414
+            ],
+            [
+              0.8555,
+              0.258891
+            ],
+            [
+              0.86075,
+              0.266736
+            ],
+            [
+              0.86275,
+              0.278243
+            ],
+            [
+              0.8625,
+              0.28818
+            ],
+            [
+              0.858,
+              0.29341
+            ],
+            [
+              0.854,
+              0.295502
+            ],
+            [
+              0.8485,
+              0.295502
+            ],
+            [
+              0.846,
+              0.29341
+            ],
+            [
+              0.84375,
+              0.288703
+            ],
+            [
+              0.84375,
+              0.277197
+            ],
+            [
+              0.84525,
+              0.268828
+            ],
+            [
+              0.84625,
+              0.264644
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.8435,
+            0.259414,
+            0.8625,
+            0.294979
+          ]
+        },
+        {
+          "id": "h13_green_arc_upper_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.896825,
+            0.273232
+          ],
+          "outline_uv": [
+            [
+              0.89225,
+              0.248954
+            ],
+            [
+              0.8975,
+              0.248431
+            ],
+            [
+              0.89925,
+              0.251046
+            ],
+            [
+              0.89975,
+              0.254184
+            ],
+            [
+              0.89725,
+              0.263598
+            ],
+            [
+              0.898,
+              0.266213
+            ],
+            [
+              0.9045,
+              0.260983
+            ],
+            [
+              0.907,
+              0.260983
+            ],
+            [
+              0.90975,
+              0.267782
+            ],
+            [
+              0.91075,
+              0.279289
+            ],
+            [
+              0.9005,
+              0.296548
+            ],
+            [
+              0.897,
+              0.296548
+            ],
+            [
+              0.8945,
+              0.294456
+            ],
+            [
+              0.889,
+              0.287134
+            ],
+            [
+              0.88425,
+              0.276151
+            ],
+            [
+              0.88425,
+              0.268828
+            ],
+            [
+              0.88525,
+              0.263598
+            ],
+            [
+              0.88775,
+              0.256276
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.8845,
+            0.248954,
+            0.9105,
+            0.296025
+          ]
+        },
+        {
+          "id": "h13_green_arc_image_east",
+          "role": "greenside",
+          "locator_uv": [
+            0.913249,
+            0.312115
+          ],
+          "outline_uv": [
+            [
+              0.91125,
+              0.285565
+            ],
+            [
+              0.9155,
+              0.285042
+            ],
+            [
+              0.91975,
+              0.289749
+            ],
+            [
+              0.921,
+              0.297594
+            ],
+            [
+              0.9235,
+              0.294456
+            ],
+            [
+              0.92425,
+              0.297071
+            ],
+            [
+              0.92275,
+              0.299163
+            ],
+            [
+              0.92375,
+              0.305439
+            ],
+            [
+              0.92125,
+              0.327406
+            ],
+            [
+              0.91975,
+              0.332636
+            ],
+            [
+              0.914,
+              0.342573
+            ],
+            [
+              0.9105,
+              0.342573
+            ],
+            [
+              0.90875,
+              0.338912
+            ],
+            [
+              0.90575,
+              0.325314
+            ],
+            [
+              0.90525,
+              0.319038
+            ],
+            [
+              0.90225,
+              0.307531
+            ],
+            [
+              0.90225,
+              0.301255
+            ],
+            [
+              0.90325,
+              0.298117
+            ],
+            [
+              0.907,
+              0.290272
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.9025,
+            0.285565,
+            0.924,
+            0.34205
+          ]
+        }
+      ],
+      "water_locators_approx": [
+        {
+          "name": "broad_channel_near_tee",
+          "uv": [
+            0.221,
+            0.447
+          ]
+        },
+        {
+          "name": "inside_tributary",
+          "uv": [
+            0.523,
+            0.64
+          ]
+        },
+        {
+          "name": "tributary_front_of_green",
+          "uv": [
+            0.863,
+            0.421
+          ]
+        }
+      ],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.18,
+            -2
+          ],
+          [
+            0.4,
+            -5
+          ],
+          [
+            0.64,
+            -4
+          ],
+          [
+            0.82,
+            -3
+          ],
+          [
+            0.93,
+            -4
+          ],
+          [
+            1,
+            -1
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 35,
+        "depth_along_approach_m": 29,
+        "internal_relief_range_m": [
+          0.6,
+          1.0
+        ],
+        "shape_and_contours": "Elongated uneven lobes; higher rear region and lower approach shelf; rotate close-up by landmarks."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h13_lower_dogleg",
+          "s_range_approx": [
+            0.22,
+            0.77
+          ]
+        },
+        {
+          "id": "h13_sidehill_landing",
+          "s_range_approx": [
+            0.45,
+            0.83
+          ]
+        },
+        {
+          "id": "h13_tributary_crossing",
+          "s_range_approx": [
+            0.89,
+            0.97
+          ]
+        },
+        {
+          "id": "h13_raised_green_bank",
+          "s_range_approx": [
+            0.97,
+            1.06
+          ]
+        }
+      ],
+      "neighbor_context": {
+        "hole": 12,
+        "green_center_in_this_image_uv_approx": [
+          0.181,
+          0.466
+        ],
+        "exclude_neighbor_bunkers_from_owned_count": 3
+      }
+    },
+    {
+      "hole": 14,
+      "name": "Chinese Fir",
+      "par": 4,
+      "yards_from_supplied_info": 440,
+      "nominal_route_length_m": 402.336,
+      "references": {
+        "full_map": "hole diagrams/hole 14/hole-map-14.jpg",
+        "full_map_size_px": [
+          4397,
+          1552
+        ],
+        "green_closeup": "hole diagrams/hole 14/hole 14 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.085,
+          0.3
+        ],
+        [
+          0.31,
+          0.45
+        ],
+        [
+          0.54,
+          0.55
+        ],
+        [
+          0.7,
+          0.515
+        ],
+        [
+          0.872,
+          0.404
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1142751,
+      "green_center_uv_approx": [
+        0.872,
+        0.404
+      ],
+      "owned_bunker_count": 0,
+      "bunkers": [],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.25,
+            1
+          ],
+          [
+            0.5,
+            3
+          ],
+          [
+            0.75,
+            5
+          ],
+          [
+            0.9,
+            8
+          ],
+          [
+            1,
+            10
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 32,
+        "depth_along_approach_m": 36,
+        "internal_relief_range_m": [
+          1.0,
+          1.8
+        ],
+        "shape_and_contours": "Lower entry, curved front-third ridge, higher left/back shoulder, lower right receiver."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h14_rolling_rising_fairway",
+          "s_range_approx": [
+            0.15,
+            0.9
+          ]
+        },
+        {
+          "id": "h14_front_green_ridge",
+          "s_range_approx": [
+            0.96,
+            1.0
+          ]
+        },
+        {
+          "id": "h14_high_left_back_shoulder",
+          "s_range_approx": [
+            0.99,
+            1.05
+          ]
+        },
+        {
+          "id": "h14_lower_right_receiver",
+          "s_range_approx": [
+            0.98,
+            1.05
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 15,
+      "name": "Firethorn",
+      "par": 5,
+      "yards_from_supplied_info": 550,
+      "nominal_route_length_m": 502.92,
+      "references": {
+        "full_map": "hole diagrams/hole 15/hole-map-15.jpg",
+        "full_map_size_px": [
+          4497,
+          1337
+        ],
+        "green_closeup": "hole diagrams/hole 15/hole 15 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.08,
+          0.533
+        ],
+        [
+          0.35,
+          0.49
+        ],
+        [
+          0.55,
+          0.5
+        ],
+        [
+          0.75,
+          0.43
+        ],
+        [
+          0.885,
+          0.493
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1384609,
+      "green_center_uv_approx": [
+        0.885,
+        0.493
+      ],
+      "owned_bunker_count": 1,
+      "bunkers": [
+        {
+          "id": "h15_green_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.870639,
+            0.610216
+          ],
+          "outline_uv": [
+            [
+              0.87975,
+              0.588235
+            ],
+            [
+              0.8825,
+              0.587395
+            ],
+            [
+              0.88475,
+              0.594958
+            ],
+            [
+              0.88475,
+              0.606723
+            ],
+            [
+              0.883,
+              0.617647
+            ],
+            [
+              0.8795,
+              0.621008
+            ],
+            [
+              0.874,
+              0.619328
+            ],
+            [
+              0.868,
+              0.634454
+            ],
+            [
+              0.863,
+              0.641176
+            ],
+            [
+              0.86175,
+              0.633613
+            ],
+            [
+              0.86025,
+              0.631933
+            ],
+            [
+              0.86075,
+              0.626891
+            ],
+            [
+              0.8595,
+              0.621008
+            ],
+            [
+              0.8585,
+              0.622689
+            ],
+            [
+              0.8575,
+              0.619328
+            ],
+            [
+              0.856,
+              0.619328
+            ],
+            [
+              0.85425,
+              0.621849
+            ],
+            [
+              0.863,
+              0.594118
+            ],
+            [
+              0.875,
+              0.592437
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.8545,
+            0.588235,
+            0.8845,
+            0.640336
+          ]
+        }
+      ],
+      "water_locators_approx": [
+        {
+          "name": "front_pond",
+          "uv": [
+            0.842,
+            0.48
+          ]
+        },
+        {
+          "name": "farther_water",
+          "uv": [
+            0.955,
+            0.407
+          ]
+        }
+      ],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.25,
+            3
+          ],
+          [
+            0.48,
+            6
+          ],
+          [
+            0.65,
+            1
+          ],
+          [
+            0.82,
+            -7
+          ],
+          [
+            0.93,
+            -13
+          ],
+          [
+            1,
+            -10
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 36,
+        "depth_along_approach_m": 20,
+        "internal_relief_range_m": [
+          0.35,
+          0.7
+        ],
+        "shape_and_contours": "Wide shallow outline; mild crown and two receiving areas above steep front runoff."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h15_broad_fairway_crest",
+          "s_range_approx": [
+            0.38,
+            0.56
+          ]
+        },
+        {
+          "id": "h15_descending_layup",
+          "s_range_approx": [
+            0.56,
+            0.89
+          ]
+        },
+        {
+          "id": "h15_front_pond_basin",
+          "s_range_approx": [
+            0.89,
+            0.96
+          ]
+        },
+        {
+          "id": "h15_far_bank_runoff",
+          "s_range_approx": [
+            0.96,
+            0.99
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 16,
+      "name": "Redbud",
+      "par": 3,
+      "yards_from_supplied_info": 170,
+      "nominal_route_length_m": 155.448,
+      "references": {
+        "full_map": "hole diagrams/hole 16/hole-map-16.jpg",
+        "full_map_size_px": [
+          4346,
+          2049
+        ],
+        "green_closeup": "hole diagrams/hole 16/hole 16 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.219,
+          0.417
+        ],
+        [
+          0.816,
+          0.484
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.0598293,
+      "green_center_uv_approx": [
+        0.816,
+        0.484
+      ],
+      "owned_bunker_count": 3,
+      "bunkers": [
+        {
+          "id": "h16_green_pond_side",
+          "role": "greenside",
+          "locator_uv": [
+            0.832765,
+            0.361079
+          ],
+          "outline_uv": [
+            [
+              0.83775,
+              0.306469
+            ],
+            [
+              0.841,
+              0.305938
+            ],
+            [
+              0.844,
+              0.308059
+            ],
+            [
+              0.848,
+              0.313362
+            ],
+            [
+              0.84975,
+              0.318134
+            ],
+            [
+              0.85175,
+              0.330859
+            ],
+            [
+              0.85125,
+              0.348887
+            ],
+            [
+              0.83725,
+              0.389183
+            ],
+            [
+              0.829,
+              0.406681
+            ],
+            [
+              0.8235,
+              0.414104
+            ],
+            [
+              0.817,
+              0.411983
+            ],
+            [
+              0.81325,
+              0.40509
+            ],
+            [
+              0.81175,
+              0.396607
+            ],
+            [
+              0.81175,
+              0.390244
+            ],
+            [
+              0.81375,
+              0.377519
+            ],
+            [
+              0.82475,
+              0.353128
+            ],
+            [
+              0.82875,
+              0.337222
+            ],
+            [
+              0.83175,
+              0.318134
+            ],
+            [
+              0.834,
+              0.311241
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.812,
+            0.306469,
+            0.8515,
+            0.413574
+          ]
+        },
+        {
+          "id": "h16_green_front_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.7485,
+            0.607366
+          ],
+          "outline_uv": [
+            [
+              0.73575,
+              0.559915
+            ],
+            [
+              0.7415,
+              0.559385
+            ],
+            [
+              0.745,
+              0.562566
+            ],
+            [
+              0.75125,
+              0.574761
+            ],
+            [
+              0.7555,
+              0.589077
+            ],
+            [
+              0.7605,
+              0.591198
+            ],
+            [
+              0.7675,
+              0.597561
+            ],
+            [
+              0.77375,
+              0.608696
+            ],
+            [
+              0.77525,
+              0.613998
+            ],
+            [
+              0.77575,
+              0.625663
+            ],
+            [
+              0.77525,
+              0.630965
+            ],
+            [
+              0.7725,
+              0.639979
+            ],
+            [
+              0.77,
+              0.644221
+            ],
+            [
+              0.7645,
+              0.648462
+            ],
+            [
+              0.7535,
+              0.648462
+            ],
+            [
+              0.744,
+              0.641039
+            ],
+            [
+              0.733,
+              0.626193
+            ],
+            [
+              0.72875,
+              0.61824
+            ],
+            [
+              0.72675,
+              0.612937
+            ],
+            [
+              0.72425,
+              0.600212
+            ],
+            [
+              0.72475,
+              0.581124
+            ],
+            [
+              0.72725,
+              0.57052
+            ],
+            [
+              0.7305,
+              0.563627
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.7245,
+            0.559915,
+            0.7755,
+            0.648993
+          ]
+        },
+        {
+          "id": "h16_green_back_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.873787,
+            0.607456
+          ],
+          "outline_uv": [
+            [
+              0.89475,
+              0.528102
+            ],
+            [
+              0.8995,
+              0.527572
+            ],
+            [
+              0.9035,
+              0.530753
+            ],
+            [
+              0.90425,
+              0.534464
+            ],
+            [
+              0.90375,
+              0.535525
+            ],
+            [
+              0.90525,
+              0.539767
+            ],
+            [
+              0.91025,
+              0.549311
+            ],
+            [
+              0.91175,
+              0.558855
+            ],
+            [
+              0.91125,
+              0.57052
+            ],
+            [
+              0.90575,
+              0.585366
+            ],
+            [
+              0.89875,
+              0.613998
+            ],
+            [
+              0.88825,
+              0.636267
+            ],
+            [
+              0.88575,
+              0.647932
+            ],
+            [
+              0.883,
+              0.649523
+            ],
+            [
+              0.87825,
+              0.659597
+            ],
+            [
+              0.8785,
+              0.662248
+            ],
+            [
+              0.8735,
+              0.662248
+            ],
+            [
+              0.872,
+              0.668611
+            ],
+            [
+              0.8645,
+              0.669671
+            ],
+            [
+              0.8565,
+              0.678155
+            ],
+            [
+              0.8525,
+              0.678155
+            ],
+            [
+              0.8475,
+              0.672853
+            ],
+            [
+              0.84525,
+              0.668081
+            ],
+            [
+              0.84175,
+              0.655355
+            ],
+            [
+              0.83625,
+              0.627784
+            ],
+            [
+              0.83625,
+              0.616119
+            ],
+            [
+              0.83925,
+              0.601273
+            ],
+            [
+              0.844,
+              0.593319
+            ],
+            [
+              0.86,
+              0.584836
+            ],
+            [
+              0.8705,
+              0.576352
+            ],
+            [
+              0.88325,
+              0.554613
+            ],
+            [
+              0.891,
+              0.530753
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.8365,
+            0.528102,
+            0.9115,
+            0.677625
+          ]
+        }
+      ],
+      "water_locators_approx": [
+        {
+          "name": "long_pond",
+          "uv": [
+            0.555,
+            0.429
+          ]
+        }
+      ],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.16,
+            -1
+          ],
+          [
+            0.3,
+            -4
+          ],
+          [
+            0.76,
+            -4
+          ],
+          [
+            0.89,
+            -3
+          ],
+          [
+            1,
+            -2
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 31,
+        "depth_along_approach_m": 37,
+        "internal_relief_range_m": [
+          0.9,
+          1.5
+        ],
+        "shape_and_contours": "Upper-right shelf, lower-left region, curved diagonal face and subtle back-left pocket."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h16_pond_basin",
+          "s_range_approx": [
+            0.23,
+            0.91
+          ]
+        },
+        {
+          "id": "h16_high_right_green_bank",
+          "s_range_approx": [
+            0.95,
+            1.1
+          ]
+        },
+        {
+          "id": "h16_upper_right_green_shelf",
+          "s_range_approx": [
+            0.97,
+            1.05
+          ]
+        },
+        {
+          "id": "h16_lower_left_green_corridor",
+          "s_range_approx": [
+            0.95,
+            1.05
+          ]
+        }
+      ]
+    },
+    {
+      "hole": 17,
+      "name": "Nandina",
+      "par": 4,
+      "yards_from_supplied_info": 450,
+      "nominal_route_length_m": 411.48,
+      "references": {
+        "full_map": "hole diagrams/hole 17/hole-map-17.jpg",
+        "full_map_size_px": [
+          4218,
+          1250
+        ],
+        "green_closeup": "hole diagrams/hole 17/hole 17 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.095,
+          0.383
+        ],
+        [
+          0.36,
+          0.46
+        ],
+        [
+          0.61,
+          0.54
+        ],
+        [
+          0.8,
+          0.45
+        ],
+        [
+          0.904,
+          0.438
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.119988,
+      "green_center_uv_approx": [
+        0.904,
+        0.438
+      ],
+      "owned_bunker_count": 2,
+      "bunkers": [
+        {
+          "id": "h17_green_front_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.879954,
+            0.338237
+          ],
+          "outline_uv": [
+            [
+              0.88225,
+              0.301855
+            ],
+            [
+              0.888,
+              0.304384
+            ],
+            [
+              0.89175,
+              0.313659
+            ],
+            [
+              0.89375,
+              0.335582
+            ],
+            [
+              0.89225,
+              0.354132
+            ],
+            [
+              0.8885,
+              0.363406
+            ],
+            [
+              0.8835,
+              0.370152
+            ],
+            [
+              0.88,
+              0.370152
+            ],
+            [
+              0.872,
+              0.36172
+            ],
+            [
+              0.866,
+              0.36172
+            ],
+            [
+              0.86475,
+              0.354132
+            ],
+            [
+              0.86525,
+              0.330523
+            ],
+            [
+              0.8685,
+              0.321248
+            ],
+            [
+              0.8755,
+              0.319562
+            ],
+            [
+              0.8795,
+              0.306071
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.865,
+            0.301855,
+            0.8935,
+            0.369309
+          ]
+        },
+        {
+          "id": "h17_green_front_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.877385,
+            0.477582
+          ],
+          "outline_uv": [
+            [
+              0.87025,
+              0.436762
+            ],
+            [
+              0.8755,
+              0.435919
+            ],
+            [
+              0.8805,
+              0.442664
+            ],
+            [
+              0.88725,
+              0.468803
+            ],
+            [
+              0.88925,
+              0.48398
+            ],
+            [
+              0.88925,
+              0.500843
+            ],
+            [
+              0.8855,
+              0.520236
+            ],
+            [
+              0.8835,
+              0.523609
+            ],
+            [
+              0.879,
+              0.523609
+            ],
+            [
+              0.8765,
+              0.520236
+            ],
+            [
+              0.87275,
+              0.509275
+            ],
+            [
+              0.87075,
+              0.48398
+            ],
+            [
+              0.86475,
+              0.468803
+            ],
+            [
+              0.86375,
+              0.460371
+            ],
+            [
+              0.86425,
+              0.44688
+            ],
+            [
+              0.866,
+              0.440978
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.864,
+            0.436762,
+            0.889,
+            0.522766
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.25,
+            1
+          ],
+          [
+            0.5,
+            4
+          ],
+          [
+            0.7,
+            5
+          ],
+          [
+            0.9,
+            7
+          ],
+          [
+            1,
+            10
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 32,
+        "depth_along_approach_m": 28,
+        "internal_relief_range_m": [
+          0.45,
+          0.85
+        ],
+        "shape_and_contours": "Broad front/left body with offset rear/right extension; low crown and side falloffs."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h17_two_fairway_shoulders",
+          "s_range_approx": [
+            0.2,
+            0.77
+          ]
+        },
+        {
+          "id": "h17_final_green_climb",
+          "s_range_approx": [
+            0.85,
+            1.0
+          ]
+        },
+        {
+          "id": "h17_offset_green_crown",
+          "s_range_approx": [
+            0.97,
+            1.04
+          ]
+        }
+      ],
+      "reference_conflicts": [
+        "check sheet says 440 yards; use supplied hole info 450 yards",
+        "close-up yellow marker overlaps right-front bunker; reject it as a cup or slope datum"
+      ]
+    },
+    {
+      "hole": 18,
+      "name": "Holly",
+      "par": 4,
+      "yards_from_supplied_info": 465,
+      "nominal_route_length_m": 425.196,
+      "references": {
+        "full_map": "hole diagrams/hole 18/hole-map-18.jpg",
+        "full_map_size_px": [
+          4106,
+          1510
+        ],
+        "green_closeup": "hole diagrams/hole 18/hole 18 green.avif"
+      },
+      "route_uv_approx": [
+        [
+          0.098,
+          0.697
+        ],
+        [
+          0.33,
+          0.535
+        ],
+        [
+          0.48,
+          0.428
+        ],
+        [
+          0.65,
+          0.398
+        ],
+        [
+          0.78,
+          0.52
+        ],
+        [
+          0.897,
+          0.63
+        ]
+      ],
+      "initial_plan_scale_m_per_original_pixel_proposed": 0.1253264,
+      "green_center_uv_approx": [
+        0.897,
+        0.63
+      ],
+      "owned_bunker_count": 4,
+      "bunkers": [
+        {
+          "id": "h18_fairway_left_a",
+          "role": "fairway",
+          "locator_uv": [
+            0.625318,
+            0.300181
+          ],
+          "outline_uv": [
+            [
+              0.61775,
+              0.269022
+            ],
+            [
+              0.634,
+              0.268342
+            ],
+            [
+              0.63775,
+              0.274457
+            ],
+            [
+              0.63875,
+              0.279891
+            ],
+            [
+              0.63875,
+              0.289402
+            ],
+            [
+              0.63625,
+              0.305707
+            ],
+            [
+              0.63525,
+              0.327446
+            ],
+            [
+              0.633,
+              0.334918
+            ],
+            [
+              0.629,
+              0.337636
+            ],
+            [
+              0.622,
+              0.329484
+            ],
+            [
+              0.614,
+              0.328125
+            ],
+            [
+              0.61175,
+              0.322011
+            ],
+            [
+              0.61175,
+              0.3125
+            ],
+            [
+              0.61375,
+              0.296196
+            ],
+            [
+              0.61375,
+              0.274457
+            ],
+            [
+              0.615,
+              0.27106
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.612,
+            0.269022,
+            0.6385,
+            0.336957
+          ]
+        },
+        {
+          "id": "h18_fairway_left_b",
+          "role": "fairway",
+          "locator_uv": [
+            0.663791,
+            0.323507
+          ],
+          "outline_uv": [
+            [
+              0.65575,
+              0.27038
+            ],
+            [
+              0.6595,
+              0.27106
+            ],
+            [
+              0.6665,
+              0.279212
+            ],
+            [
+              0.6745,
+              0.280571
+            ],
+            [
+              0.67825,
+              0.286685
+            ],
+            [
+              0.68125,
+              0.3125
+            ],
+            [
+              0.68575,
+              0.334239
+            ],
+            [
+              0.68525,
+              0.350543
+            ],
+            [
+              0.68225,
+              0.365489
+            ],
+            [
+              0.679,
+              0.372962
+            ],
+            [
+              0.675,
+              0.375679
+            ],
+            [
+              0.6695,
+              0.374321
+            ],
+            [
+              0.6585,
+              0.359375
+            ],
+            [
+              0.6455,
+              0.35394
+            ],
+            [
+              0.64225,
+              0.346467
+            ],
+            [
+              0.64125,
+              0.339674
+            ],
+            [
+              0.64175,
+              0.32337
+            ],
+            [
+              0.64525,
+              0.305707
+            ],
+            [
+              0.64725,
+              0.282609
+            ],
+            [
+              0.6495,
+              0.273777
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.6415,
+            0.27038,
+            0.6855,
+            0.375
+          ]
+        },
+        {
+          "id": "h18_green_front_left",
+          "role": "greenside",
+          "locator_uv": [
+            0.856382,
+            0.5443
+          ],
+          "outline_uv": [
+            [
+              0.84525,
+              0.509511
+            ],
+            [
+              0.8505,
+              0.508832
+            ],
+            [
+              0.858,
+              0.515625
+            ],
+            [
+              0.865,
+              0.515625
+            ],
+            [
+              0.873,
+              0.52106
+            ],
+            [
+              0.87875,
+              0.540761
+            ],
+            [
+              0.87875,
+              0.548913
+            ],
+            [
+              0.87675,
+              0.561141
+            ],
+            [
+              0.871,
+              0.575408
+            ],
+            [
+              0.866,
+              0.579484
+            ],
+            [
+              0.8615,
+              0.578125
+            ],
+            [
+              0.8515,
+              0.565897
+            ],
+            [
+              0.848,
+              0.565897
+            ],
+            [
+              0.842,
+              0.57269
+            ],
+            [
+              0.8375,
+              0.571332
+            ],
+            [
+              0.83375,
+              0.561141
+            ],
+            [
+              0.83425,
+              0.548913
+            ],
+            [
+              0.84025,
+              0.519022
+            ],
+            [
+              0.8425,
+              0.512908
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.834,
+            0.509511,
+            0.8785,
+            0.578804
+          ]
+        },
+        {
+          "id": "h18_green_right",
+          "role": "greenside",
+          "locator_uv": [
+            0.883415,
+            0.690026
+          ],
+          "outline_uv": [
+            [
+              0.87875,
+              0.650815
+            ],
+            [
+              0.8835,
+              0.650136
+            ],
+            [
+              0.8905,
+              0.659647
+            ],
+            [
+              0.89475,
+              0.671196
+            ],
+            [
+              0.89625,
+              0.680707
+            ],
+            [
+              0.90075,
+              0.692935
+            ],
+            [
+              0.90175,
+              0.699728
+            ],
+            [
+              0.90125,
+              0.706522
+            ],
+            [
+              0.8965,
+              0.723505
+            ],
+            [
+              0.8935,
+              0.727582
+            ],
+            [
+              0.89,
+              0.72894
+            ],
+            [
+              0.8845,
+              0.727582
+            ],
+            [
+              0.879,
+              0.719429
+            ],
+            [
+              0.8745,
+              0.70856
+            ],
+            [
+              0.868,
+              0.703125
+            ],
+            [
+              0.86525,
+              0.697011
+            ],
+            [
+              0.86475,
+              0.679348
+            ],
+            [
+              0.86575,
+              0.675272
+            ],
+            [
+              0.8695,
+              0.665082
+            ]
+          ],
+          "outline_status": "image-derived visible sand boundary; simplified, unsurveyed; construct the grass lip outside it",
+          "visible_boundary_bbox_uv": [
+            0.865,
+            0.650815,
+            0.9015,
+            0.728261
+          ]
+        }
+      ],
+      "water_locators_approx": [],
+      "terrain_profile_proposed": {
+        "datum": "local selected tee Y=0; independent of all other holes",
+        "s_definition": "fraction of golf routing polyline, tee to green center",
+        "samples_s_height_m": [
+          [
+            0,
+            0
+          ],
+          [
+            0.2,
+            2
+          ],
+          [
+            0.42,
+            7
+          ],
+          [
+            0.62,
+            12
+          ],
+          [
+            0.82,
+            17
+          ],
+          [
+            1,
+            21
+          ]
+        ],
+        "profile_type": "land/bed reference, not a water surface; sculpt named local features on top and set water separately"
+      },
+      "green_proposed": {
+        "width_across_approach_m": 30,
+        "depth_along_approach_m": 32,
+        "internal_relief_range_m": [
+          0.7,
+          1.2
+        ],
+        "shape_and_contours": "Broad lower front shelf, higher back shelf, curved connecting band."
+      },
+      "named_landforms_proposed": [
+        {
+          "id": "h18_rising_tee_corridor",
+          "s_range_approx": [
+            0.05,
+            0.42
+          ]
+        },
+        {
+          "id": "h18_dogleg_bunker_bank",
+          "s_range_approx": [
+            0.56,
+            0.72
+          ]
+        },
+        {
+          "id": "h18_uphill_approach",
+          "s_range_approx": [
+            0.7,
+            1.0
+          ]
+        },
+        {
+          "id": "h18_two_green_shelves",
+          "s_range_approx": [
+            0.96,
+            1.05
+          ]
+        }
+      ]
+    }
+  ]
+}

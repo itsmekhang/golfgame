@@ -1,0 +1,58 @@
+[
+  {
+    "file": "flagpin.glb",
+    "bytes": 207068,
+    "parts": [
+      {
+        "name": "Pole",
+        "vertices": 693,
+        "triangles": 1088,
+        "surfaces": 1
+      },
+      {
+        "name": "Flag",
+        "vertices": 3623,
+        "triangles": 5704,
+        "surfaces": 2
+      },
+      {
+        "name": "Fittings",
+        "vertices": 594,
+        "triangles": 832,
+        "surfaces": 1
+      }
+    ],
+    "triangles": 7624,
+    "materials": 4,
+    "height_m": 2.46,
+    "contains_hole_or_floor": false
+  },
+  {
+    "file": "flagpin_low.glb",
+    "bytes": 41308,
+    "parts": [
+      {
+        "name": "Pole",
+        "vertices": 195,
+        "triangles": 264,
+        "surfaces": 1
+      },
+      {
+        "name": "Flag",
+        "vertices": 483,
+        "triangles": 748,
+        "surfaces": 2
+      },
+      {
+        "name": "Fittings",
+        "vertices": 234,
+        "triangles": 312,
+        "surfaces": 1
+      }
+    ],
+    "triangles": 1324,
+    "materials": 4,
+    "height_m": 2.46,
+    "contains_hole_or_floor": false
+  }
+]

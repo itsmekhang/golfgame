@@ -1,0 +1,743 @@
+{
+ "doc": "Named landforms from Augusta_Claude_Handoff, authored as smooth primitives. Frames: 'green' = origin at the green centre, x along the approach (front = -x), y = golfer's right; 'route' = origin on the routing at fraction s, x along the route. Metres; h = height (negative = hollow); shelf raises the +dir side by h across a transition w wide, masked within radius r; tilt = grade (rise/run) along dir within radius r; ridge = capsule bump from (x0,y0) to (x1,y1). dir in degrees, 0 = +x, 90 = +y (golfer's right).",
+ "holes": {
+  "1": [
+   {
+    "id": "h01_green_roll_front_left",
+    "type": "mound",
+    "at": "green",
+    "x": -6,
+    "y": -5,
+    "rx": 9,
+    "ry": 7,
+    "h": 0.35
+   },
+   {
+    "id": "h01_green_roll_back_right",
+    "type": "mound",
+    "at": "green",
+    "x": 5,
+    "y": 6,
+    "rx": 8,
+    "ry": 8,
+    "h": 0.3
+   },
+   {
+    "id": "h01_green_back_to_front",
+    "type": "tilt",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "dir": 0,
+    "grade": 0.015,
+    "r": 18
+   }
+  ],
+  "2": [
+   {
+    "id": "h02_bunker_outer_shoulder",
+    "type": "mound",
+    "at": "route",
+    "s": 0.55,
+    "x": 0,
+    "y": 30,
+    "rx": 25,
+    "ry": 15,
+    "h": 1.2
+   },
+   {
+    "id": "h02_green_central_junction",
+    "type": "mound",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "rx": 10,
+    "ry": 8,
+    "h": 0.4
+   },
+   {
+    "id": "h02_green_right_wing",
+    "type": "mound",
+    "at": "green",
+    "x": 4,
+    "y": 10,
+    "rx": 9,
+    "ry": 7,
+    "h": 0.35
+   }
+  ],
+  "3": [
+   {
+    "id": "h03_fairway_bunker_shoulders",
+    "type": "mound",
+    "at": "route",
+    "s": 0.65,
+    "x": 0,
+    "y": -25,
+    "rx": 30,
+    "ry": 14,
+    "h": 1.5
+   },
+   {
+    "id": "h03_front_runoff",
+    "type": "plateau",
+    "at": "green",
+    "x": 2,
+    "y": 0,
+    "rx": 24,
+    "ry": 20,
+    "h": 1.2,
+    "flat": 0.55
+   },
+   {
+    "id": "h03_green_cross_slope",
+    "type": "tilt",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "dir": 90,
+    "grade": 0.02,
+    "r": 16
+   },
+   {
+    "id": "h03_back_left_mound",
+    "type": "mound",
+    "at": "green",
+    "x": 16,
+    "y": -12,
+    "rx": 8,
+    "ry": 7,
+    "h": 1.4
+   },
+   {
+    "id": "h03_back_right_mound",
+    "type": "mound",
+    "at": "green",
+    "x": 23,
+    "y": 9,
+    "rx": 6,
+    "ry": 5,
+    "h": 1.0
+   }
+  ],
+  "4": [
+   {
+    "id": "h04_green_rear_shelf",
+    "type": "shelf",
+    "at": "green",
+    "x": 3,
+    "y": 0,
+    "dir": 0,
+    "h": 0.7,
+    "w": 10,
+    "r": 22
+   },
+   {
+    "id": "h04_local_green_platform",
+    "type": "plateau",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "rx": 26,
+    "ry": 22,
+    "h": 0.8,
+    "flat": 0.55
+   }
+  ],
+  "5": [
+   {
+    "id": "h05_first_fairway_roll",
+    "type": "mound",
+    "at": "route",
+    "s": 0.36,
+    "x": 0,
+    "y": 0,
+    "rx": 25,
+    "ry": 30,
+    "h": 1.0
+   },
+   {
+    "id": "h05_inside_bunker_bank",
+    "type": "mound",
+    "at": "route",
+    "s": 0.62,
+    "x": 0,
+    "y": -22,
+    "rx": 30,
+    "ry": 16,
+    "h": 1.8
+   },
+   {
+    "id": "h05_green_diagonal_shoulder",
+    "type": "shelf",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "dir": 45,
+    "h": 0.6,
+    "w": 12,
+    "r": 20
+   },
+   {
+    "id": "h05_upper_green_complex",
+    "type": "plateau",
+    "at": "green",
+    "x": 2,
+    "y": 0,
+    "rx": 28,
+    "ry": 24,
+    "h": 1.5,
+    "flat": 0.55
+   }
+  ],
+  "6": [
+   {
+    "id": "h06_green_platform",
+    "type": "plateau",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "rx": 24,
+    "ry": 22,
+    "h": 1.0,
+    "flat": 0.55
+   },
+   {
+    "id": "h06_green_back_right_shelf",
+    "type": "shelf",
+    "at": "green",
+    "x": 5,
+    "y": 6,
+    "dir": 45,
+    "h": 1.1,
+    "w": 7,
+    "r": 16
+   },
+   {
+    "id": "h06_lower_body_roll",
+    "type": "mound",
+    "at": "green",
+    "x": -8,
+    "y": -6,
+    "rx": 9,
+    "ry": 7,
+    "h": 0.25
+   }
+  ],
+  "7": [
+   {
+    "id": "h07_five_bunker_platform",
+    "type": "plateau",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "rx": 26,
+    "ry": 22,
+    "h": 1.8,
+    "flat": 0.55
+   },
+   {
+    "id": "h07_green_pitch",
+    "type": "tilt",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "dir": 0,
+    "grade": 0.018,
+    "r": 16
+   },
+   {
+    "id": "h07_green_back_shoulder",
+    "type": "mound",
+    "at": "green",
+    "x": 3,
+    "y": 0,
+    "rx": 8,
+    "ry": 10,
+    "h": 0.3
+   },
+   {
+    "id": "h07_subtle_fairway_rolls",
+    "type": "mound",
+    "at": "route",
+    "s": 0.45,
+    "x": 0,
+    "y": 6,
+    "rx": 40,
+    "ry": 22,
+    "h": 0.8
+   }
+  ],
+  "8": [
+   {
+    "id": "h08_right_fairway_bunker_bank",
+    "type": "mound",
+    "at": "route",
+    "s": 0.5,
+    "x": 0,
+    "y": 26,
+    "rx": 24,
+    "ry": 12,
+    "h": 1.6
+   },
+   {
+    "id": "h08_mound_01",
+    "type": "mound",
+    "at": "green",
+    "x": -40,
+    "y": 8,
+    "rx": 9,
+    "ry": 6,
+    "h": 1.3
+   },
+   {
+    "id": "h08_mound_02",
+    "type": "mound",
+    "at": "green",
+    "x": -30,
+    "y": -16,
+    "rx": 8,
+    "ry": 6,
+    "h": 1.6
+   },
+   {
+    "id": "h08_mound_03",
+    "type": "mound",
+    "at": "green",
+    "x": -22,
+    "y": 14,
+    "rx": 9,
+    "ry": 7,
+    "h": 2.2
+   },
+   {
+    "id": "h08_mound_04",
+    "type": "mound",
+    "at": "green",
+    "x": -14,
+    "y": -22,
+    "rx": 10,
+    "ry": 7,
+    "h": 2.5
+   },
+   {
+    "id": "h08_mound_05",
+    "type": "mound",
+    "at": "green",
+    "x": -8,
+    "y": 18,
+    "rx": 7,
+    "ry": 6,
+    "h": 1.4
+   },
+   {
+    "id": "h08_mound_06",
+    "type": "mound",
+    "at": "green",
+    "x": 4,
+    "y": -20,
+    "rx": 9,
+    "ry": 8,
+    "h": 2.8
+   },
+   {
+    "id": "h08_mound_07",
+    "type": "mound",
+    "at": "green",
+    "x": 12,
+    "y": 17,
+    "rx": 8,
+    "ry": 7,
+    "h": 2.0
+   },
+   {
+    "id": "h08_mound_08",
+    "type": "mound",
+    "at": "green",
+    "x": 22,
+    "y": -10,
+    "rx": 10,
+    "ry": 8,
+    "h": 2.4
+   },
+   {
+    "id": "h08_mound_09",
+    "type": "mound",
+    "at": "green",
+    "x": 24,
+    "y": 8,
+    "rx": 7,
+    "ry": 6,
+    "h": 1.5
+   },
+   {
+    "id": "h08_mound_10",
+    "type": "mound",
+    "at": "green",
+    "x": 16,
+    "y": -24,
+    "rx": 8,
+    "ry": 6,
+    "h": 1.8
+   },
+   {
+    "id": "h08_green_front_region",
+    "type": "mound",
+    "at": "green",
+    "x": -8,
+    "y": 0,
+    "rx": 9,
+    "ry": 7,
+    "h": 0.3
+   },
+   {
+    "id": "h08_green_rear_region",
+    "type": "mound",
+    "at": "green",
+    "x": 10,
+    "y": 0,
+    "rx": 9,
+    "ry": 7,
+    "h": 0.35
+   }
+  ],
+  "9": [
+   {
+    "id": "h09_front_runoff",
+    "type": "plateau",
+    "at": "green",
+    "x": 4,
+    "y": 0,
+    "rx": 34,
+    "ry": 26,
+    "h": 2.0,
+    "flat": 0.55
+   },
+   {
+    "id": "h09_middle_region",
+    "type": "shelf",
+    "at": "green",
+    "x": -5,
+    "y": 0,
+    "dir": 0,
+    "h": 0.35,
+    "w": 6,
+    "r": 18
+   }
+  ],
+  "10": [
+   {
+    "id": "h10_green_cross_slope",
+    "type": "tilt",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "dir": 90,
+    "grade": 0.022,
+    "r": 18
+   },
+   {
+    "id": "h10_green_long_roll",
+    "type": "mound",
+    "at": "green",
+    "x": 6,
+    "y": 0,
+    "rx": 12,
+    "ry": 8,
+    "h": 0.3
+   }
+  ],
+  "11": [
+   {
+    "id": "h11_waterside_green_bank",
+    "type": "shelf",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "dir": 90,
+    "h": 0.6,
+    "w": 14,
+    "r": 22
+   },
+   {
+    "id": "h11_green_central_shoulder",
+    "type": "mound",
+    "at": "green",
+    "x": 2,
+    "y": 4,
+    "rx": 9,
+    "ry": 8,
+    "h": 0.35
+   },
+   {
+    "id": "h11_upper_crest",
+    "type": "mound",
+    "at": "route",
+    "s": 0.17,
+    "x": 0,
+    "y": 0,
+    "rx": 35,
+    "ry": 25,
+    "h": 1.0
+   }
+  ],
+  "12": [
+   {
+    "id": "h12_green_left_lobe",
+    "type": "mound",
+    "at": "green",
+    "x": 0,
+    "y": -10,
+    "rx": 9,
+    "ry": 6,
+    "h": 0.3
+   },
+   {
+    "id": "h12_green_right_lobe",
+    "type": "mound",
+    "at": "green",
+    "x": 0,
+    "y": 10,
+    "rx": 9,
+    "ry": 6,
+    "h": 0.35
+   },
+   {
+    "id": "h12_rear_wooded_bank",
+    "type": "shelf",
+    "at": "green",
+    "x": 14,
+    "y": 0,
+    "dir": 0,
+    "h": 2.5,
+    "w": 10,
+    "r": 40
+   }
+  ],
+  "13": [
+   {
+    "id": "h13_sidehill_landing",
+    "type": "tilt",
+    "at": "route",
+    "s": 0.62,
+    "x": 0,
+    "y": 0,
+    "dir": 90,
+    "grade": 0.04,
+    "r": 45
+   },
+   {
+    "id": "h13_raised_green_bank",
+    "type": "plateau",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "rx": 26,
+    "ry": 22,
+    "h": 1.2,
+    "flat": 0.55
+   },
+   {
+    "id": "h13_green_higher_rear",
+    "type": "shelf",
+    "at": "green",
+    "x": 4,
+    "y": 0,
+    "dir": 0,
+    "h": 0.7,
+    "w": 10,
+    "r": 20
+   }
+  ],
+  "14": [
+   {
+    "id": "h14_front_green_ridge",
+    "type": "ridge",
+    "at": "green",
+    "x0": -8,
+    "y0": -14,
+    "x1": -8,
+    "y1": 14,
+    "w": 5,
+    "h": 0.9
+   },
+   {
+    "id": "h14_high_left_back_shoulder",
+    "type": "shelf",
+    "at": "green",
+    "x": 0,
+    "y": -6,
+    "dir": -90,
+    "h": 0.8,
+    "w": 12,
+    "r": 20
+   },
+   {
+    "id": "h14_back_shoulder_crest",
+    "type": "mound",
+    "at": "green",
+    "x": 8,
+    "y": -8,
+    "rx": 10,
+    "ry": 8,
+    "h": 0.4
+   },
+   {
+    "id": "h14_lower_right_receiver",
+    "type": "mound",
+    "at": "green",
+    "x": 4,
+    "y": 10,
+    "rx": 9,
+    "ry": 7,
+    "h": -0.4
+   },
+   {
+    "id": "h14_landing_cross_slope",
+    "type": "tilt",
+    "at": "route",
+    "s": 0.55,
+    "x": 0,
+    "y": 0,
+    "dir": 90,
+    "grade": 0.02,
+    "r": 40
+   }
+  ],
+  "15": [
+   {
+    "id": "h15_far_bank_runoff",
+    "type": "plateau",
+    "at": "green",
+    "x": 2,
+    "y": 0,
+    "rx": 22,
+    "ry": 26,
+    "h": 2.0,
+    "flat": 0.55
+   },
+   {
+    "id": "h15_green_crown",
+    "type": "mound",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "rx": 16,
+    "ry": 9,
+    "h": 0.35
+   },
+   {
+    "id": "h15_descending_layup_roll",
+    "type": "mound",
+    "at": "route",
+    "s": 0.72,
+    "x": 0,
+    "y": 12,
+    "rx": 30,
+    "ry": 20,
+    "h": 1.0
+   }
+  ],
+  "16": [
+   {
+    "id": "h16_high_right_green_bank",
+    "type": "shelf",
+    "at": "green",
+    "x": 0,
+    "y": 6,
+    "dir": 90,
+    "h": 1.2,
+    "w": 10,
+    "r": 24
+   },
+   {
+    "id": "h16_back_left_pocket",
+    "type": "mound",
+    "at": "green",
+    "x": 10,
+    "y": -10,
+    "rx": 7,
+    "ry": 6,
+    "h": -0.3
+   }
+  ],
+  "17": [
+   {
+    "id": "h17_fairway_shoulder_a",
+    "type": "mound",
+    "at": "route",
+    "s": 0.35,
+    "x": 0,
+    "y": -10,
+    "rx": 35,
+    "ry": 25,
+    "h": 1.2
+   },
+   {
+    "id": "h17_fairway_shoulder_b",
+    "type": "mound",
+    "at": "route",
+    "s": 0.62,
+    "x": 0,
+    "y": 12,
+    "rx": 35,
+    "ry": 25,
+    "h": 1.0
+   },
+   {
+    "id": "h17_offset_green_crown",
+    "type": "mound",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "rx": 12,
+    "ry": 10,
+    "h": 0.5
+   },
+   {
+    "id": "h17_green_rear_right_shoulder",
+    "type": "mound",
+    "at": "green",
+    "x": 8,
+    "y": 8,
+    "rx": 9,
+    "ry": 8,
+    "h": 0.35
+   }
+  ],
+  "18": [
+   {
+    "id": "h18_dogleg_bunker_bank",
+    "type": "mound",
+    "at": "route",
+    "s": 0.63,
+    "x": 0,
+    "y": -35,
+    "rx": 30,
+    "ry": 18,
+    "h": 2.0
+   },
+   {
+    "id": "h18_two_green_shelves",
+    "type": "shelf",
+    "at": "green",
+    "x": 2,
+    "y": 0,
+    "dir": 0,
+    "h": 0.9,
+    "w": 8,
+    "r": 20
+   },
+   {
+    "id": "h18_green_cross_slope",
+    "type": "tilt",
+    "at": "green",
+    "x": 0,
+    "y": 0,
+    "dir": 90,
+    "grade": 0.015,
+    "r": 18
+   }
+  ]
+ }
+}

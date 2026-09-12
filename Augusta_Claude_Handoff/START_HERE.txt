@@ -1,0 +1,27 @@
+Give Claude the original hole diagrams.zip and this handoff folder.
+
+Read Augusta_Godot_Build_Brief.md first. It contains all 18 hole descriptions,
+the shading interpretation rules, evidence/proposal distinctions, and checks.
+hole_blueprints.json supplies route/feature locators, 44 visible sand outlines,
+and explicit proposed terrain/green parameters. Individual hole chapters are
+also available in holes/ for smaller implementation steps.
+
+Suggested opening instruction:
+
+Implement all 18 holes in my existing Godot project using this brief and the
+original images. Preserve the named terrain features and unique green shapes.
+Use the JSON bunker outlines as starting footprints. All proposed heights are
+editable reconstruction choices, not survey measurements. Keep visible terrain
+and collision consistent, and verify each hole with the stated camera views
+and ball-roll checks. Implement real landforms before final vegetation/materials.
+Keep working through all 18 holes; do not stop after a generic prototype or
+silently omit features. Report what actually runs and which checks remain
+unverified. Start by inspecting the existing project/version, then implement.
+
+Important reference corrections:
+- No. 13's image also contains No. 12's green and three neighboring bunkers.
+- No. 17 is 450 yards in hole info.txt; the check sheet's 440 is inconsistent.
+- Yellow markers have no contour legend; one on No. 17 overlaps a bunker.
+- White fades and tree shadows are not terrain heights.
+
+This handoff is a construction specification, not an executed Godot project.

@@ -1,0 +1,36 @@
+{
+  "file": "world_flagstick.glb",
+  "bytes": 95908,
+  "parts": [
+    {
+      "name": "Pole",
+      "vertices": 375,
+      "triangles": 528,
+      "surfaces": 1
+    },
+    {
+      "name": "Flag",
+      "vertices": 1386,
+      "triangles": 2560,
+      "surfaces": 2
+    },
+    {
+      "name": "Fittings",
+      "vertices": 425,
+      "triangles": 552,
+      "surfaces": 1
+    }
+  ],
+  "triangles": 3640,
+  "materials": 4,
+  "height_m": 2.5,
+  "contains_hole_or_floor": false,
+  "pole_diameter_m": 0.018,
+  "flag_width_m": 0.55,
+  "flag_height_m": 0.35,
+  "origin": "pole foot",
+  "suggested_cup_insertion_m": 0.12,
+  "cup_mouth_radius_m": 0.08,
+  "cup_depth_m": 0.16,
+  "cup_outer_rim_radius_m": 0.086
+}

@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/world_flagstick/world_flagstick.glb" id="1"]
+[ext_resource type="Script" path="res://assets/world_flagstick/world_flagstick.gd" id="2"]
+
+[node name="WorldFlagstick" type="Node3D"]
+script = ExtResource("2")
+
+[node name="Model" parent="." instance=ExtResource("1")]
