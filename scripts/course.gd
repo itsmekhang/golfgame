@@ -106,6 +106,14 @@ const TRACKER_INTERVAL := 0.35
 ## most shots are done well inside this and the real shot is unaffected either way.
 const TRACKER_MAX_TIME := 12.0
 var _pre_shot_pos := Vector3.ZERO
+## A short beat after a normal shot comes to rest before another swing can start --
+## every other way a shot ends already holds here (holed: 3s, OB/water drop: 1.2s,
+## mulligan: message only) but a plain rest went straight from ball-stops to
+## swing-ready with no pause at all, so the result never had a moment on screen
+## before the next swing could already be underway. Gates the swing input only;
+## camera/club-switch/aim keep working immediately so it never feels like a stall.
+const SHOT_RESULT_HOLD_MS := 1000.0
+var _result_hold_until_msec := 0.0
 var _penalty_pending := false
 var _last_interactor := Vector3(INF, INF, INF)
 ## Mulligan (M): a snapshot taken right when a shot is fired, restorable on demand instead of
@@ -306,9 +314,9 @@ func _build_world() -> void:
 	# Lighting & sky
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
-	sun.rotation_degrees = Vector3(-52.0, 35.0, 0.0)
+	sun.rotation_degrees = Vector3(-38.0, 35.0, 0.0)
 	sun.light_energy = 1.35
-	sun.light_color = Color(1.0, 0.96, 0.88)
+	sun.light_color = Color(1.0, 0.98, 0.94)
 	sun.light_angular_distance = 0.53
 	sun.shadow_enabled = not PerformanceSettings.low()
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
@@ -334,9 +342,9 @@ func _build_world() -> void:
 		# painted over the procedural sky -- one texture sample, no ray march, so it costs
 		# nothing like the cinematic shader that kept tripping GPU timeouts.
 		psm.sky_cover = _cloud_cover_texture()
-		psm.sky_cover_modulate = Color(1.0, 1.0, 1.0, 0.9)
+		psm.sky_cover_modulate = Color(1.0, 1.0, 1.0, 0.35)
 		sky.sky_material = psm
-	sky.process_mode = Sky.PROCESS_MODE_REALTIME
+	sky.process_mode = Sky.PROCESS_MODE_REALTIME if OS.get_environment("GOLF_SKY") == "cinematic" else Sky.PROCESS_MODE_QUALITY
 	sky.radiance_size = Sky.RADIANCE_SIZE_128
 	e.background_mode = Environment.BG_SKY
 	e.sky = sky
@@ -903,6 +911,7 @@ func start_hole(index: int) -> void:
 	hole_index = index
 	strokes = 0
 	_mulligan_valid = false
+	_result_hold_until_msec = 0.0
 	ball.cup_position = Vector3(hole.cup.x, layout.height_at(hole.cup.x, hole.cup.z), hole.cup.z)
 	ball.place(Vector2(hole.tee.x, hole.tee.z))
 	_face_cup()
@@ -1037,6 +1046,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("swing"):
 		match phase:
 			SwingPhase.IDLE:
+				if Time.get_ticks_msec() < _result_hold_until_msec:
+					return
 				phase = SwingPhase.POWER
 				power = 0.0
 				power_dir = 1.0
@@ -1193,6 +1204,7 @@ func _on_first_impact(pos: Vector3, _surface: int) -> void:
 
 func _on_ball_rest(_pos: Vector3, lie: int) -> void:
 	phase = SwingPhase.IDLE
+	_result_hold_until_msec = Time.get_ticks_msec() + SHOT_RESULT_HOLD_MS
 	camera.mode = OrbitCamera.Mode.AIM
 	_face_cup()
 	var d := ball.distance_to_cup_yd()

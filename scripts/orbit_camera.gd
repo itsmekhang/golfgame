@@ -50,6 +50,12 @@ var pan_bounds := Rect2()
 ## Ground-plane point the overhead camera is looking at, updated every frame while in
 ## OVERHEAD mode. Read by the minimap to draw the camera's focus circle.
 var overhead_focus_point := Vector3.ZERO
+## The height/tilt actually used this frame after the pan_bounds-fit shrink below --
+## may be less than overhead_height/overhead_tilt on a small hole region. Exposed
+## (rather than kept local to _process) so tests can check the real visible footprint
+## instead of re-deriving the shrink logic themselves.
+var overhead_used_height := 0.0
+var overhead_used_tilt := 0.0
 
 ## Z (see course.gd): hold to fly out to a look at the anticipated landing spot, release to
 ## fly back to the normal view -- both transitions are a genuine flight (boosted-speed lerp),
@@ -86,6 +92,54 @@ func _ready() -> void:
 
 func aim_direction() -> Vector3:
 	return Vector3(-sin(aim_yaw), 0.0, -cos(aim_yaw)).normalized()
+
+
+## World-space XZ bounds of the ground the OVERHEAD camera's 4 frustum corners hit,
+## relative to a look-at centre at the world origin -- translation-invariant (the eye
+## offset and view direction depend only on `fwd`/`eff_tilt`/`height`, not on where
+## centre actually is), so the caller just offsets this by the real centre. Gives the
+## bird's-eye view a real boundary: clamping only the look-at point (the old approach)
+## still let a tilted, high, wide-FOV view see well past the edge of whatever ground
+## is actually loaded (terrain only exists inside course.gd's active_region) -- this
+## clamps the whole visible footprint instead. Returns [min, max]; either coordinate
+## being INF means no corner hit the ground (shouldn't happen at OVERHEAD's tilts).
+func _overhead_ground_extent(fwd: Vector3, eff_tilt: float, height: float) -> Array:
+	var eye := Vector3.UP * height - fwd * (height * eff_tilt)
+	var forward := (-eye).normalized()
+	if forward.length_squared() < 0.0001:
+		forward = Vector3.DOWN
+	var right := forward.cross(Vector3.UP)
+	if right.length_squared() < 0.0001:
+		right = Vector3.RIGHT
+	right = right.normalized()
+	var cam_up := right.cross(forward).normalized()
+	var aspect := 16.0 / 9.0
+	var vp := get_viewport()
+	if vp != null:
+		var sz := vp.get_visible_rect().size
+		if sz.y > 0.0:
+			aspect = sz.x / sz.y
+	var vfov_half := deg_to_rad(fov * 0.5)
+	var hfov_half := atan(tan(vfov_half) * aspect)
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	# Typed explicitly: an untyped array literal iterated inline leaves `su`/`sv` as
+	# Variant, which then poisons every expression built from them (right * (su * ...))
+	# into Variant too -- the GDScript parser then can't statically type `dir`/`t`/`pt`
+	# below even though they carry their own type annotations, and refuses to compile.
+	var signs: Array[float] = [-1.0, 1.0]
+	for su in signs:
+		for sv in signs:
+			var dir: Vector3 = (forward + right * (su * tan(hfov_half)) + cam_up * (sv * tan(vfov_half))).normalized()
+			if dir.y > -0.02:
+				continue  # this corner points at/above the horizon -- sky, not ground, no bound needed
+			var t: float = eye.y / -dir.y
+			var pt: Vector3 = eye + dir * t
+			lo.x = minf(lo.x, pt.x)
+			hi.x = maxf(hi.x, pt.x)
+			lo.y = minf(lo.y, pt.z)
+			hi.y = maxf(hi.y, pt.z)
+	return [lo, hi]
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -187,16 +241,49 @@ func _process(delta: float) -> void:
 				var right := Vector3(-fwd.z, 0.0, fwd.x)
 				overhead_offset += (right * pan.x - fwd * pan.z) * delta * overhead_height * 0.9
 			var centre := ball + overhead_offset
-			if pan_bounds.size != Vector2.ZERO:
-				centre.x = clampf(centre.x, pan_bounds.position.x, pan_bounds.end.x)
-				centre.z = clampf(centre.z, pan_bounds.position.y, pan_bounds.end.y)
-				overhead_offset = centre - ball
-			overhead_focus_point = centre
 			# Sit behind (away from the pin) and above, tilted by overhead_tilt (right-drag
 			# vertical: 0 = straight down at the ground, higher = angled out toward the hole)
 			# -- see OVERHEAD_REACH_CAP for why the effective tilt is squeezed at altitude.
-			var eff_tilt := minf(overhead_tilt, OVERHEAD_REACH_CAP / maxf(overhead_height, 1.0))
-			desired = centre + Vector3.UP * overhead_height - fwd * (overhead_height * eff_tilt)
+			var used_height := overhead_height
+			var eff_tilt := minf(overhead_tilt, OVERHEAD_REACH_CAP / maxf(used_height, 1.0))
+			var ext := _overhead_ground_extent(fwd, eff_tilt, used_height)
+			if pan_bounds.size != Vector2.ZERO:
+				# Re-centring alone can't fix it when the *whole* footprint is wider than
+				# pan_bounds itself (a small hole region at max height/tilt) -- no centre
+				# position makes that fit, so first shrink the height (which shrinks the
+				# footprint) until it does. Binary search: 8 m always fits any real hole
+				# region, so it anchors the "fits" side.
+				if ext[1].x - ext[0].x > pan_bounds.size.x or ext[1].y - ext[0].y > pan_bounds.size.y:
+					var lo_h := 8.0
+					var hi_h := used_height
+					for i in range(14):
+						var mid_h := (lo_h + hi_h) * 0.5
+						var mid_tilt := minf(overhead_tilt, OVERHEAD_REACH_CAP / maxf(mid_h, 1.0))
+						var mid_ext := _overhead_ground_extent(fwd, mid_tilt, mid_h)
+						if mid_ext[1].x - mid_ext[0].x <= pan_bounds.size.x and mid_ext[1].y - mid_ext[0].y <= pan_bounds.size.y:
+							lo_h = mid_h
+						else:
+							hi_h = mid_h
+					used_height = lo_h
+					eff_tilt = minf(overhead_tilt, OVERHEAD_REACH_CAP / maxf(used_height, 1.0))
+					ext = _overhead_ground_extent(fwd, eff_tilt, used_height)
+				# Now the footprint fits inside pan_bounds in both axes -- clamp the actual
+				# visible ground into it, not just the look-at point (at height/tilt the far
+				# edge of the frustum reaches well past centre, so clamping centre alone still
+				# let the view see past the edge of whatever ground is loaded).
+				var lo: Vector2 = ext[0]
+				var hi: Vector2 = ext[1]
+				var lo_x := pan_bounds.position.x - lo.x
+				var hi_x := pan_bounds.end.x - hi.x
+				var lo_z := pan_bounds.position.y - lo.y
+				var hi_z := pan_bounds.end.y - hi.y
+				centre.x = clampf(centre.x, lo_x, hi_x) if lo_x <= hi_x else (lo_x + hi_x) * 0.5
+				centre.z = clampf(centre.z, lo_z, hi_z) if lo_z <= hi_z else (lo_z + hi_z) * 0.5
+				overhead_offset = centre - ball
+			overhead_focus_point = centre
+			overhead_used_height = used_height
+			overhead_used_tilt = eff_tilt
+			desired = centre + Vector3.UP * used_height - fwd * (used_height * eff_tilt)
 			look = centre
 			_was_overhead = true
 
