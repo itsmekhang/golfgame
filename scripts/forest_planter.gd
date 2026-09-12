@@ -18,7 +18,15 @@ const CORRIDOR_MARGIN := 14.0  # rough strip beside every fairway corridor kept 
 const TEE_CLEARANCE := 60.0  # no trees this close to a back tee (crowns are 10-17 m wide)
 const CARRY_LANE_HALF := 18.0  # half width of the tree-free lane along a rough carry
 const EDGE_BAND := 7.0  # metres inside a wood's edge that reads as its flowering fringe
-const SHRUB_SPACING := 4.5
+const SHRUB_SPACING := 3.0  # metres between candidate bushes along a wood's edge
+const EDGE_SHRUB_CHANCE := 0.7  # share of edge candidates that get a bush
+const UNDERSTORY_SHRUB_CHANCE := 0.4  # bushes under the canopy, per tree planted
+const SHRUB_TURF_CLEARANCE := 3.0  # bushes may sit this close to mown turf
+const SHRUB_CORRIDOR_MARGIN := 4.0  # and this far outside a fairway corridor
+const SHRUB_TEE_CLEARANCE := 14.0
+const GREENSIDE_SHRUB_MIN := 12.0  # azalea clumps ring each green at this range
+const GREENSIDE_SHRUB_MAX := 34.0
+const GREENSIDE_SHRUB_TRIES := 40
 ## Tier hand-over distances: the high-fidelity mesh (47k-238k tris, every leaf) up
 ## close, then a baked impostor card of the same model for the forest bulk. Where no
 ## impostor is baked the old low-poly LOD1/LOD2 meshes stand in.
@@ -103,6 +111,31 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 				return false
 		return true
 
+	# Bushes are low, so they may sit much closer to the mown turf and the shot lane
+	# than a 17 m oak: a few metres into the rough is where azaleas actually grow.
+	var ok_shrub := func(xz: Vector2) -> bool:
+		if not b.has_point(xz):
+			return false
+		if layout.cached_surface(xz) != PhysicsEnums.SurfaceType.ROUGH:
+			return false
+		if layout.cached_turf(xz) < SHRUB_TURF_CLEARANCE:
+			return false
+		if layout.hazard_near(xz, 2.0) or layout.bunker_near(xz, 2.5):
+			return false
+		for hole in layout.holes:
+			if not layout.hole_bbox(hole).has_point(xz):
+				continue
+			if not hole.tee_boxes.is_empty() and xz.distance_to(hole.tee_boxes[0][0]) < SHRUB_TEE_CLEARANCE:
+				return false
+			var fw: FairwayArea = layout.fairways[hole.index]
+			var cl := fw.centreline(xz)
+			if cl[0] < maxf(fw.width_at(cl[1], cl[2]), CARRY_LANE_HALF) + SHRUB_CORRIDOR_MARGIN:
+				return false
+		return true
+
+	var shrub := func(p: Vector2) -> void:
+		place.call(SHRUBS[rng.randi_range(0, SHRUBS.size() - 1)], p, false)
+
 	# ---- painted woodland footprints
 	var painted: Array = []  # [Rect2 bounds, PackedVector2Array] per hole
 	for hole in layout.holes:
@@ -138,21 +171,49 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 					else:
 						id = _canopy_species(rng)
 					place.call(id, p, true)
+					# understory: a bush or two in the shade of many trees
+					if rng.randf() < UNDERSTORY_SHRUB_CHANCE:
+						var q := p + Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0))
+						if ok_shrub.call(q):
+							shrub.call(q)
 				x += cell
-			# flowering shrubs along the outer edge of the wood
+			# flowering shrubs along the outer edge of the wood, in loose clumps
 			var n := poly.size()
 			for i in range(n):
 				var a := poly[i]
 				var c := poly[(i + 1) % n]
 				var steps := maxi(1, int(a.distance_to(c) / SHRUB_SPACING))
 				for k in range(steps):
-					if rng.randf() > 0.45:
+					if rng.randf() > EDGE_SHRUB_CHANCE:
 						continue
 					var p := a.lerp(c, (k + rng.randf()) / steps)
 					var outward := (p - _poly_center(poly)).normalized()
-					p += outward * rng.randf_range(-1.0, 2.5)
-					if ok.call(p, 6.0):
-						place.call(SHRUBS[rng.randi_range(0, SHRUBS.size() - 1)], p, false)
+					p += outward * rng.randf_range(-1.0, 4.0)
+					if ok_shrub.call(p):
+						shrub.call(p)
+						if rng.randf() < 0.5:
+							var q := p + Vector2(rng.randf_range(-2.2, 2.2), rng.randf_range(-2.2, 2.2))
+							if ok_shrub.call(q):
+								shrub.call(q)
+
+	# ---- greenside azaleas: clumps in the rough behind and beside every green
+	for hole in layout.holes:
+		var wps := hole.waypoints
+		if wps.size() < 2:
+			continue
+		var gc := Vector2(wps[wps.size() - 1].x, wps[wps.size() - 1].z)
+		if not b.grow(GREENSIDE_SHRUB_MAX).has_point(gc):
+			continue
+		for i in range(GREENSIDE_SHRUB_TRIES):
+			var ang := rng.randf_range(0.0, TAU)
+			var p := gc + Vector2.from_angle(ang) * rng.randf_range(GREENSIDE_SHRUB_MIN, GREENSIDE_SHRUB_MAX)
+			if not ok_shrub.call(p):
+				continue
+			shrub.call(p)
+			for j in range(rng.randi_range(1, 3)):
+				var q := p + Vector2(rng.randf_range(-2.5, 2.5), rng.randf_range(-2.5, 2.5))
+				if ok_shrub.call(q):
+					shrub.call(q)
 
 	# ---- rough islands inside fairways: a few trees each, ignoring the corridor guard
 	for hole in layout.holes:
@@ -178,6 +239,22 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 					var isl_pool: Array = FRINGE_TREES if rng.randf() < 0.6 else UNDERSTORY_TREES
 					place.call(isl_pool[rng.randi_range(0, isl_pool.size() - 1)], p, true)
 				x += cell
+			# a skirt of bushes around the island's edge
+			var full_r: float = isl[2]
+			var ring_steps := maxi(4, int((ia.distance_to(ib) * 2.0 + TAU * full_r) / 3.0))
+			for i in range(ring_steps):
+				var t := rng.randf()
+				var on_axis := ia.lerp(ib, t)
+				var side := 1.0 if rng.randf() < 0.5 else -1.0
+				var axis := (ib - ia).normalized() if ia != ib else Vector2.RIGHT
+				var p := on_axis + Vector2(-axis.y, axis.x) * side * rng.randf_range(full_r - 4.0, full_r - 0.5)
+				if CourseArea.dist_to_segment(p, ia, ib) > full_r - 0.5 or not b.has_point(p):
+					continue
+				if layout.cached_surface(p) != PhysicsEnums.SurfaceType.ROUGH:
+					continue
+				if layout.hazard_near(p, 2.0) or layout.bunker_near(p, 2.5):
+					continue
+				shrub.call(p)
 
 	# ---- fill forest wherever no painting covers the ground
 	var cell := FILL_SPACING
@@ -197,6 +274,10 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 			if not ok.call(p, FILL_TURF_CLEARANCE):
 				continue
 			place.call(_canopy_species(rng), p, true)
+			if rng.randf() < UNDERSTORY_SHRUB_CHANCE:
+				var q := p + Vector2(rng.randf_range(-3.0, 3.0), rng.randf_range(-3.0, 3.0))
+				if ok_shrub.call(q):
+					shrub.call(q)
 		x += cell
 
 	# ---- instanced batches per species and LOD tier

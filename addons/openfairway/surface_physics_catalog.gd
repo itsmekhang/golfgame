@@ -34,11 +34,40 @@ static func _ensure() -> void:
 		0.30, 0.030, 0.0010, 0.25, 0.60, 0.0, 0.0, 0.0, 0.0, 0.0)
 	_green = SurfacePhysicsSettings.new(PhysicsEnums.SurfaceType.GREEN,
 		0.58, 0.028, 0.0009, 0.36, 1.12, 0.12, 3500.0, 5500.0, 8.0, 20.0)
+	_apply_green_speed()
 	# Sand: highest friction/viscosity of any surface (barely any roll once settled) and a
 	# low critical angle + minimal spinback response (no meaningful bounce or check-back).
 	# golf_ball.gd's _handle_impact also applies extra dead-bounce damping on first contact.
 	_bunker = SurfacePhysicsSettings.new(PhysicsEnums.SurfaceType.BUNKER,
 		0.95, 0.15, 0.0038, 0.18, 0.15, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+
+## Green speed for the round as a Stimpmeter reading (feet a ball released at
+## 1.83 m/s rolls on a level green). Tour greens run 10-13 ft, a members' green
+## 8-10. Sets the green's rolling friction so that release actually rolls that far:
+## d = v^2 / (2 * mu * g)  ->  mu = v^2 / (2 * g * d). The catalog's original 0.028
+## was equivalent to a ~20 ft green, which is why putts and approach rollout ran away.
+const STIMP_RELEASE_MPS := 1.83
+static var green_speed_ft: float = 10.0
+
+
+static func set_green_speed(stimp_ft: float) -> void:
+	green_speed_ft = clampf(stimp_ft, 5.0, 16.0)
+	_ensure()
+	_apply_green_speed()
+
+
+static func _apply_green_speed() -> void:
+	var d := green_speed_ft * 0.3048
+	var mu := STIMP_RELEASE_MPS * STIMP_RELEASE_MPS / (2.0 * 9.81 * d)
+	_green.rolling_friction = mu
+	# the viscous drag term scales with the same speed index so slow trickles die out
+	_green.grass_viscosity = 0.0009 * (mu / 0.028)
+
+
+static func green_speed_label() -> String:
+	var word := "slow" if green_speed_ft < 8.5 else "medium" if green_speed_ft < 10.5 else "fast" if green_speed_ft < 12.5 else "tournament"
+	return "Greens %.0f ft (%s)" % [green_speed_ft, word]
 
 
 ## Returns the tuning for a surface. Unknown surfaces fall back to Fairway.

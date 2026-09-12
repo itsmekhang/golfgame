@@ -288,6 +288,16 @@ func _ensure_hole_region(hole: CourseLayout.Hole) -> void:
 func _load_layout() -> void:
 	layout = CourseBuilder.build(course_seed)
 	print("[CourseBuilder] ", CourseBuilder.last_report)
+	# Green speed for the round: GOLF_STIMP=11 forces one, otherwise the round's seed
+	# picks a tournament-week reading between 10 and 12.5 ft.
+	var stimp_env := OS.get_environment("GOLF_STIMP")
+	if stimp_env.is_valid_float():
+		SurfacePhysicsCatalog.set_green_speed(stimp_env.to_float())
+	else:
+		var r := RandomNumberGenerator.new()
+		r.seed = course_seed * 977 + 13
+		SurfacePhysicsCatalog.set_green_speed(snappedf(r.randf_range(10.0, 12.5), 0.5))
+	print("[Greens] ", SurfacePhysicsCatalog.green_speed_label(), " rolling mu %.3f" % SurfacePhysicsCatalog.get_settings(PhysicsEnums.SurfaceType.GREEN).rolling_friction)
 
 
 func _build_world() -> void:
@@ -318,6 +328,11 @@ func _build_world() -> void:
 		var psm := ProceduralSkyMaterial.new()
 		psm.sky_top_color = Color(0.25, 0.48, 0.9)
 		psm.sky_horizon_color = Color(0.7, 0.8, 0.9)
+		# Cumulus cover: a generated equirect noise texture alpha-masked into puffs and
+		# painted over the procedural sky -- one texture sample, no ray march, so it costs
+		# nothing like the cinematic shader that kept tripping GPU timeouts.
+		psm.sky_cover = _cloud_cover_texture()
+		psm.sky_cover_modulate = Color(1.0, 1.0, 1.0, 0.9)
 		sky.sky_material = psm
 	sky.process_mode = Sky.PROCESS_MODE_REALTIME
 	sky.radiance_size = Sky.RADIANCE_SIZE_128
@@ -385,9 +400,11 @@ func _build_world() -> void:
 	trail_mesh = MeshInstance3D.new()
 	trail_mesh.name = "Trail"
 	var tmat := StandardMaterial3D.new()
-	tmat.albedo_color = Color(1.0, 1.0, 1.0, 0.7)
+	tmat.albedo_color = Color(1.0, 1.0, 1.0, 1.0)
+	tmat.vertex_color_use_as_albedo = true  # the tail fades out through vertex alpha
 	tmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	tmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	tmat.no_depth_test = false
 	trail_mesh.material_override = tmat
 	add_child(trail_mesh)
 
@@ -413,6 +430,29 @@ func _build_world() -> void:
 	landing_marker.material_override = lmat
 	add_child(landing_marker)
 	aim_line = shot_tracker_line  # kept for any external references
+
+
+## Cloud mask for ProceduralSkyMaterial.sky_cover: FBM noise, thresholded through a
+## colour ramp so ~40% of the sky carries soft-edged white cumulus, the rest is clear.
+static func _cloud_cover_texture() -> NoiseTexture2D:
+	var n := FastNoiseLite.new()
+	n.seed = 21
+	n.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	n.fractal_type = FastNoiseLite.FRACTAL_FBM
+	n.fractal_octaves = 5
+	n.fractal_gain = 0.55
+	n.frequency = 0.0035
+	var tex := NoiseTexture2D.new()
+	tex.width = 1536
+	tex.height = 768
+	tex.seamless = true
+	tex.seamless_blend_skirt = 0.15
+	tex.noise = n
+	var ramp := Gradient.new()
+	ramp.offsets = PackedFloat32Array([0.0, 0.50, 0.60, 0.72, 1.0])
+	ramp.colors = PackedColorArray([Color(1, 1, 1, 0.0), Color(1, 1, 1, 0.0), Color(0.93, 0.94, 0.97, 0.55), Color(1, 1, 1, 0.95), Color(1, 1, 1, 1.0)])
+	tex.color_ramp = ramp
+	return tex
 
 
 ## Physically based sky + ray-marched clouds (user-supplied sky shader) with generated noise.
@@ -1065,9 +1105,11 @@ func _push_interactor() -> void:
 ##  - hit: strike point on the ball face (see StrikeSelector) -- x shapes the shot
 ##    (heel/toe -> push/pull + side spin), y is loft/spin (low/high strike).
 func _shot_params(club: Clubs.Club, pfrac: float, hit: Vector2, lie: int, aim: Vector3) -> Dictionary:
+	# Strike-point sensitivity is deliberately gentle: a full heel/toe or low/high
+	# strike shapes the shot, it does not wreck it.
 	var shape := clampf(hit.x, -1.0, 1.0)
-	var sidespin := shape * 2200.0
-	var push_deg := shape * 4.0
+	var sidespin := shape * 1300.0
+	var push_deg := shape * 3.0
 	var dir := aim.rotated(Vector3.UP, deg_to_rad(-push_deg))
 	if club.is_putter:
 		return {"putter": true, "dir": dir, "speed_mps": lerpf(0.4, 9.0, pfrac * pfrac)}
@@ -1076,8 +1118,8 @@ func _shot_params(club: Clubs.Club, pfrac: float, hit: Vector2, lie: int, aim: V
 	var high := clampf(hit.y, 0.0, 1.0)   # strike above centre: flatter, less spin, more roll
 	var off_center := clampf(absf(hit.y), 0.0, 1.0)
 	var speed_mph := club.ball_speed_mph * lerpf(0.35, 1.0, pfrac) * (1.0 - off_center * 0.25)
-	var backspin := club.backspin_rpm * lerpf(0.6, 1.0, pfrac) * (1.0 + low * 0.8) * (1.0 - high * 0.55)
-	var vla := maxf(club.vla_deg + low * 10.0 - high * 6.0, 2.0)
+	var backspin := club.backspin_rpm * lerpf(0.7, 1.0, pfrac) * (1.0 + low * 0.4) * (1.0 - high * 0.3)
+	var vla := maxf(club.vla_deg + low * 7.0 - high * 4.0, 2.0)
 	# Lie penalties (rough: flyer/less spin & speed, bunker: much less speed, more loft)
 	if lie == PhysicsEnums.SurfaceType.ROUGH:
 		speed_mph *= 0.9
@@ -1262,7 +1304,7 @@ func _refresh_hud() -> void:
 	hud.lie_label.text = "Lie: %s   Slope: %.1f°" % [CourseLayout.surface_label(ball.current_lie), rad_to_deg(acos(clampf(ball.floor_normal.y, -1.0, 1.0)))]
 	hud.dist_label.text = "To pin: %.0f yd" % ball.distance_to_cup_yd()
 	var w := ball.wind
-	hud.wind_label.text = "Wind: %.0f mph %s" % [w.length() / ShotSetup.MPS_PER_MPH, _compass(w)]
+	hud.wind_label.text = "Wind: %.0f mph %s    %s" % [w.length() / ShotSetup.MPS_PER_MPH, _compass(w), SurfacePhysicsCatalog.green_speed_label()]
 	hud.help_label.text = "A/D or right-drag: aim   W/S: club   Drag the ball: strike point   Space/click: swing (tap to lock power)   C: bird's-eye (arrows pan, right-drag to look, wheel zoom)   Z: hold to scout the landing spot (right-drag to look)   M: mulligan (replay last shot)   N: next hole   R: restart hole   J: reroll terrain (seed %d)   Esc: how to play" % course_seed
 
 
@@ -1421,16 +1463,44 @@ static func _catmull_rom(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t: 
 	return 0.5 * ((2.0 * p1) + (-p0 + p2) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2 + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3)
 
 
+## Length of the white tail streaming behind the ball, in metres of flown path.
+const TRAIL_TAIL_M := 16.0
+
+
+## A short comet tail: only the last TRAIL_TAIL_M of the ball's path, fading from
+## solid at the ball to nothing at its tip, so it reads as motion rather than a
+## drawn trajectory (the yellow tracer already shows the plan).
 func _update_trail() -> void:
-	if ball.trail.size() < 2:
+	if ball.trail.size() < 1:
+		trail_mesh.mesh = null
 		return
-	var pts := ball.trail.duplicate()
-	pts.append(ball.global_position)
+	var src: PackedVector3Array = ball.trail
+	var pts := PackedVector3Array([ball.global_position])
+	var length := 0.0
+	var i := src.size() - 1
+	while i >= 0 and length < TRAIL_TAIL_M:
+		var p: Vector3 = src[i]
+		var seg := p.distance_to(pts[pts.size() - 1])
+		if seg > 0.05:
+			if length + seg > TRAIL_TAIL_M:
+				# trim the last segment so the tail ends exactly at TRAIL_TAIL_M
+				p = pts[pts.size() - 1].lerp(p, (TRAIL_TAIL_M - length) / seg)
+				seg = TRAIL_TAIL_M - length
+			pts.append(p)
+			length += seg
+		i -= 1
+	if pts.size() < 2:
+		trail_mesh.mesh = null
+		return
+	pts.reverse()  # tip first, ball last
 	pts = _smooth_path(pts)
 	var im := ImmediateMesh.new()
 	im.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
-	for p in pts:
-		im.surface_add_vertex(p)
+	var n := pts.size()
+	for k in range(n):
+		var t := float(k) / float(n - 1)  # 0 at the tip, 1 at the ball
+		im.surface_set_color(Color(1.0, 1.0, 1.0, t * t * 0.9))
+		im.surface_add_vertex(pts[k])
 	im.surface_end()
 	trail_mesh.mesh = im
 
