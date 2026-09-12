@@ -24,7 +24,11 @@ func run() -> void:
 			far_nodes += 1
 			far_instances += (child as MultiMeshInstance3D).multimesh.instance_count
 			var mat: Material = (child as MultiMeshInstance3D).multimesh.mesh.surface_get_material(0)
-			assert(child.visibility_range_begin == NaturePack.MID_AT, "far tier should start exactly at MID_AT")
+			# Handed over from MID_AT, minus a tile-radius margin so a tile whose centre
+			# sits past MID_AT but partly overlaps it still gets included (same pattern
+			# as the other LOD tiers' `+ TILE_x * 0.75` end margins).
+			var expected_begin := maxf(0.0, NaturePack.MID_AT - ForestPlanter.TILE_FAR * 0.75)
+			assert(is_equal_approx(child.visibility_range_begin, expected_begin), "far tier should start at MID_AT minus the tile margin")
 			assert(mat != null, "far proxy mesh has no material")
 	var tri_count := 0
 	for kind in ["pine", "hardwood"]:

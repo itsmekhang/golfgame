@@ -159,19 +159,20 @@ static func mesh(id: String, _lod: int = 0) -> Mesh:
 		if lods.is_empty():
 			push_error("NaturePack: no LOD1 for " + id)
 			return null
-		# the full-crowned broadleaf species ship at full detail (the pack's preview
-		# look); everything else at LOD1
-		if not FULL_DETAIL_IDS.has(id):
-			path = lods[0]["path"]
+		# LOD1 for every tree/shrub/palm now -- the 1M-tri base meshes are offline-bake
+		# only (see base_mesh_for_bake); FULL_DETAIL_IDS below is unused while that's so.
+		path = lods[0]["path"]
 		max_dist = SHRUB_MESH_AT if entry["category"] == "shrubs" else MESH_AT
 	return _load_mesh(DIR + path, id, "near#" + id, max_dist)
 
 
-## Species whose 1M-triangle base mesh ships for the near tier.
-const FULL_DETAIL_IDS := ["white_oak_B", "red_maple_B", "sweetgum_B", "tulip_poplar_B", "southern_magnolia_B", "live_oak_B"]
-## Far edge of the forest: real LOD2 geometry out to here, nothing beyond. Every
-## 10 m added here is hundreds more 12k-42k-triangle trees per frame.
-const MID_AT := 220.0
+## Species whose 1M-triangle base mesh would ship for the near tier, if `mesh()`
+## used it (currently it doesn't -- see the comment above). Only the A size variant
+## is planted now, so this only lists _A ids to match.
+const FULL_DETAIL_IDS := ["white_oak_A", "red_maple_A", "sweetgum_A", "tulip_poplar_A", "southern_magnolia_A", "live_oak_A"]
+## Keep the original tree geometry across most of a hole before switching
+## to the simplified distant crowns.
+const MID_AT := 450.0
 
 
 ## The pack's LOD2 mesh for the mid-range tier, drawn only between the near tier's
@@ -184,7 +185,7 @@ static func mesh_mid(id: String) -> Mesh:
 	if lods.size() < 2:
 		return null
 	var near := SHRUB_MESH_AT if entry["category"] == "shrubs" else MESH_AT
-	var far := 60.0 if entry["category"] == "shrubs" else MID_AT
+	var far := 60.0 if entry["category"] == "shrubs" else minf(MID_AT, PerformanceSettings.tree_distance())
 	return _load_mesh(DIR + lods[1]["path"], id, "mid#" + id, far, near)
 
 
@@ -254,14 +255,32 @@ static func impostor(id: String) -> Array:
 static var _far_proxy_cache: Dictionary = {}
 
 
+static func _proxy_tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, col: Color) -> void:
+	var n := (c - a).cross(b - a).normalized()
+	st.set_color(col)
+	st.set_normal(n)
+	st.add_vertex(a)
+	st.set_color(col)
+	st.set_normal(n)
+	st.add_vertex(b)
+	st.set_color(col)
+	st.set_normal(n)
+	st.add_vertex(c)
+
+
 static func _proxy_face(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, col: Color) -> void:
 	# Emitted both winding directions so the (very few) triangles read correctly from
 	# every angle without needing to hand-verify outward winding on each face --
 	# doubling ~30 triangles to ~60 is still negligible next to a 12k+ tri LOD2 mesh.
-	for tri in [[a, b, c], [a, c, b]]:
-		for v: Vector3 in tri:
-			st.set_color(col)
-			st.add_vertex(v)
+	# Colour is passed through as-authored (no srgb_to_linear here): nature_solid.gdshader
+	# already darkens COLOR.rgb * 0.60 to match the pack's own vertex-coloured meshes --
+	# converting on top of that made these proxies render almost black at a distance,
+	# which is what "looks like shit" was describing.
+	# (Two explicit calls, not a loop over an array literal: `for x in [[..],[..]]:`
+	# leaves the loop variable untyped, which cascades into a GDScript compile error --
+	# the exact bug that made every one of these proxies fail to build at all.)
+	_proxy_tri(st, a, b, c, col)
+	_proxy_tri(st, a, c, b, col)
 
 
 ## A low-poly cylinder trunk, shared by both proxy kinds.
@@ -279,6 +298,12 @@ static func _proxy_trunk(st: SurfaceTool, radius: float, height: float, col: Col
 
 
 ## A squashed octahedron canopy lobe: a top and bottom apex over a 4-point equator.
+## Built from 8 explicit flat-shaded triangles (via _proxy_face, so winding/normals
+## are guaranteed correct) rather than a squashed SphereMesh -- a non-uniform squash
+## applied to a UV sphere's vertices pinches visibly at the equator where the scale
+## factor changes, and its winding relative to our own cull_back convention was never
+## verified. Few triangles reads as a clean stylised low-poly canopy from a distance;
+## a "more realistic" cluster of many overlapping lobes just reads as noise that far out.
 static func _proxy_lobe(st: SurfaceTool, center: Vector3, radius_xz: float, radius_up: float, radius_down: float, col: Color) -> void:
 	var top := center + Vector3(0.0, radius_up, 0.0)
 	var bottom := center - Vector3(0.0, radius_down, 0.0)
@@ -291,27 +316,30 @@ static func _proxy_lobe(st: SurfaceTool, center: Vector3, radius_xz: float, radi
 		_proxy_face(st, bottom, e1, e0, col)
 
 
+## Unit-height reference mesh for each proxy kind (trunk foot at y=0, canopy top at
+## y=1) -- forest_planter.gd scales this uniformly per species so a live oak doesn't
+## come out the same size as a river birch, without the non-uniform per-axis stretch
+## that warped canopy proportions before.
 static func far_proxy_mesh(kind: String) -> Mesh:
 	var key := "farproxy#" + kind
 	if _far_proxy_cache.has(key):
 		return _far_proxy_cache[key]
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var trunk_col := Color(0.28, 0.20, 0.13)
+	var trunk_col := Color(0.30, 0.22, 0.14)
 	if kind == "pine":
-		_proxy_trunk(st, 0.30, 3.0, trunk_col)
-		var canopy_col := Color(0.14, 0.28, 0.11)
+		_proxy_trunk(st, 0.016, 0.16, trunk_col)
+		var canopy_col := Color(0.16, 0.34, 0.13)
 		# three stacked narrowing tiers read as a conifer silhouette from a distance
-		_proxy_lobe(st, Vector3(0.0, 6.0, 0.0), 2.6, 5.5, 1.2, canopy_col)
-		_proxy_lobe(st, Vector3(0.0, 11.5, 0.0), 1.9, 4.5, 1.0, canopy_col)
-		_proxy_lobe(st, Vector3(0.0, 16.0, 0.0), 1.1, 3.2, 0.8, canopy_col)
+		_proxy_lobe(st, Vector3(0.0, 0.34, 0.0), 0.15, 0.30, 0.07, canopy_col)
+		_proxy_lobe(st, Vector3(0.0, 0.62, 0.0), 0.11, 0.24, 0.06, canopy_col)
+		_proxy_lobe(st, Vector3(0.0, 0.86, 0.0), 0.065, 0.17, 0.045, canopy_col)
 	else:
-		_proxy_trunk(st, 0.35, 4.0, trunk_col)
-		var canopy_col := Color(0.19, 0.36, 0.13)
+		_proxy_trunk(st, 0.018, 0.20, trunk_col)
+		var canopy_col := Color(0.22, 0.40, 0.16)
 		# two offset lobes for a rounder, less symmetric hardwood crown
-		_proxy_lobe(st, Vector3(-1.1, 8.5, 0.2), 4.4, 4.6, 3.2, canopy_col)
-		_proxy_lobe(st, Vector3(1.3, 9.2, -0.3), 4.0, 4.2, 3.0, canopy_col.lightened(0.06))
-	st.generate_normals()
+		_proxy_lobe(st, Vector3(-0.055, 0.46, 0.01), 0.24, 0.26, 0.18, canopy_col)
+		_proxy_lobe(st, Vector3(0.065, 0.50, -0.015), 0.22, 0.23, 0.17, canopy_col.lightened(0.08))
 	var mesh := st.commit()
 	var hm := _heavy_materials(PerformanceSettings.tree_distance(), MID_AT)
 	mesh.surface_set_material(0, hm[1])  # vertex-colour "solid" material, distance-gated

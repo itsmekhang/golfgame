@@ -50,15 +50,16 @@ const TILE_FAR := 256.0
 
 ## Species lists are kept short on purpose: every species in a tile is another
 ## MultiMesh node per LOD tier. Scale jitter supplies the size variety instead.
-## Every tree family in the pack, all three size variants (A small, B, C large).
-const PINES := ["loblolly_pine_A", "loblolly_pine_B", "loblolly_pine_C", "longleaf_pine_A", "longleaf_pine_B", "longleaf_pine_C", "eastern_white_pine_A", "eastern_white_pine_B", "eastern_white_pine_C"]
-const HARDWOODS := ["white_oak_A", "white_oak_B", "white_oak_C", "red_maple_A", "red_maple_B", "red_maple_C", "sweetgum_A", "sweetgum_B", "sweetgum_C", "tulip_poplar_A", "tulip_poplar_B", "tulip_poplar_C", "southern_magnolia_A", "southern_magnolia_B", "southern_magnolia_C", "live_oak_A", "live_oak_B", "live_oak_C"]
-const UNDERSTORY_TREES := ["eastern_red_cedar_A", "eastern_red_cedar_B", "eastern_red_cedar_C", "river_birch_A", "river_birch_B", "river_birch_C"]
-const FRINGE_TREES := ["flowering_dogwood_white_A", "flowering_dogwood_white_B", "flowering_dogwood_white_C", "flowering_dogwood_pink_A", "flowering_dogwood_pink_B", "flowering_dogwood_pink_C", "crape_myrtle_A", "crape_myrtle_B", "crape_myrtle_C"]
-const GREEN_BUSHES := ["rounded", "spreading", "upright"]
-const GREEN_BUSH_DIR := "res://assets/vegetation/green_bushes/green_bush_"
-const SHRUBS := ["azalea_pink_A", "azalea_pink_B", "azalea_white_A", "azalea_white_B", "azalea_red_A", "azalea_red_B", "rhododendron_A", "rhododendron_B", "hydrangea_A", "hydrangea_B", "boxwood_A", "boxwood_B", "boxwood_hedge_A", "boxwood_hedge_B", "wax_myrtle_A", "wax_myrtle_B", "yaupon_holly_A", "yaupon_holly_B"]
-const WATERSIDE := ["bald_cypress_A", "bald_cypress_B", "bald_cypress_C", "weeping_willow_A", "weeping_willow_B", "weeping_willow_C", "river_birch_B", "loblolly_pine_B", "longleaf_pine_B"]
+## Only the A (small) size variant of each species -- B/C were dropped at the user's
+## request to cut the number of distinct meshes/MultiMesh batches (every extra size
+## variant is another species-tier pair of nodes to cull and draw). Per-instance
+## scale jitter (see `place` below, 0.7-1.2x) still supplies size variety.
+const PINES := ["loblolly_pine_A", "longleaf_pine_A", "eastern_white_pine_A"]
+const HARDWOODS := ["white_oak_A", "red_maple_A", "sweetgum_A", "tulip_poplar_A", "southern_magnolia_A", "live_oak_A"]
+const UNDERSTORY_TREES := ["eastern_red_cedar_A", "river_birch_A"]
+const FRINGE_TREES := ["flowering_dogwood_white_A", "flowering_dogwood_pink_A", "crape_myrtle_A"]
+const SHRUBS := ["azalea_pink_A", "azalea_white_A", "azalea_red_A", "rhododendron_A", "hydrangea_A", "boxwood_A", "boxwood_hedge_A", "wax_myrtle_A", "yaupon_holly_A"]
+const WATERSIDE := ["bald_cypress_A", "weeping_willow_A", "river_birch_A", "loblolly_pine_A", "longleaf_pine_A"]
 
 var _colliders: Array = []  # [Vector3 base, float trunk_r, float trunk_h, float canopy_r, float canopy_h]
 var _rids: Array[RID] = []  # one static body (trunk + canopy shape) per tree
@@ -78,13 +79,22 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 	rng.seed = rng_seed * 31 + 5
 	var b := region.intersection(layout.bounds) if region.size != Vector2.ZERO else layout.bounds
 	var per_mesh: Dictionary = {}  # id -> Array[Transform3D]
+	# Computed once per build() call, not per tree: far_proxy_mesh() is cache-backed so
+	# a repeat call is cheap, but there's no reason to pay even that per tree when the
+	# reference height never changes within one build. Scaling the far proxy uniformly
+	# by height ratio (not a separate factor per axis) keeps its hand-tuned canopy
+	# proportions intact instead of stretching it lopsided per species.
+	var far_pine_h := NaturePack.far_proxy_mesh("pine").get_aabb().size.y
+	var far_hardwood_h := NaturePack.far_proxy_mesh("hardwood").get_aabb().size.y
 
 	var place := func(id: String, xz: Vector2, is_tree: bool) -> void:
 		var y := layout.height_at(xz.x, xz.y)
 		var sc := rng.randf_range(0.7, 1.2)
-		var basis := Basis(Vector3.UP, rng.randf_range(0.0, TAU)).scaled(Vector3(sc, sc, sc))
+		var ang := rng.randf_range(0.0, TAU)
+		var basis := Basis(Vector3.UP, ang).scaled(Vector3(sc, sc, sc))
 		var bury := 0.35 if is_tree else 0.08
-		var xf := Transform3D(basis, Vector3(xz.x, y - bury, xz.y))
+		var origin := Vector3(xz.x, y - bury, xz.y)
+		var xf := Transform3D(basis, origin)
 		if not per_mesh.has(id):
 			per_mesh[id] = []
 		(per_mesh[id] as Array).append(xf)
@@ -92,10 +102,15 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 			var d := NaturePack.dims(id) * sc
 			planter._colliders.append([Vector3(xz.x, y, xz.y), 0.32 * sc, d.y * 0.4, maxf(d.x, d.z) * 0.42, d.y * 0.6])
 			planter.tree_count += 1
-			if PINES.has(id):
-				planter._far_pine.append(xf)
+			var is_pine := PINES.has(id)
+			var ref_h := far_pine_h if is_pine else far_hardwood_h
+			var far_s := (NaturePack.dims(id).y / ref_h) if ref_h > 0.0 else 1.0
+			var far_basis := Basis(Vector3.UP, ang).scaled(Vector3(far_s, far_s, far_s))
+			var far_xf := Transform3D(far_basis, origin)
+			if is_pine:
+				planter._far_pine.append(far_xf)
 			else:
-				planter._far_hardwood.append(xf)
+				planter._far_hardwood.append(far_xf)
 		else:
 			planter.shrub_count += 1
 
@@ -148,7 +163,9 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 	var shrub := func(p: Vector2) -> void:
 		var id: String
 		if rng.randf() < 0.72:
-			id = GREEN_BUSHES[rng.randi_range(0, GREEN_BUSHES.size() - 1)]
+			# Leave the removed bushes' positions empty and retain the seeded tree layout.
+			rng.randi_range(0, 2)
+			return
 		else:
 			id = SHRUBS[rng.randi_range(0, SHRUBS.size() - 1)]
 		place.call(id, p, false)
@@ -309,10 +326,6 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 	# ---- instanced batches per species and LOD tier
 	for id in per_mesh.keys():
 		var xforms: Array = per_mesh[id]
-		if GREEN_BUSHES.has(id):
-			var bush_mesh := load(GREEN_BUSH_DIR + id + ".res") as Mesh
-			VegetationBatches.add_batches(planter, "GreenBush_" + id, bush_mesh, xforms, null, false, 100.0, 32.0)
-			continue
 		var far := PerformanceSettings.tree_distance()
 		var is_shrub := SHRUBS.has(id)
 		var imp := NaturePack.impostor(id) if USE_IMPOSTORS else []
@@ -345,9 +358,9 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 	# shapes (~60 tris/tree, real 3D, no billboard/cross-card) instead of one more
 	# MultiMesh per species.
 	if not planter._far_pine.is_empty():
-		VegetationBatches.add_batches(planter, "FAR_pine", NaturePack.far_proxy_mesh("pine"), planter._far_pine, null, false, PerformanceSettings.tree_distance(), TILE_FAR, false, NaturePack.MID_AT)
+		VegetationBatches.add_batches(planter, "FAR_pine", NaturePack.far_proxy_mesh("pine"), planter._far_pine, null, false, PerformanceSettings.tree_distance() + TILE_FAR * 0.75, TILE_FAR, false, maxf(0.0, NaturePack.MID_AT - TILE_FAR * 0.75))
 	if not planter._far_hardwood.is_empty():
-		VegetationBatches.add_batches(planter, "FAR_hardwood", NaturePack.far_proxy_mesh("hardwood"), planter._far_hardwood, null, false, PerformanceSettings.tree_distance(), TILE_FAR, false, NaturePack.MID_AT)
+		VegetationBatches.add_batches(planter, "FAR_hardwood", NaturePack.far_proxy_mesh("hardwood"), planter._far_hardwood, null, false, PerformanceSettings.tree_distance() + TILE_FAR * 0.75, TILE_FAR, false, maxf(0.0, NaturePack.MID_AT - TILE_FAR * 0.75))
 	return planter
 
 
