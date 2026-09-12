@@ -74,7 +74,7 @@ static func _materials() -> void:
 	_foliage_mat.shader = load("res://shaders/nature_leaves.gdshader")
 	_grass_mat = ShaderMaterial.new()
 	_grass_mat.shader = _foliage_mat.shader
-	_grass_mat.set_shader_parameter("wind_strength", 0.025)
+	_grass_mat.set_shader_parameter("sway_strength", 0.012)
 	_solid_mat = ShaderMaterial.new()
 	_solid_mat.shader = load("res://shaders/nature_solid.gdshader")
 
