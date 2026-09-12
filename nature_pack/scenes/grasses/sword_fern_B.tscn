@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://nature_pack/scripts/nature_asset.gd" id="1"]
+
+[ext_resource type="PackedScene" path="res://nature_pack/models/grasses/sword_fern_B.glb" id="2"]
+
+
+[node name="sword_fern_B" type="Node3D"]
+script = ExtResource("1")
+asset_id = "sword_fern_B"
+use_wind = true
+
+[node name="LOD0" parent="." instance=ExtResource("2")]

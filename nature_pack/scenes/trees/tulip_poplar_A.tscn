@@ -1,0 +1,32 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://nature_pack/scripts/nature_asset.gd" id="1"]
+
+[ext_resource type="PackedScene" path="res://nature_pack/models/trees/tulip_poplar_A.glb" id="2"]
+
+[ext_resource type="PackedScene" path="res://nature_pack/models/trees/lod/tulip_poplar_A_LOD1.glb" id="3"]
+
+[ext_resource type="PackedScene" path="res://nature_pack/models/trees/lod/tulip_poplar_A_LOD2.glb" id="4"]
+
+[sub_resource type="CylinderShape3D" id="TrunkShape"]
+radius = 0.3160
+height = 7.0501
+
+[node name="tulip_poplar_A" type="Node3D"]
+script = ExtResource("1")
+asset_id = "tulip_poplar_A"
+use_wind = true
+
+[node name="LOD0" parent="." instance=ExtResource("2")]
+
+[node name="LOD1" parent="." instance=ExtResource("3")]
+
+[node name="LOD2" parent="." instance=ExtResource("4")]
+
+[node name="TrunkBody" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 1
+
+[node name="Shape" type="CollisionShape3D" parent="TrunkBody"]
+position = Vector3(0, 3.5251, 0)
+shape = SubResource("TrunkShape")

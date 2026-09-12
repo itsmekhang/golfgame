@@ -8,7 +8,7 @@ const VIEWS := 8
 const TILE_W := 512
 const TILE_H := 768
 const ELEVATION_DEG := 8.0
-const OUT_DIR := "res://assets/nature_pack/impostors/"
+const OUT_DIR := "res://nature_pack/impostors/"
 const SPECIES := [
 	"loblolly_pine_B", "loblolly_pine_C", "longleaf_pine_B", "eastern_white_pine_B",
 	"white_oak_B", "red_maple_B", "sweetgum_B", "tulip_poplar_B", "southern_magnolia_B", "live_oak_B",

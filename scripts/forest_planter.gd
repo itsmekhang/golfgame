@@ -41,12 +41,13 @@ const TILE_FAR := 256.0
 
 ## Species lists are kept short on purpose: every species in a tile is another
 ## MultiMesh node per LOD tier. Scale jitter supplies the size variety instead.
-const PINES := ["loblolly_pine_B", "loblolly_pine_C", "longleaf_pine_B", "eastern_white_pine_B"]
-const HARDWOODS := ["white_oak_B", "red_maple_B", "sweetgum_B", "tulip_poplar_B", "southern_magnolia_B", "live_oak_B"]
-const UNDERSTORY_TREES := ["eastern_red_cedar_B", "river_birch_B"]
-const FRINGE_TREES := ["flowering_dogwood_white_B", "flowering_dogwood_pink_B", "crape_myrtle_B"]
-const SHRUBS := ["azalea_pink_B", "azalea_white_B", "azalea_red_A", "rhododendron_A"]
-const WATERSIDE := ["bald_cypress_B", "weeping_willow_B", "river_birch_B"]
+## Every tree family in the pack, all three size variants (A small, B, C large).
+const PINES := ["loblolly_pine_A", "loblolly_pine_B", "loblolly_pine_C", "longleaf_pine_A", "longleaf_pine_B", "longleaf_pine_C", "eastern_white_pine_A", "eastern_white_pine_B", "eastern_white_pine_C"]
+const HARDWOODS := ["white_oak_A", "white_oak_B", "white_oak_C", "red_maple_A", "red_maple_B", "red_maple_C", "sweetgum_A", "sweetgum_B", "sweetgum_C", "tulip_poplar_A", "tulip_poplar_B", "tulip_poplar_C", "southern_magnolia_A", "southern_magnolia_B", "southern_magnolia_C", "live_oak_A", "live_oak_B", "live_oak_C"]
+const UNDERSTORY_TREES := ["eastern_red_cedar_A", "eastern_red_cedar_B", "eastern_red_cedar_C", "river_birch_A", "river_birch_B", "river_birch_C"]
+const FRINGE_TREES := ["flowering_dogwood_white_A", "flowering_dogwood_white_B", "flowering_dogwood_white_C", "flowering_dogwood_pink_A", "flowering_dogwood_pink_B", "flowering_dogwood_pink_C", "crape_myrtle_A", "crape_myrtle_B", "crape_myrtle_C"]
+const SHRUBS := ["azalea_pink_A", "azalea_pink_B", "azalea_white_A", "azalea_white_B", "azalea_red_A", "azalea_red_B", "rhododendron_A", "rhododendron_B", "hydrangea_A", "hydrangea_B", "boxwood_A", "boxwood_B", "boxwood_hedge_A", "boxwood_hedge_B", "wax_myrtle_A", "wax_myrtle_B", "yaupon_holly_A", "yaupon_holly_B"]
+const WATERSIDE := ["bald_cypress_A", "bald_cypress_B", "bald_cypress_C", "weeping_willow_A", "weeping_willow_B", "weeping_willow_C", "river_birch_B", "sabal_palm_A", "sabal_palm_B", "queen_palm_A", "queen_palm_B", "saw_palmetto_A", "saw_palmetto_B"]
 
 var _colliders: Array = []  # [Vector3 base, float trunk_r, float trunk_h, float canopy_r, float canopy_h]
 var _rids: Array[RID] = []  # one static body (trunk + canopy shape) per tree

@@ -27,16 +27,16 @@ class PropSpec:
 ## Props per hectare of course.
 static func specs() -> Array[PropSpec]:
 	return [
-		PropSpec.new(["rough_clump_A", "rough_clump_B", "dry_grass_clump_A", "dry_grass_clump_B"], 40, 0.5, Vector2(0.8, 1.3)),
-		PropSpec.new(["fescue_tussock_A", "fescue_tussock_B", "broomsedge_A", "broomsedge_B"], 16, 1.5, Vector2(0.7, 1.2)),
+		PropSpec.new(["rough_clump_A", "rough_clump_B", "dry_grass_clump_A", "dry_grass_clump_B", "fairway_clump_A", "fairway_clump_B"], 40, 0.5, Vector2(0.8, 1.3)),
+		PropSpec.new(["fescue_tussock_A", "fescue_tussock_B", "broomsedge_A", "broomsedge_B", "rushes_A", "rushes_B"], 16, 1.5, Vector2(0.7, 1.2)),
 		PropSpec.new(["sword_fern_A", "sword_fern_B", "bracken_fern_A", "bracken_fern_B", "hosta_A", "hosta_B"], 10, 4.0, Vector2(0.7, 1.1)),
 		PropSpec.new(["daisy_patch", "buttercup_patch", "wildflower_mix", "clover_patch"], 10, 1.5, Vector2(0.8, 1.3)),
 		PropSpec.new(["pine_straw", "leaf_litter", "ivy_patch", "moss_patch"], 14, 6.0, Vector2(0.9, 1.5)),
 		PropSpec.new(["mushroom_cluster"], 3, 5.0, Vector2(0.7, 1.1)),
-		PropSpec.new(["pink_muhly_A", "pink_muhly_B", "pampas_grass_A"], 3, 3.0, Vector2(0.7, 1.1)),
-		PropSpec.new(["granite_boulder_A", "granite_boulder_B", "limestone_boulder_A", "mossy_boulder_A", "mossy_boulder_B"], 1, 8.0, Vector2(0.6, 1.2), 1.1, 1.8),
-		PropSpec.new(["flat_slab_A", "river_stones_A", "river_stones_B", "pebble_cluster_A", "pebble_cluster_B"], 3, 3.0, Vector2(0.6, 1.2)),
-		PropSpec.new(["stump_low", "stump_tall", "fallen_log", "fallen_log_mossy", "dead_branch"], 2, 7.0, Vector2(0.8, 1.2), 0.8, 0.8),
+		PropSpec.new(["pink_muhly_A", "pink_muhly_B", "pampas_grass_A", "pampas_grass_B", "blue_flag_iris_A", "blue_flag_iris_B"], 3, 3.0, Vector2(0.7, 1.1)),
+		PropSpec.new(["granite_boulder_A", "granite_boulder_B", "limestone_boulder_A", "limestone_boulder_B", "mossy_boulder_A", "mossy_boulder_B", "rock_outcrop_A", "rock_outcrop_B"], 1, 8.0, Vector2(0.6, 1.2), 1.1, 1.8),
+		PropSpec.new(["flat_slab_A", "flat_slab_B", "river_stones_A", "river_stones_B", "pebble_cluster_A", "pebble_cluster_B"], 3, 3.0, Vector2(0.6, 1.2)),
+		PropSpec.new(["stump_low", "stump_tall", "fallen_log", "fallen_log_mossy", "driftwood", "dead_branch"], 2, 7.0, Vector2(0.8, 1.2), 0.8, 0.8),
 	]
 
 

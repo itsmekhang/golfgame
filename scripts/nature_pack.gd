@@ -10,9 +10,9 @@ extends RefCounted
 ## Materials are ours, not the GLBs': leaf/needle/petal/blade surfaces get the pack's
 ## wind shader, everything else a vertex-colour StandardMaterial3D with back-face culling.
 
-const DIR := "res://assets/nature_pack/"
+const DIR := "res://nature_pack/"
 const DIR_FAR := "res://assets/nature_pack_v1/"
-const WIND_SHADER := "res://assets/nature_pack/shaders/foliage_wind.gdshader"
+const WIND_SHADER := "res://nature_pack/shaders/foliage_wind.gdshader"
 const HEAVY_CATEGORIES := ["trees", "shrubs", "palms"]
 
 static var _catalog: Dictionary = {}
@@ -194,7 +194,7 @@ static func base_mesh_for_bake(id: String) -> Mesh:
 
 
 ## Baked impostor card for `id`: [Mesh quad, ShaderMaterial] or [] when not baked.
-const IMPOSTOR_DIR := "res://assets/nature_pack/impostors/"
+const IMPOSTOR_DIR := "res://nature_pack/impostors/"
 static var _impostor_meta: Dictionary = {}
 static var _impostor_cache: Dictionary = {}
 
