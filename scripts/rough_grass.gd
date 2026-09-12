@@ -19,7 +19,8 @@ extends RefCounted
 
 static var MODE: String = "wind"
 
-const KOLOSOK_OBJ := "res://assets/textures/tiles/rough_grass/Trava Kolosok.obj"
+# Raw OBJ text is packaged separately because Godot exports .obj as imported meshes.
+const KOLOSOK_OBJ := "res://assets/textures/tiles/rough_grass/Trava Kolosok.obj.txt"
 const KOLOSOK_ATLAS := "res://assets/textures/tiles/rough_grass/kolosok_atlas.png"
 const KOLOSOK_SCALE := 0.0013  # OBJ units -> metres
 const KOLOSOK_WIDEN := 2.6  # blades in the scan are very thin; widen the cards so they read at distance
@@ -27,7 +28,7 @@ const KOLOSOK_CARDS_PER_CLUMP := 12
 const KOLOSOK_VARIANTS := 6
 ## Second, sparser layer of taller modelled wild grass (56 blades sampled from the
 ## user's grass.obj scatter), drawn with the gradient shader.
-const WILD_OBJ := "res://assets/textures/tiles/rough_grass/wild_grass_clump.obj"
+const WILD_OBJ := "res://assets/textures/tiles/rough_grass/wild_grass_clump.obj.txt"
 const WILD_SCALE := 0.55  # clump ~0.4 m wide, 0.5 m tall
 const WILD_DENSITY := 0.12  # clumps per m2 in the rough band
 const WILD_MAX_CLUMPS := 60000  # independent budget so a big course can't make this layer unbounded
@@ -343,6 +344,9 @@ static func _sample_tile(layout: CourseLayout, key: Vector2i, params: Dictionary
 				if not layout.bounds.has_point(sample_xz) or layout.cached_sdf(x, z).x < CourseLayout.FIRST_CUT_WIDTH:
 					continue
 				if layout.bunker_near(sample_xz, HAZARD_CLEARANCE) or layout.hazard_near(sample_xz, HAZARD_CLEARANCE):
+					continue
+				# no grass cards on the pine-straw beds under the trees
+				if layout.straw_at(sample_xz) > 0.45:
 					continue
 				var y := layout.cached_height(x, z)
 				var s := rng.randf_range(0.65, 1.0) * (1.0 if in_band else 1.15)

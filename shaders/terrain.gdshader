@@ -56,6 +56,14 @@ uniform float sand_mean = 1.0;  // safe no-op with the default white texture unt
 uniform sampler2D sand_trail : hint_default_white, filter_linear, repeat_disable;
 uniform vec2 sand_trail_origin = vec2(0.0);
 uniform vec2 sand_trail_size = vec2(1.0);
+// Pine-straw beds: coverage mask painted under the tree lines (CourseLayout.paint_straw),
+// same origin as feature_mask. Only ever shows on rough, never on mown turf/sand/water.
+uniform sampler2D straw_mask : hint_default_black, filter_linear, repeat_disable;
+uniform vec2 straw_size = vec2(1.0);
+uniform sampler2D straw_texture : source_color, hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float straw_scale = 0.5;   // repeats per metre
+uniform float straw_mean = 1.0;
+uniform vec3 straw_color : source_color = vec3(0.50, 0.34, 0.19);
 
 varying vec3 world_pos;
 varying vec4 vcol;
@@ -103,6 +111,13 @@ void fragment() {
 	grass_tex = mix(grass_tex, green_t, mask.g);
 	vec3 textured = tint * grass_tex;
 	col = mix(col, textured * (1.0 + m * macro_strength), turf_strength);
+	// pine straw under the trees: the mask's soft disc edges plus detail noise break
+	// the outline up so beds read as raked needles thinning into the rough
+	float straw_raw = texture(straw_mask, (world_pos.xz - mask_origin) / straw_size).r;
+	float straw_w = smoothstep(0.30, 0.65, straw_raw + d * 0.35) * rough_w * (1.0 - first_cut_w);
+	vec3 straw_tex = texture(straw_texture, world_pos.xz * straw_scale).rgb / max(straw_mean, 0.05);
+	vec3 straw = straw_color * straw_tex * (1.0 + m * macro_strength * 2.0);
+	col = mix(col, straw, straw_w);
 	// sand and water bed from the mask (soft, polygon-accurate edges)
 	vec3 sand_tex = texture(sand_texture, world_pos.xz * sand_scale).rgb / max(sand_mean, 0.05);
 	vec3 sand = mix(sand_color, sand_color2, d + 0.5) * sand_tex * (1.0 + m * macro_strength);
@@ -114,7 +129,7 @@ void fragment() {
 	// Pure mown fairway only (not rough/green/fringe/sand/water): where the PBR normal
 	// map, roughness and AO apply. NORMAL_MAP_DEPTH fades it to flat elsewhere so the
 	// blend at every edge stays soft, matching the colour blend above.
-	float fairway_w = turf_strength * (1.0 - rough_w) * (1.0 - mask.g) * (1.0 - fringe_w) * (1.0 - mask.r) * (1.0 - mask.a);
+	float fairway_w = turf_strength * (1.0 - rough_w) * (1.0 - mask.g) * (1.0 - fringe_w) * (1.0 - mask.r) * (1.0 - mask.a) * (1.0 - straw_w);
 	vec3 turf_n = texture(turf_normal, world_pos.xz * fairway_scale).rgb;
 	float turf_rough_v = texture(turf_roughness, world_pos.xz * fairway_scale).r;
 	float turf_ao_v = texture(turf_ao, world_pos.xz * fairway_scale).r;

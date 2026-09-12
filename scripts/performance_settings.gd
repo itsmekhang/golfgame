@@ -8,18 +8,15 @@ static func low() -> bool:
 	return OS.get_environment("GOLF_QUALITY").to_lower() == "low"
 
 static func grass_tiles() -> int:
-	return 25 if low() else 64
+	return 16 if low() else 36
 
-## Was pushed to 12000/5000 earlier this session chasing "way more density" -- at
-## grass_tiles() * grass_per_tile() that's up to ~768,000 resident clumps, which is
-## consistent with the framerate drops now being reported (and with GPU-load-correlated
-## crashes found earlier this session). Pulled back to something the GPU can hold at a
-## sustained framerate while still reading far thicker than the original 128/64.
+## Bound GPU instances and synchronous placement work per streamed tile.
+## Default resident ceiling: 86,400 clumps; low: 12,800.
 static func grass_per_tile() -> int:
-	return 6000 if low() else 26000
+	return 800 if low() else 2400
 
 static func grass_distance() -> float:
-	return 40.0 if low() else 65.0
+	return 32.0 if low() else 48.0
 
 ## Trees/props are now scoped to one hole's region at a time (see course.gd's
 ## _ensure_hole_region), so their draw distance no longer has to cover 18 holes'

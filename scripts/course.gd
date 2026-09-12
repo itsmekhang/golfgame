@@ -100,6 +100,7 @@ var _minimap_forward := Vector2(0.0, -1.0)
 var _minimap_right := Vector2(1.0, 0.0)
 var _minimap_scale := 1.0  # world metres per minimap-texture pixel
 var _tracker_accum := 0.0
+var _tracker_inputs: Array = []
 const TRACKER_INTERVAL := 0.35
 ## Cap the preview sim so a long, slow-to-rest putt/chip can't hold a frame open;
 ## most shots are done well inside this and the real shot is unaffected either way.
@@ -182,6 +183,7 @@ func _ready() -> void:
 
 ## Re-carve terrain, lie cache and grass inside `rect` after a dig or removal.
 func rebuild_area(rect: Rect2) -> void:
+	_tracker_inputs.clear()
 	layout.update_cache_rect(rect)
 	layout.update_feature_mask_rect(rect)
 	if terrain_root != null:
@@ -1523,7 +1525,14 @@ func _update_shot_tracker(delta: float) -> void:
 	if _tracker_accum < TRACKER_INTERVAL:
 		return
 	_tracker_accum = 0.0
-	var result := _predict_trajectory(_current_club(), strike, camera.aim_direction())
+	var club := _current_club()
+	var aim := camera.aim_direction()
+	var inputs: Array = [layout, ball.global_position, ball.cup_position, ball.wind,
+		_shot_params(club, 1.0, strike, ball.current_lie, aim), strike]
+	if inputs == _tracker_inputs:
+		return
+	_tracker_inputs = inputs
+	var result := _predict_trajectory(club, strike, aim)
 	_draw_shot_tracker(result)
 
 
@@ -1531,6 +1540,7 @@ func _predict_trajectory(club: Clubs.Club, hit: Vector2, aim: Vector3) -> Dictio
 	var lie := ball.current_lie
 	var sp := _shot_params(club, 1.0, hit, lie, aim)
 	shadow_ball.cup_position = ball.cup_position
+	shadow_ball.wind = ball.wind
 	shadow_ball.place(Vector2(ball.global_position.x, ball.global_position.z))
 	if sp["putter"]:
 		shadow_ball.putt(sp["speed_mps"], sp["dir"])

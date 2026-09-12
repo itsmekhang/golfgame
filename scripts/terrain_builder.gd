@@ -31,6 +31,8 @@ const TURF_AO := "res://assets/textures/tiles/fairway_pbr_ao.png"
 const GREEN_CHECK := 2.0
 const SAND_TEXTURE := "res://assets/textures/tiles/sand_tile.png"
 const SAND_MEAN := 0.781  # its mean luminance, so sand_color/sand_color2 keep their brightness
+const STRAW_TEXTURE := "res://assets/textures/tiles/pine_straw_tile.png"  # tools/make_pine_straw.py
+const STRAW_MEAN := 0.356
 
 
 static func terrain_material(layout: CourseLayout) -> ShaderMaterial:
@@ -78,6 +80,14 @@ static func terrain_material(layout: CourseLayout) -> ShaderMaterial:
 	if ResourceLoader.exists(SAND_TEXTURE):
 		mat.set_shader_parameter("sand_texture", load(SAND_TEXTURE))
 		mat.set_shader_parameter("sand_mean", SAND_MEAN)
+	# pine-straw beds under the tree lines (ForestPlanter paints the mask later)
+	layout.ensure_straw()
+	mat.set_shader_parameter("straw_mask", layout.straw_texture)
+	mat.set_shader_parameter("straw_size", layout.straw_texture_size())
+	if ResourceLoader.exists(STRAW_TEXTURE):
+		mat.set_shader_parameter("straw_texture", load(STRAW_TEXTURE))
+		mat.set_shader_parameter("straw_mean", STRAW_MEAN)
+		mat.set_shader_parameter("straw_scale", 0.5)
 	return mat
 
 

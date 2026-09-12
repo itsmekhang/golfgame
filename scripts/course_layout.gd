@@ -889,6 +889,69 @@ func sdf_texture_size() -> Vector2:
 	return Vector2(cache_nx, cache_nz) * cache_cell
 
 
+## Pine-straw bed coverage (0..1) at STRAW_CELL resolution over the bounds. Painted
+## by ForestPlanter as soft discs under every tree it plants (the Augusta look: brown
+## needle beds under the pines right up to the rough), read by terrain.gdshader as the
+## `straw_mask` uniform and by RoughGrass to keep grass cards off the beds.
+const STRAW_CELL := 2.0
+var straw_image: Image
+var straw_texture: ImageTexture
+
+
+func ensure_straw() -> void:
+	if straw_image != null:
+		return
+	var w := int(ceil(bounds.size.x / STRAW_CELL)) + 1
+	var h := int(ceil(bounds.size.y / STRAW_CELL)) + 1
+	straw_image = Image.create(w, h, false, Image.FORMAT_L8)
+	straw_image.fill(Color.BLACK)
+	straw_texture = ImageTexture.create_from_image(straw_image)
+
+
+func straw_texture_size() -> Vector2:
+	return Vector2(straw_image.get_width(), straw_image.get_height()) * STRAW_CELL
+
+
+## Stamp soft discs: `stamps` is an Array of [Vector2 centre, float radius]. Coverage
+## is 1 inside 60% of the radius and fades to 0 at the edge; overlapping trees take
+## the max, so a wood becomes one continuous bed.
+func paint_straw(stamps: Array) -> void:
+	ensure_straw()
+	var w := straw_image.get_width()
+	var h := straw_image.get_height()
+	for st in stamps:
+		var c: Vector2 = st[0]
+		var r: float = st[1]
+		var cx := (c.x - bounds.position.x) / STRAW_CELL
+		var cz := (c.y - bounds.position.y) / STRAW_CELL
+		var rc := r / STRAW_CELL
+		var x0 := clampi(int(floor(cx - rc)), 0, w - 1)
+		var x1 := clampi(int(ceil(cx + rc)), 0, w - 1)
+		var z0 := clampi(int(floor(cz - rc)), 0, h - 1)
+		var z1 := clampi(int(ceil(cz + rc)), 0, h - 1)
+		for z in range(z0, z1 + 1):
+			for x in range(x0, x1 + 1):
+				var d := Vector2(x - cx, z - cz).length() / maxf(rc, 0.001)
+				if d >= 1.0:
+					continue
+				var v := 1.0 - smoothstep(0.6, 1.0, d)
+				var old := straw_image.get_pixel(x, z).r
+				if v > old:
+					straw_image.set_pixel(x, z, Color(v, v, v))
+	straw_texture.update(straw_image)
+
+
+## Bilinear-free point sample of the straw bed coverage at a world XZ.
+func straw_at(xz: Vector2) -> float:
+	if straw_image == null:
+		return 0.0
+	var x := int((xz.x - bounds.position.x) / STRAW_CELL)
+	var z := int((xz.y - bounds.position.y) / STRAW_CELL)
+	if x < 0 or z < 0 or x >= straw_image.get_width() or z >= straw_image.get_height():
+		return 0.0
+	return straw_image.get_pixel(x, z).r
+
+
 func cached_along(xz: Vector2) -> float:
 	if cache_nx == 0:
 		return 0.0

@@ -27,6 +27,7 @@ const SHRUB_TEE_CLEARANCE := 14.0
 const GREENSIDE_SHRUB_MIN := 12.0  # azalea clumps ring each green at this range
 const GREENSIDE_SHRUB_MAX := 34.0
 const GREENSIDE_SHRUB_TRIES := 40
+const STRAW_CANOPY_FACTOR := 1.25  # straw bed radius as a multiple of the canopy radius
 ## Tier hand-over distances: the high-fidelity mesh (47k-238k tris, every leaf) up
 ## close, then a baked impostor card of the same model for the forest bulk. Where no
 ## impostor is baked the old low-poly LOD1/LOD2 meshes stand in.
@@ -280,6 +281,15 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 					shrub.call(q)
 		x += cell
 
+	# ---- pine-straw beds under everything planted (the flyover's brown needle floor)
+	var stamps: Array = []
+	for c in planter._colliders:
+		var base: Vector3 = c[0]
+		var canopy_r: float = c[3]
+		stamps.append([Vector2(base.x, base.z), maxf(canopy_r * STRAW_CANOPY_FACTOR, 3.5)])
+	if not stamps.is_empty():
+		layout.paint_straw(stamps)
+
 	# ---- instanced batches per species and LOD tier
 	for id in per_mesh.keys():
 		var xforms: Array = per_mesh[id]
@@ -312,12 +322,13 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 
 
 static func _canopy_species(rng: RandomNumberGenerator) -> String:
-	# the pack's pines are open, wispy silhouettes; its broadleaf crowns are full, so
-	# they carry most of the woodland
+	# Augusta's woods are tall loblolly pines over a pine-straw floor with hardwoods
+	# mixed in (course flyover video), so pines carry half the canopy now that the
+	# regenerated LODs give them full crowns
 	var r := rng.randf()
-	if r < 0.15:
+	if r < 0.5:
 		return PINES[rng.randi_range(0, PINES.size() - 1)]
-	if r < 0.93:
+	if r < 0.95:
 		return HARDWOODS[rng.randi_range(0, HARDWOODS.size() - 1)]
 	return UNDERSTORY_TREES[rng.randi_range(0, UNDERSTORY_TREES.size() - 1)]
 
