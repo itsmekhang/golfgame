@@ -220,9 +220,20 @@ func _ensure_hole_region(hole: CourseLayout.Hole) -> void:
 			await get_tree().process_frame
 	else:
 		_loading_screen.update_progress(0.3, "Loading hole %d…" % (hole.index + 1))
+	# The lie/height bake for this region (3-4 s of pure GDScript) runs on a worker
+	# thread while the main thread keeps animating the cart loading screen; nothing
+	# else touches the layout until it finishes. Headless runs just bake inline.
 	var t_cache := Time.get_ticks_msec()
-	if layout.ensure_cache_rect(region):
-		print("[build] cache region %d x %d m in %d ms" % [region.size.x, region.size.y, Time.get_ticks_msec() - t_cache])
+	if DisplayServer.get_name() == "headless":
+		if layout.ensure_cache_rect(region):
+			print("[build] cache region %d x %d m in %d ms" % [region.size.x, region.size.y, Time.get_ticks_msec() - t_cache])
+	else:
+		var bake := Thread.new()
+		bake.start(layout.ensure_cache_rect.bind(region))
+		while bake.is_alive():
+			await get_tree().process_frame
+		if bake.wait_to_finish():
+			print("[build] cache region %d x %d m in %d ms (background)" % [region.size.x, region.size.y, Time.get_ticks_msec() - t_cache])
 	if terrain_root != null:
 		terrain_root.queue_free()
 	if props_root != null:
@@ -1016,6 +1027,7 @@ func _process(delta: float) -> void:
 				power_dir = 1.0
 			hud.power_bar.value = power
 		SwingPhase.IN_FLIGHT:
+			trail_mesh.visible = true
 			_update_trail()
 			_push_interactor()
 			hud.dist_label.text = "Ball: %.0f mph  h %.0f ft  %s" % [ball.velocity.length() / ShotSetup.MPS_PER_MPH, (ball.global_position.y - layout.height_at(ball.global_position.x, ball.global_position.z)) * ShotSetup.FEET_PER_METER, "flight" if not ball.on_ground else "rolling"]
@@ -1432,8 +1444,9 @@ func _update_shot_tracker(delta: float) -> void:
 	var showing := phase != SwingPhase.IN_FLIGHT
 	shot_tracker_line.visible = showing
 	landing_marker.visible = showing
-	# the white flight trail only while the ball is flying; at address just the tracer
-	trail_mesh.visible = not showing
+	# the white flight trail only while the ball is flying (the IN_FLIGHT branch shows
+	# it again); at address just the tracer
+	trail_mesh.visible = false
 	if not showing or ball == null or shadow_ball == null:
 		return
 	_tracker_accum += delta

@@ -10,8 +10,8 @@ extends Node3D
 ## one PhysicsServer body holding a trunk cylinder + canopy cylinder per tree (no
 ## nodes), on PropScatter.OBSTACLE_LAYER so the ball can hit them.
 
-const TREE_SPACING := 6.8  # metres between trees inside a wood (jittered grid)
-const FILL_SPACING := 7.6  # metres between trees in the fill forest off the paintings
+const TREE_SPACING := 5.5  # metres between trees inside a wood (jittered grid)
+const FILL_SPACING := 6.2  # metres between trees in the fill forest off the paintings
 const FILL_TURF_CLEARANCE := 22.0  # fill forest keeps this far from any mown turf
 const WOODS_TURF_CLEARANCE := 10.0  # traced tree groups keep this far from any mown turf
 const CORRIDOR_MARGIN := 14.0  # rough strip beside every fairway corridor kept free of trunks

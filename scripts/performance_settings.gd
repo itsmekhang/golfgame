@@ -16,7 +16,7 @@ static func grass_tiles() -> int:
 ## crashes found earlier this session). Pulled back to something the GPU can hold at a
 ## sustained framerate while still reading far thicker than the original 128/64.
 static func grass_per_tile() -> int:
-	return 4000 if low() else 18000
+	return 6000 if low() else 26000
 
 static func grass_distance() -> float:
 	return 40.0 if low() else 65.0
