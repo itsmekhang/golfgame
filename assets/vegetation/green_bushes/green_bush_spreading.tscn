@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/vegetation/green_bushes/green_bush_spreading.res" id="1_jt121"]
+
+[node name="GreenBushSpreading" type="MeshInstance3D" unique_id=2131373050]
+visibility_range_end = 100.0
+mesh = ExtResource("1_jt121")

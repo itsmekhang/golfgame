@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://assets/vegetation/green_bushes/green_bush_upright.res" id="1_68eqd"]
+
+[node name="GreenBushUpright" type="MeshInstance3D" unique_id=1996188683]
+visibility_range_end = 100.0
+mesh = ExtResource("1_68eqd")

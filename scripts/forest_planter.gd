@@ -10,8 +10,8 @@ extends Node3D
 ## one PhysicsServer body holding a trunk cylinder + canopy cylinder per tree (no
 ## nodes), on PropScatter.OBSTACLE_LAYER so the ball can hit them.
 
-const TREE_SPACING := 5.5  # metres between trees inside a wood (jittered grid)
-const FILL_SPACING := 6.2  # metres between trees in the fill forest off the paintings
+const TREE_SPACING := 7.5  # metres between trees inside a wood (jittered grid)
+const FILL_SPACING := 9.0  # metres between trees in the fill forest off the paintings
 const FILL_TURF_CLEARANCE := 22.0  # fill forest keeps this far from any mown turf
 const WOODS_TURF_CLEARANCE := 10.0  # traced tree groups keep this far from any mown turf
 const CORRIDOR_MARGIN := 14.0  # rough strip beside every fairway corridor kept free of trunks
@@ -19,8 +19,8 @@ const TEE_CLEARANCE := 60.0  # no trees this close to a back tee (crowns are 10-
 const CARRY_LANE_HALF := 18.0  # half width of the tree-free lane along a rough carry
 const EDGE_BAND := 7.0  # metres inside a wood's edge that reads as its flowering fringe
 const SHRUB_SPACING := 3.0  # metres between candidate bushes along a wood's edge
-const EDGE_SHRUB_CHANCE := 0.7  # share of edge candidates that get a bush
-const UNDERSTORY_SHRUB_CHANCE := 0.4  # bushes under the canopy, per tree planted
+const EDGE_SHRUB_CHANCE := 0.32  # share of edge candidates that get a bush
+const UNDERSTORY_SHRUB_CHANCE := 0.10  # bushes under the canopy, per tree planted
 const SHRUB_TURF_CLEARANCE := 3.0  # bushes may sit this close to mown turf
 const SHRUB_CORRIDOR_MARGIN := 4.0  # and this far outside a fairway corridor
 const SHRUB_TEE_CLEARANCE := 14.0
@@ -55,13 +55,19 @@ const PINES := ["loblolly_pine_A", "loblolly_pine_B", "loblolly_pine_C", "longle
 const HARDWOODS := ["white_oak_A", "white_oak_B", "white_oak_C", "red_maple_A", "red_maple_B", "red_maple_C", "sweetgum_A", "sweetgum_B", "sweetgum_C", "tulip_poplar_A", "tulip_poplar_B", "tulip_poplar_C", "southern_magnolia_A", "southern_magnolia_B", "southern_magnolia_C", "live_oak_A", "live_oak_B", "live_oak_C"]
 const UNDERSTORY_TREES := ["eastern_red_cedar_A", "eastern_red_cedar_B", "eastern_red_cedar_C", "river_birch_A", "river_birch_B", "river_birch_C"]
 const FRINGE_TREES := ["flowering_dogwood_white_A", "flowering_dogwood_white_B", "flowering_dogwood_white_C", "flowering_dogwood_pink_A", "flowering_dogwood_pink_B", "flowering_dogwood_pink_C", "crape_myrtle_A", "crape_myrtle_B", "crape_myrtle_C"]
+const GREEN_BUSHES := ["rounded", "spreading", "upright"]
+const GREEN_BUSH_DIR := "res://assets/vegetation/green_bushes/green_bush_"
 const SHRUBS := ["azalea_pink_A", "azalea_pink_B", "azalea_white_A", "azalea_white_B", "azalea_red_A", "azalea_red_B", "rhododendron_A", "rhododendron_B", "hydrangea_A", "hydrangea_B", "boxwood_A", "boxwood_B", "boxwood_hedge_A", "boxwood_hedge_B", "wax_myrtle_A", "wax_myrtle_B", "yaupon_holly_A", "yaupon_holly_B"]
-const WATERSIDE := ["bald_cypress_A", "bald_cypress_B", "bald_cypress_C", "weeping_willow_A", "weeping_willow_B", "weeping_willow_C", "river_birch_B", "sabal_palm_A", "sabal_palm_B", "queen_palm_A", "queen_palm_B", "saw_palmetto_A", "saw_palmetto_B"]
+const WATERSIDE := ["bald_cypress_A", "bald_cypress_B", "bald_cypress_C", "weeping_willow_A", "weeping_willow_B", "weeping_willow_C", "river_birch_B", "loblolly_pine_B", "longleaf_pine_B"]
 
 var _colliders: Array = []  # [Vector3 base, float trunk_r, float trunk_h, float canopy_r, float canopy_h]
 var _rids: Array[RID] = []  # one static body (trunk + canopy shape) per tree
 var tree_count := 0
 var shrub_count := 0
+## Every planted tree's transform, pooled by proxy kind (not species) for the far
+## tier -- see NaturePack.far_proxy_mesh.
+var _far_pine: Array = []
+var _far_hardwood: Array = []
 
 
 ## Build the forest for `region` (a Rect2 in world XZ; empty = whole course).
@@ -78,13 +84,18 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 		var sc := rng.randf_range(0.7, 1.2)
 		var basis := Basis(Vector3.UP, rng.randf_range(0.0, TAU)).scaled(Vector3(sc, sc, sc))
 		var bury := 0.35 if is_tree else 0.08
+		var xf := Transform3D(basis, Vector3(xz.x, y - bury, xz.y))
 		if not per_mesh.has(id):
 			per_mesh[id] = []
-		(per_mesh[id] as Array).append(Transform3D(basis, Vector3(xz.x, y - bury, xz.y)))
+		(per_mesh[id] as Array).append(xf)
 		if is_tree:
 			var d := NaturePack.dims(id) * sc
 			planter._colliders.append([Vector3(xz.x, y, xz.y), 0.32 * sc, d.y * 0.4, maxf(d.x, d.z) * 0.42, d.y * 0.6])
 			planter.tree_count += 1
+			if PINES.has(id):
+				planter._far_pine.append(xf)
+			else:
+				planter._far_hardwood.append(xf)
 		else:
 			planter.shrub_count += 1
 
@@ -135,7 +146,12 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 		return true
 
 	var shrub := func(p: Vector2) -> void:
-		place.call(SHRUBS[rng.randi_range(0, SHRUBS.size() - 1)], p, false)
+		var id: String
+		if rng.randf() < 0.72:
+			id = GREEN_BUSHES[rng.randi_range(0, GREEN_BUSHES.size() - 1)]
+		else:
+			id = SHRUBS[rng.randi_range(0, SHRUBS.size() - 1)]
+		place.call(id, p, false)
 
 	# ---- painted woodland footprints
 	var painted: Array = []  # [Rect2 bounds, PackedVector2Array] per hole
@@ -165,7 +181,7 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 						continue
 					var edge := _dist_to_outline(p, poly)
 					var id: String
-					if edge < EDGE_BAND and rng.randf() < 0.55:
+					if edge < EDGE_BAND and rng.randf() < 0.20:
 						id = FRINGE_TREES[rng.randi_range(0, FRINGE_TREES.size() - 1)]
 					elif near_water and layout.hazard_near(p, 14.0) and rng.randf() < 0.5:
 						id = WATERSIDE[rng.randi_range(0, WATERSIDE.size() - 1)]
@@ -293,6 +309,10 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 	# ---- instanced batches per species and LOD tier
 	for id in per_mesh.keys():
 		var xforms: Array = per_mesh[id]
+		if GREEN_BUSHES.has(id):
+			var bush_mesh := load(GREEN_BUSH_DIR + id + ".res") as Mesh
+			VegetationBatches.add_batches(planter, "GreenBush_" + id, bush_mesh, xforms, null, false, 100.0, 32.0)
+			continue
 		var far := PerformanceSettings.tree_distance()
 		var is_shrub := SHRUBS.has(id)
 		var imp := NaturePack.impostor(id) if USE_IMPOSTORS else []
@@ -318,15 +338,24 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 			if mid != null:
 				var mid_far := (LOD2_AT if is_shrub else NaturePack.MID_AT)
 				VegetationBatches.add_batches(planter, id + "_L2", mid, xforms, null, not is_shrub, mid_far + TILE_MID * 0.75, TILE_MID, false, 0.0)
+
+	# ---- far tier: real geometry stopped dead at MID_AT with nothing standing in for
+	# it out to PerformanceSettings.tree_distance() (900 m by default), so the forest
+	# just vanished past 220 m -- pooled across every species into two cheap proxy
+	# shapes (~60 tris/tree, real 3D, no billboard/cross-card) instead of one more
+	# MultiMesh per species.
+	if not planter._far_pine.is_empty():
+		VegetationBatches.add_batches(planter, "FAR_pine", NaturePack.far_proxy_mesh("pine"), planter._far_pine, null, false, PerformanceSettings.tree_distance(), TILE_FAR, false, NaturePack.MID_AT)
+	if not planter._far_hardwood.is_empty():
+		VegetationBatches.add_batches(planter, "FAR_hardwood", NaturePack.far_proxy_mesh("hardwood"), planter._far_hardwood, null, false, PerformanceSettings.tree_distance(), TILE_FAR, false, NaturePack.MID_AT)
 	return planter
 
 
 static func _canopy_species(rng: RandomNumberGenerator) -> String:
 	# Augusta's woods are tall loblolly pines over a pine-straw floor with hardwoods
-	# mixed in (course flyover video), so pines carry half the canopy now that the
-	# regenerated LODs give them full crowns
+	# mixed in. Leave more space between trunks and keep flowers in edge beds.
 	var r := rng.randf()
-	if r < 0.5:
+	if r < 0.78:
 		return PINES[rng.randi_range(0, PINES.size() - 1)]
 	if r < 0.95:
 		return HARDWOODS[rng.randi_range(0, HARDWOODS.size() - 1)]

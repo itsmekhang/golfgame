@@ -244,6 +244,81 @@ static func impostor(id: String) -> Array:
 	return _impostor_cache[id]
 
 
+## Beyond MID_AT, real LOD2 geometry stopped entirely -- nothing drew all the way out
+## to PerformanceSettings.tree_distance() (900 m by default), so the forest just
+## vanished into an empty horizon past 220 m. This is the far, cheap stand-in: real
+## static 3D geometry (no camera-facing billboard, no cross-card -- both were tried
+## earlier and rejected), just very few triangles, pooled across every species into
+## two shapes (a shared "pine" cone and a shared "hardwood" double-blob) rather than
+## one mesh per species, so the far tier costs two MultiMesh batches instead of dozens.
+static var _far_proxy_cache: Dictionary = {}
+
+
+static func _proxy_face(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, col: Color) -> void:
+	# Emitted both winding directions so the (very few) triangles read correctly from
+	# every angle without needing to hand-verify outward winding on each face --
+	# doubling ~30 triangles to ~60 is still negligible next to a 12k+ tri LOD2 mesh.
+	for tri in [[a, b, c], [a, c, b]]:
+		for v: Vector3 in tri:
+			st.set_color(col)
+			st.add_vertex(v)
+
+
+## A low-poly cylinder trunk, shared by both proxy kinds.
+static func _proxy_trunk(st: SurfaceTool, radius: float, height: float, col: Color) -> void:
+	const SIDES := 6
+	for i in range(SIDES):
+		var a0 := TAU * i / SIDES
+		var a1 := TAU * (i + 1) / SIDES
+		var p0 := Vector3(cos(a0), 0.0, sin(a0)) * radius
+		var p1 := Vector3(cos(a1), 0.0, sin(a1)) * radius
+		var p0t := p0 + Vector3(0.0, height, 0.0)
+		var p1t := p1 + Vector3(0.0, height, 0.0)
+		_proxy_face(st, p0, p1, p1t, col)
+		_proxy_face(st, p0, p1t, p0t, col)
+
+
+## A squashed octahedron canopy lobe: a top and bottom apex over a 4-point equator.
+static func _proxy_lobe(st: SurfaceTool, center: Vector3, radius_xz: float, radius_up: float, radius_down: float, col: Color) -> void:
+	var top := center + Vector3(0.0, radius_up, 0.0)
+	var bottom := center - Vector3(0.0, radius_down, 0.0)
+	var eq := [center + Vector3(radius_xz, 0.0, 0.0), center + Vector3(0.0, 0.0, radius_xz),
+		center + Vector3(-radius_xz, 0.0, 0.0), center + Vector3(0.0, 0.0, -radius_xz)]
+	for i in range(4):
+		var e0: Vector3 = eq[i]
+		var e1: Vector3 = eq[(i + 1) % 4]
+		_proxy_face(st, top, e0, e1, col)
+		_proxy_face(st, bottom, e1, e0, col)
+
+
+static func far_proxy_mesh(kind: String) -> Mesh:
+	var key := "farproxy#" + kind
+	if _far_proxy_cache.has(key):
+		return _far_proxy_cache[key]
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var trunk_col := Color(0.28, 0.20, 0.13)
+	if kind == "pine":
+		_proxy_trunk(st, 0.30, 3.0, trunk_col)
+		var canopy_col := Color(0.14, 0.28, 0.11)
+		# three stacked narrowing tiers read as a conifer silhouette from a distance
+		_proxy_lobe(st, Vector3(0.0, 6.0, 0.0), 2.6, 5.5, 1.2, canopy_col)
+		_proxy_lobe(st, Vector3(0.0, 11.5, 0.0), 1.9, 4.5, 1.0, canopy_col)
+		_proxy_lobe(st, Vector3(0.0, 16.0, 0.0), 1.1, 3.2, 0.8, canopy_col)
+	else:
+		_proxy_trunk(st, 0.35, 4.0, trunk_col)
+		var canopy_col := Color(0.19, 0.36, 0.13)
+		# two offset lobes for a rounder, less symmetric hardwood crown
+		_proxy_lobe(st, Vector3(-1.1, 8.5, 0.2), 4.4, 4.6, 3.2, canopy_col)
+		_proxy_lobe(st, Vector3(1.3, 9.2, -0.3), 4.0, 4.2, 3.0, canopy_col.lightened(0.06))
+	st.generate_normals()
+	var mesh := st.commit()
+	var hm := _heavy_materials(PerformanceSettings.tree_distance(), MID_AT)
+	mesh.surface_set_material(0, hm[1])  # vertex-colour "solid" material, distance-gated
+	_far_proxy_cache[key] = mesh
+	return mesh
+
+
 ## The version 1 low-poly mesh for `id` at detail `lod` (1 or 2) for the far tiers.
 static func mesh_far(id: String, lod: int) -> Mesh:
 	var entry: Dictionary = catalog_far().get(id, {})
