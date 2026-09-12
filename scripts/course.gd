@@ -1432,6 +1432,8 @@ func _update_shot_tracker(delta: float) -> void:
 	var showing := phase != SwingPhase.IN_FLIGHT
 	shot_tracker_line.visible = showing
 	landing_marker.visible = showing
+	# the white flight trail only while the ball is flying; at address just the tracer
+	trail_mesh.visible = not showing
 	if not showing or ball == null or shadow_ball == null:
 		return
 	_tracker_accum += delta
