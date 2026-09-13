@@ -21,6 +21,7 @@ var camera: OrbitCamera
 var hud: Hud
 var audio: GolfAudio
 var flag: Node3D
+var backdrop_root: MeshInstance3D
 var terrain_root: Node3D
 var grass_root: Node3D
 var hazards_root: Node3D
@@ -84,12 +85,10 @@ var shot_tracker_line: MeshInstance3D
 var landing_marker: MeshInstance3D
 var minimap_viewport: SubViewport
 var minimap_camera: Camera3D
-var minimap_ball_marker: MeshInstance3D
 var minimap_pin_marker: MeshInstance3D
-var _minimap_tick := 0
-## Visual layer used only by the minimap markers (bit 10), hidden from the main
-## camera so the oversized dots that make the ball/pin readable at minimap scale
-## never show up in the normal gameplay view.
+var _minimap_elapsed := 1.0
+var _minimap_last_ball := Vector3(INF, INF, INF)
+## Minimap-only tree silhouettes and pin icon, hidden from the main camera.
 const MINIMAP_LAYER := 0x200  # layer 10
 const MINIMAP_HEIGHT_PX := 280
 var _minimap_built := false
@@ -191,6 +190,9 @@ func _ready() -> void:
 
 ## Re-carve terrain, lie cache and grass inside `rect` after a dig or removal.
 func rebuild_area(rect: Rect2) -> void:
+	_minimap_last_ball = Vector3(INF, INF, INF)
+	if grass_root is GrassStreamer:
+		grass_root.finish_pending()
 	_tracker_inputs.clear()
 	layout.update_cache_rect(rect)
 	layout.update_feature_mask_rect(rect)
@@ -252,12 +254,18 @@ func _ensure_hole_region(hole: CourseLayout.Hole) -> void:
 		decor_root.queue_free()
 	if nature_props_root != null:
 		nature_props_root.queue_free()
+	layout.rendered_terrain.tiles.clear()
 	terrain_root = Node3D.new()
 	terrain_root.name = "Terrain"
 	_terrain_material = TerrainBuilder.terrain_material(layout)
 	terrain_root.set_meta("material", _terrain_material)
 	TerrainBuilder.rebuild_tiles(layout, terrain_root, region)
 	add_child(terrain_root)
+	if backdrop_root != null:
+		backdrop_root.queue_free()
+	backdrop_root = CourseBackdrop.build(layout, terrain_root)
+	if backdrop_root != null:
+		add_child(backdrop_root)
 	# Scope the trail texture to just this hole's bunkers (grown a bit), not the whole
 	# hole region -- the trail is only ever visible where mask.r (sand) is set anyway, so
 	# covering hundreds of metres of fairway/rough it can never show on was just wasted
@@ -298,15 +306,14 @@ func _ensure_hole_region(hole: CourseLayout.Hole) -> void:
 func _load_layout() -> void:
 	layout = CourseBuilder.build(course_seed)
 	print("[CourseBuilder] ", CourseBuilder.last_report)
-	# Green speed for the round: GOLF_STIMP=11 forces one, otherwise the round's seed
-	# picks a tournament-week reading between 10 and 12.5 ft.
+	# GOLF_STIMP can override the round's speed. Default rounds use 20% slower greens.
 	var stimp_env := OS.get_environment("GOLF_STIMP")
 	if stimp_env.is_valid_float():
 		SurfacePhysicsCatalog.set_green_speed(stimp_env.to_float())
 	else:
 		var r := RandomNumberGenerator.new()
 		r.seed = course_seed * 977 + 13
-		SurfacePhysicsCatalog.set_green_speed(snappedf(r.randf_range(10.0, 12.5), 0.5))
+		SurfacePhysicsCatalog.set_green_speed(snappedf(r.randf_range(8.0, 10.0), 0.5))
 	print("[Greens] ", SurfacePhysicsCatalog.green_speed_label(), " rolling mu %.3f" % SurfacePhysicsCatalog.get_settings(PhysicsEnums.SurfaceType.GREEN).rolling_friction)
 
 
@@ -338,6 +345,7 @@ func _build_world() -> void:
 		var psm := ProceduralSkyMaterial.new()
 		psm.sky_top_color = Color(0.25, 0.48, 0.9)
 		psm.sky_horizon_color = Color(0.7, 0.8, 0.9)
+		psm.ground_horizon_color = psm.sky_horizon_color
 		# Cumulus cover: a generated equirect noise texture alpha-masked into puffs and
 		# painted over the procedural sky -- one texture sample, no ray march, so it costs
 		# nothing like the cinematic shader that kept tripping GPU timeouts.
@@ -416,10 +424,12 @@ func _build_world() -> void:
 	tmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	tmat.no_depth_test = false
 	trail_mesh.material_override = tmat
+	trail_mesh.layers = PerformanceSettings.SHOT_LAYER
 	add_child(trail_mesh)
 
 	shot_tracker_line = MeshInstance3D.new()
 	shot_tracker_line.name = "ShotTracker"
+	shot_tracker_line.layers = PerformanceSettings.SHOT_LAYER
 	var amat := StandardMaterial3D.new()
 	amat.albedo_color = Color(1.0, 0.9, 0.2, 0.9)
 	amat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -429,6 +439,7 @@ func _build_world() -> void:
 
 	landing_marker = MeshInstance3D.new()
 	landing_marker.name = "LandingMarker"
+	landing_marker.layers = PerformanceSettings.SHOT_LAYER
 	var torus := TorusMesh.new()
 	torus.inner_radius = 0.5
 	torus.outer_radius = 0.8
@@ -585,13 +596,9 @@ static func _terrain_matched_annulus_mesh(layout: CourseLayout, center: Vector2,
 	return st.commit() as ArrayMesh
 
 
-## Builds the visible hole/cup/flag for `hole`. There is only one radius and one position
-## here -- GolfBall.CUP_RADIUS and layout.height_at(hole.cup) -- shared with the actual
-## putt-capture check in golf_ball.gd (see cup_position there). "Hole" and "cup" are not
-## modelled as two separate things: the capture check uses exactly this position/radius, so
-## the ball is never flagged as holed at some other, wider checkpoint before it visually
-## reaches this same spot -- see also golf_ball.gd's _finish_holed(), which now waits for the
-## drop-in animation to finish before emitting `holed`, instead of firing it immediately.
+## Builds the cup at the same position and mouth radius used by GolfBall's capture
+## check. Capture includes a small margin for a ball overlapping the lip, then the
+## visible drop animation finishes before the hole is scored.
 func _add_flag(hole: CourseLayout.Hole) -> void:
 	var root := Node3D.new()
 	root.name = "Flag%d" % (hole.index + 1)
@@ -771,7 +778,7 @@ func _build_minimap() -> void:
 	minimap_camera = Camera3D.new()
 	minimap_camera.name = "MinimapCamera"
 	minimap_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	minimap_camera.cull_mask = 0xFFFFF & ~PerformanceSettings.DETAIL_LAYER  # course + minimap-only markers, no grass/vegetation clutter
+	minimap_camera.cull_mask = 0xFFFFF & ~(PerformanceSettings.DETAIL_LAYER | PerformanceSettings.TREE_LAYER | PerformanceSettings.SHOT_LAYER)
 	minimap_camera.far = 3000.0
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
@@ -784,24 +791,6 @@ func _build_minimap() -> void:
 	minimap_camera.environment = env
 	minimap_viewport.add_child(minimap_camera)
 	minimap_camera.current = true
-
-	minimap_ball_marker = MeshInstance3D.new()
-	minimap_ball_marker.name = "MinimapBall"
-	var bm := SphereMesh.new()
-	bm.radius = 3.5
-	bm.height = 7.0
-	minimap_ball_marker.mesh = bm
-	minimap_ball_marker.layers = MINIMAP_LAYER
-	var bmat := StandardMaterial3D.new()
-	bmat.albedo_color = Color(1.0, 1.0, 1.0)
-	bmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	# These are UI markers riding along in a 3D viewport, not real geometry needing correct
-	# occlusion -- no_depth_test + a high render_priority means neither can ever end up
-	# invisible under a tree, a slope, or (as just happened to the pin) a stale height value.
-	bmat.no_depth_test = true
-	bmat.render_priority = 10
-	minimap_ball_marker.material_override = bmat
-	add_child(minimap_ball_marker)
 
 	minimap_pin_marker = MeshInstance3D.new()
 	minimap_pin_marker.name = "MinimapPin"
@@ -889,7 +878,8 @@ func _update_minimap_frame(hole: CourseLayout.Hole) -> void:
 	_minimap_forward = forward
 	_minimap_right = right
 	_minimap_scale = along_extent / float(MINIMAP_HEIGHT_PX)
-	_minimap_tick = 0
+	_minimap_elapsed = 1.0
+	_minimap_last_ball = Vector3(INF, INF, INF)
 
 
 
@@ -928,6 +918,8 @@ func start_hole(index: int) -> void:
 ## nothing should be able to swing, drag the camera, or have the ball keep moving while the
 ## course underneath it is being torn down and rebuilt.
 func _set_transition_active(active: bool) -> void:
+	if grass_root is GrassStreamer:
+		grass_root.set_suspended(active)
 	_transitioning = active
 	if is_instance_valid(camera):
 		camera.set_process(not active)
@@ -1060,7 +1052,13 @@ func _process(delta: float) -> void:
 	if ball == null:
 		return
 	if grass_root is GrassStreamer:
-		grass_root.focus_position = Vector2(ball.global_position.x, ball.global_position.z)
+		var grass_focus: Vector3 = ball.global_position
+		if camera.scouting:
+			grass_focus = camera.scout_target
+		elif camera.mode == OrbitCamera.Mode.OVERHEAD:
+			grass_focus = camera.overhead_focus_point
+		grass_root.focus_position = Vector2(grass_focus.x, grass_focus.z)
+		grass_root.view_position = camera.global_position
 	# Terrain/props only exist within active_region -- shrunk by a margin so the overhead
 	# camera's pan can't push its look-at centre right up to the edge (see OVERHEAD_TILT_MAX
 	# for the matching cap on tilting toward the horizon at that edge). Falls back to the
@@ -1160,6 +1158,10 @@ func _fire_shot(pwr: float, hit: Vector2) -> void:
 	strokes += 1
 	_pre_shot_pos = ball.global_position
 	phase = SwingPhase.IN_FLIGHT
+	shot_tracker_line.visible = false
+	landing_marker.visible = false
+	# Refresh from the new ball position immediately when the next shot is ready.
+	_tracker_accum = TRACKER_INTERVAL
 	camera.mode = OrbitCamera.Mode.FOLLOW
 	hud.power_bar.value = 0
 	hud.result_label.text = ""
@@ -1287,7 +1289,7 @@ func _on_ball_holed(_pos: Vector3) -> void:
 	scores.append(strokes)
 	hud.show_message("In the hole!  %s  (%d)" % [label, strokes], 3.0)
 	audio.play_holed()
-	if rel <= -1:
+	if rel <= 0:
 		audio.play_crowd_cheer()
 	phase = SwingPhase.IN_FLIGHT
 	await get_tree().create_timer(3.0).timeout
@@ -1322,17 +1324,32 @@ func _refresh_hud() -> void:
 	hud.help_label.text = "A/D or right-drag: aim   W/S: club   Drag the ball: strike point   Space/click: swing (tap to lock power)   C: bird's-eye (arrows pan, right-drag to look, wheel zoom)   Z: hold to scout the landing spot (right-drag to look)   M: mulligan (replay last shot)   N: next hole   R: restart hole   J: reroll terrain (seed %d)   Esc: how to play" % course_seed
 
 
-func _update_minimap(_delta: float) -> void:
+func _update_minimap(delta: float) -> void:
 	if not _minimap_built:
 		return
 	hud.minimap_rect.visible = true
 	hud.minimap_label.visible = true
 	hud.minimap_rect.texture = minimap_viewport.get_texture()
 	hud.minimap_label.text = "Hole %d  %s" % [hole_index + 1, layout.holes[hole_index].name]
-	minimap_ball_marker.global_position = ball.global_position + Vector3.UP * 1.0
-	_minimap_tick += 1
-	if _minimap_tick % 5 == 0:  # ~12 Hz at 60 fps
+	# Shot graphics update in 2D from the same points as the main view, independently
+	# of the expensive map texture. Aiming while stationary must update the tracer too.
+	var tex_size := Vector2(minimap_viewport.size)
+	var display_scale := _minimap_display_scale()
+	var draw_size := tex_size * display_scale
+	var pixels_per_metre := display_scale / _minimap_scale
+	var projection := Transform2D(
+		Vector2(_minimap_right.x, -_minimap_forward.x) * pixels_per_metre,
+		Vector2(_minimap_right.y, -_minimap_forward.y) * pixels_per_metre,
+		draw_size * 0.5)
+	projection.origin -= projection.basis_xform(_minimap_center)
+	hud.minimap_shot_overlay.configure(Rect2((hud.minimap_rect.size - draw_size) * 0.5, draw_size), projection)
+	# The map retains the planned path while the main-view yellow line is hidden in flight.
+	hud.minimap_shot_overlay.update_ball(ball.global_position, shot_tracker_line.mesh != null, trail_mesh.visible)
+	_minimap_elapsed += delta
+	if _minimap_elapsed >= 0.125 and _minimap_last_ball.distance_squared_to(ball.global_position) > 0.01:
 		minimap_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+		_minimap_elapsed = 0.0
+		_minimap_last_ball = ball.global_position
 	# Bird's-eye view: draw the camera's ground focus as a moving circle on the minimap
 	# instead of hiding the minimap outright (arrows pan it, wheel resizes it).
 	if camera.mode == OrbitCamera.Mode.OVERHEAD:
@@ -1344,11 +1361,7 @@ func _update_minimap(_delta: float) -> void:
 		hud.hide_minimap_focus()
 
 
-## Always-on-screen waypoint to the hole, like a Fortnite/Forza Horizon compass marker: rides
-## along a fixed line near the top of the screen, sliding only left/right to track which way
-## the flag actually is -- never anywhere else on screen, so it's always a glance up, not a
-## hunt in whichever corner it happened to land in.
-const HOLE_MARKER_MARGIN := 26.0
+## An upright waypoint slides along the top of the screen toward the pin.
 const HOLE_MARKER_TOP_Y := 70.0
 
 
@@ -1359,44 +1372,35 @@ func _update_hole_marker() -> void:
 	# look at the landing spot. A screen-space marker would just be visual clutter in either.
 	if camera.mode == OrbitCamera.Mode.OVERHEAD or camera.scouting:
 		hud.hole_marker.visible = false
-		hud.hole_marker_label.visible = false
 		return
-	var hole := layout.holes[hole_index]
-	var cup_y := layout.height_at(hole.cup.x, hole.cup.z)
-	var target := Vector3(hole.cup.x, cup_y + 2.0, hole.cup.z)
-
-	var to_target := target - camera.global_position
-	var cam_fwd := -camera.global_transform.basis.z
-	var behind := cam_fwd.dot(to_target) < 0.0
-
 	var vp_size := Vector2(get_viewport().get_visible_rect().size)
 	if vp_size.x <= 0.0 or vp_size.y <= 0.0:
 		hud.hole_marker.visible = false
-		hud.hole_marker_label.visible = false
 		return
-	var center := vp_size * 0.5
-
-	# unproject_position on a point behind the camera still returns a value (via the
-	# perspective divide going negative), just mirrored through the screen centre -- mirror
-	# it back rather than trying to special-case the projection math directly. Only the
-	# horizontal component ends up used below, but the mirroring has to happen before that
-	# split or the sign comes out wrong.
-	var raw := camera.unproject_position(target)
-	if behind:
-		raw = center * 2.0 - raw
-
-	var m := HOLE_MARKER_MARGIN
-	var x := clampf(raw.x, m, vp_size.x - m)
-	hud.hole_marker.position = Vector2(x, HOLE_MARKER_TOP_Y) - hud.hole_marker.size * 0.5
-	hud.hole_marker.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	var marker := hud.hole_marker
+	var half_width := marker.size.x * 0.5
+	var min_x := half_width + 12.0
+	var max_x := vp_size.x - half_width - 12.0
+	# Leave room for the score panel and minimap as the waypoint reaches either side.
+	var info_panel := hud.hole_label.get_parent().get_parent() as Control
+	var map_panel := hud.minimap_rect.get_parent().get_parent() as Control
+	var clear_left := info_panel.get_global_rect().end.x + half_width + 12.0
+	var clear_right := map_panel.get_global_rect().position.x - half_width - 12.0
+	if clear_left < clear_right:
+		min_x = maxf(min_x, clear_left)
+		max_x = minf(max_x, clear_right)
+	var target := ball.cup_position + Vector3.UP * 2.0
+	var offset := target - camera.global_position
+	var depth := (-camera.global_transform.basis.z).dot(offset)
+	var x: float
+	if depth > camera.near:
+		x = clampf(camera.unproject_position(target).x, min_x, max_x)
+	else:
+		# Keep the same flag at the appropriate side when the cup is out of view.
+		x = max_x if camera.global_transform.basis.x.dot(offset) >= 0.0 else min_x
+	marker.set_distance(ball.distance_to_cup_yd())
+	marker.position = Vector2(x - half_width, HOLE_MARKER_TOP_Y - PinIndicator.SYMBOL_CENTER.y)
 	hud.hole_marker.visible = true
-
-	# Caption + live yardage right under the marker, following it as it slides -- recomputed
-	# every frame from the ball's actual current position, not just at hole start, so it
-	# updates continuously as the ball moves (mid-flight, after a shot, while dragging putts).
-	hud.hole_marker_label.text = "Pin  %.0f yd" % ball.distance_to_cup_yd()
-	hud.hole_marker_label.position = Vector2(x, HOLE_MARKER_TOP_Y) - Vector2(hud.hole_marker_label.size.x * 0.5, -(hud.hole_marker.size.y * 0.5 + 2.0))
-	hud.hole_marker_label.visible = true
 
 
 ## Wind sock, not a compass: points where the wind blows relative to wherever the camera is
@@ -1478,7 +1482,7 @@ static func _catmull_rom(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t: 
 
 
 ## Length of the white tail streaming behind the ball, in metres of flown path.
-const TRAIL_TAIL_M := 16.0
+const TRAIL_TAIL_M := 3.0
 
 
 ## A short comet tail: only the last TRAIL_TAIL_M of the ball's path, fading from
@@ -1487,6 +1491,7 @@ const TRAIL_TAIL_M := 16.0
 func _update_trail() -> void:
 	if ball.trail.size() < 1:
 		trail_mesh.mesh = null
+		hud.minimap_shot_overlay.set_tail(PackedVector3Array())
 		return
 	var src: PackedVector3Array = ball.trail
 	var pts := PackedVector3Array([ball.global_position])
@@ -1505,9 +1510,11 @@ func _update_trail() -> void:
 		i -= 1
 	if pts.size() < 2:
 		trail_mesh.mesh = null
+		hud.minimap_shot_overlay.set_tail(PackedVector3Array())
 		return
 	pts.reverse()  # tip first, ball last
 	pts = _smooth_path(pts)
+	hud.minimap_shot_overlay.set_tail(pts)
 	var im := ImmediateMesh.new()
 	im.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
 	var n := pts.size()
@@ -1574,15 +1581,16 @@ func _predict_trajectory(club: Clubs.Club, hit: Vector2, aim: Vector3) -> Dictio
 
 func _draw_shot_tracker(result: Dictionary) -> void:
 	var trail: PackedVector3Array = result.get("trail", PackedVector3Array())
+	var pts := _smooth_path(trail)
 	var im := ImmediateMesh.new()
 	if trail.size() >= 2:
-		var pts := _smooth_path(trail)
 		im.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
 		for p in pts:
 			im.surface_add_vertex(p + Vector3.UP * 0.03)
 		im.surface_end()
 	shot_tracker_line.mesh = im
 	var landing: Vector3 = result.get("landing", ball.global_position)
+	hud.minimap_shot_overlay.set_preview(pts, landing)
 	landing_marker.global_position = landing + Vector3.UP * 0.1
 	var carry: float = result.get("carry_yd", 0.0)
 	var total: float = result.get("total_yd", 0.0)

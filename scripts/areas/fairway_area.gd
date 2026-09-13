@@ -23,6 +23,7 @@ var _extend: float = 0.0  # metres the mown band continues past the last waypoin
 ## Rough islands cut out of the fairway: [Vector2 a, Vector2 b, radius] capsules,
 ## wobbled like every edge.
 var islands: Array = []
+var patches: Array = []  # added fairway capsules, evaluated before the rough cutouts
 
 
 func setup(pts: PackedVector2Array, p_half_width: float, p_hole: int, rng: RandomNumberGenerator,
@@ -113,9 +114,11 @@ func signed_distance_from(p: Vector2, cl: Array) -> float:
 	var d: float = cl[0]
 	var along: float = cl[1]
 	var w := width_at(along, cl[2] if cl.size() > 2 else 1.0)
-	if w < MIN_WIDTH:
-		return d + 10.0  # no mown turf on this stretch: always rough
-	var sd := d - w - CourseArea.wobble(p, wobble_amp, wobble_freq, hole_index)
+	var sd := d + 10.0  # an unmown routing stretch may still have a separate fairway patch
+	if w >= MIN_WIDTH:
+		sd = d - w - CourseArea.wobble(p, wobble_amp, wobble_freq, hole_index)
+	for patch in patches:
+		sd = minf(sd, CourseArea.dist_to_segment(p, patch[0], patch[1]) - float(patch[2]))
 	for isl in islands:
 		var r: float = isl[2]
 		var dd := CourseArea.dist_to_segment(p, isl[0], isl[1])

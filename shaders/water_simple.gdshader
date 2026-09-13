@@ -1,30 +1,20 @@
 shader_type spatial;
+render_mode cull_back;
 
-uniform sampler2D normal_map;
-uniform vec4 color: source_color = vec4(1, 1, 1, 1);
-
-uniform float rapid = .05;
-
-uniform float transparency: hint_range(0.0, 1.0, 0.01) = 1.0;
-
-void vertex() {
-    // Called for every vertex the material is visible on.
-}
+uniform sampler2D normal_map : hint_normal, filter_linear_mipmap, repeat_enable;
+uniform vec4 color : source_color = vec4(0.10, 0.17, 0.14, 1.0);
+uniform float rapid = 0.008;
 
 void fragment() {
-    vec2 uv = vec2(UV.x + TIME * rapid, UV.y);
-
-    ALBEDO = vec3(color.r, color.g, color.b);
-
-    vec4 bump = texture(normal_map, uv);
-    NORMAL_MAP = vec3(bump.r, bump.g, bump.b);
-
-    METALLIC = 1.0;
-    ROUGHNESS = 0.;
-    ALPHA = transparency;
+    // Quiet pond/creek surface: opaque so it does not sort against grass or
+    // amplify the bed texture through a highly metallic transparent layer.
+    vec2 drift = vec2(TIME * rapid, TIME * rapid * 0.37);
+    vec3 a = texture(normal_map, UV + drift).rgb;
+    vec3 b = texture(normal_map, UV * 0.73 - drift * 0.6).rgb;
+    NORMAL_MAP = mix(a, b, 0.5);
+    NORMAL_MAP_DEPTH = 0.18;
+    ALBEDO = color.rgb;
+    METALLIC = 0.15;
+    ROUGHNESS = 0.16;
+    SPECULAR = 0.65;
 }
-
-//void light() {
-//    // Called for every pixel for every light affecting the material.
-//    // Uncomment to replace the default light processing function with this one.
-//}

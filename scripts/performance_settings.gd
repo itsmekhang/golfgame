@@ -3,17 +3,20 @@ extends RefCounted
 ## Central, deliberately bounded rendering budgets. Physics quality is unchanged.
 
 const DETAIL_LAYER := 2
+const TREE_LAYER := 4
+const SHOT_LAYER := 8
+const MAP_LAYER := 0x200
 
 static func low() -> bool:
 	return OS.get_environment("GOLF_QUALITY").to_lower() == "low"
 
 static func grass_tiles() -> int:
-	return 16 if low() else 36
+	return 81 if low() else 169
 
-## Bound GPU instances and synchronous placement work per streamed tile.
-## Default resident ceiling: 86,400 clumps; low: 12,800.
+## Eight-metre patches: dense nearby, reduced card counts and density farther out.
+## Placement runs on a worker. Maximum stored instances: 270,400 (low: 48,600).
 static func grass_per_tile() -> int:
-	return 800 if low() else 2400
+	return 600 if low() else 1600
 
 static func grass_distance() -> float:
 	return 32.0 if low() else 48.0

@@ -23,7 +23,7 @@ func _init() -> void:
 	root.add_child(ball)
 	await process_frame
 	var failures := 0
-	for stimp in [8.0, 10.0, 12.0]:
+	for stimp in [8.0, 9.0, 9.5, 10.0, 12.0]:
 		SurfacePhysicsCatalog.set_green_speed(stimp)
 		ball.place(Vector2.ZERO)
 		ball.putt(SurfacePhysicsCatalog.STIMP_RELEASE_MPS, Vector3(1, 0, 0))

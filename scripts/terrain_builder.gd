@@ -7,19 +7,19 @@ const RESOLUTION := 2.0  # metres per vertex (procedural / designed)
 const TILE := 64.0
 const WATER_UV_DIV := 8.0  # world metres per water UV unit
 
-# Palette from the reference photos: bright striped fairway, checkered green,
-# a slightly darker first cut, and a deep blue-green rough under the blades.
-const COL_FAIRWAY_A := Color(0.44, 0.70, 0.24)
-const COL_FAIRWAY_B := Color(0.35, 0.60, 0.20)
-const COL_GREEN_A := Color(0.50, 0.78, 0.30)
-const COL_GREEN_B := Color(0.43, 0.71, 0.27)
-const COL_FIRST_CUT := Color(0.30, 0.53, 0.18)
-const COL_ROUGH := Color(0.20, 0.40, 0.12)
-const COL_ROUGH_DRY := Color(0.27, 0.42, 0.13)
-const COL_BUNKER := Color(0.90, 0.83, 0.62)
-const COL_TEE_A := Color(0.42, 0.68, 0.24)
-const COL_TEE_B := Color(0.36, 0.61, 0.21)
-const COL_WATERBED := Color(0.30, 0.36, 0.26)
+# Palette matched to the supplied course flyover: restrained olive turf,
+# a light putting surface, short intermediate rough, and near-white sand.
+const COL_FAIRWAY_A := Color(0.34, 0.47, 0.14)
+const COL_FAIRWAY_B := Color(0.33, 0.455, 0.135)
+const COL_GREEN_A := Color(0.48, 0.57, 0.24)
+const COL_GREEN_B := Color(0.47, 0.56, 0.23)
+const COL_FIRST_CUT := Color(0.30, 0.425, 0.13)
+const COL_ROUGH := Color(0.07, 0.20, 0.065)
+const COL_ROUGH_DRY := Color(0.09, 0.23, 0.075)
+const COL_BUNKER := Color(0.94, 0.94, 0.90)
+const COL_TEE_A := Color(0.35, 0.48, 0.15)
+const COL_TEE_B := Color(0.34, 0.47, 0.145)
+const COL_WATERBED := Color(0.19, 0.24, 0.17)
 const COL_PATH := Color(0.55, 0.55, 0.52)
 const COL_TREES := Color(0.22, 0.38, 0.14)
 const STRIPE_WIDTH := 5.0  # metres between mower passes on the fairway
@@ -41,8 +41,8 @@ static func terrain_material(layout: CourseLayout) -> ShaderMaterial:
 	mat.set_shader_parameter("detail_noise", _noise_texture(0.35, 7))
 	mat.set_shader_parameter("macro_noise", _noise_texture(0.05, 9))
 	mat.set_shader_parameter("detail_scale", 2.2)
-	mat.set_shader_parameter("detail_strength", 0.10)
-	mat.set_shader_parameter("macro_strength", 0.07)
+	mat.set_shader_parameter("detail_strength", 0.045)
+	mat.set_shader_parameter("macro_strength", 0.035)
 	if layout.mask_texture == null:
 		layout.build_feature_mask()
 	mat.set_shader_parameter("feature_mask", layout.mask_texture)
@@ -52,6 +52,12 @@ static func terrain_material(layout: CourseLayout) -> ShaderMaterial:
 		layout._build_sdf_texture()
 	mat.set_shader_parameter("turf_sdf", layout.sdf_texture)
 	mat.set_shader_parameter("sdf_size", layout.sdf_texture_size())
+	mat.set_shader_parameter("green_color_a", COL_GREEN_A)
+	mat.set_shader_parameter("green_color_b", COL_GREEN_B)
+	mat.set_shader_parameter("fringe_color", COL_FIRST_CUT)
+	mat.set_shader_parameter("sand_color", COL_BUNKER)
+	mat.set_shader_parameter("sand_color2", Color(0.87, 0.885, 0.855))
+	mat.set_shader_parameter("waterbed_color", COL_WATERBED)
 	mat.set_shader_parameter("first_cut_width", CourseLayout.FIRST_CUT_WIDTH)
 	mat.set_shader_parameter("fringe_width", CourseLayout.FRINGE_WIDTH)
 	if ResourceLoader.exists("res://assets/textures/tiles/rough_tile.png"):
@@ -67,7 +73,7 @@ static func terrain_material(layout: CourseLayout) -> ShaderMaterial:
 		# 0.2 (a 5 m tile) blew every blade up ~5x, which is what "too big and pixelated"
 		# was describing -- this is the fix, not a resolution/file-size change.
 		mat.set_shader_parameter("fairway_scale", 1.0)
-		mat.set_shader_parameter("turf_strength", 0.8)
+		mat.set_shader_parameter("turf_strength", 0.42)
 		mat.set_shader_parameter("turf_mean", TURF_MEAN)
 		if ResourceLoader.exists(TURF_NORMAL):
 			mat.set_shader_parameter("turf_normal", load(TURF_NORMAL))
@@ -97,7 +103,9 @@ static func resolution_for(_layout: CourseLayout) -> float:
 
 ## Whole terrain: a Node3D holding one MeshInstance3D (+ collider) per 64 m tile.
 static func build_terrain(layout: CourseLayout) -> Node3D:
+	layout.rendered_terrain.tiles.clear()
 	var res := resolution_for(layout)
+	layout.rendered_terrain.origin = layout.bounds.position
 	if not layout.has_cache() or layout.cache_cell != res:
 		layout.build_cache(res)
 	var root := Node3D.new()
@@ -170,6 +178,12 @@ static func _build_tile_cached(layout: CourseLayout, tx: int, tz: int, mat: Mate
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var w := x1 - x0 + 1
+	var tile_heights := PackedFloat32Array()
+	tile_heights.resize(w * (z1 - z0 + 1))
+	for iz in range(z0, z1 + 1):
+		for ix in range(x0, x1 + 1):
+			tile_heights[(iz - z0) * w + ix - x0] = layout.cache_height[iz * nx + ix]
+	layout.rendered_terrain.register_tile(Vector2i(tx, tz), b.position + Vector2(x0, z0) * res, res, w, z1 - z0 + 1, tile_heights)
 	for iz in range(z0, z1 + 1):
 		for ix in range(x0, x1 + 1):
 			var i := iz * nx + ix
@@ -268,6 +282,7 @@ static func _build_tile_fine(layout: CourseLayout, tx: int, tz: int, mat: Materi
 			st.add_index(i2)
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays(), [], {}, 0)
+	layout.rendered_terrain.register_tile(Vector2i(tx, tz), tile_rect.position, res, n, n, heights)
 	var mi := MeshInstance3D.new()
 	mi.name = _tile_name(tx, tz)
 	mi.mesh = mesh
@@ -278,6 +293,7 @@ static func _build_tile_fine(layout: CourseLayout, tx: int, tz: int, mat: Materi
 
 ## Rebuild every tile that intersects `rect` (world XZ). Call after the cache was updated.
 static func rebuild_tiles(layout: CourseLayout, root: Node3D, rect: Rect2) -> void:
+	layout.rendered_terrain.origin = layout.bounds.position
 	var mat: Material = root.get_meta("material")
 	var b := layout.bounds
 	var tx0 := maxi(int(floor((rect.position.x - b.position.x) / TILE)), 0)
@@ -353,8 +369,7 @@ static func water_material() -> ShaderMaterial:
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/water_simple.gdshader")
 	mat.set_shader_parameter("normal_map", _noise_texture(0.12, 21, true, 6.0))
-	mat.set_shader_parameter("color", Color(0.16, 0.40, 0.58, 1.0))
-	mat.set_shader_parameter("rapid", 0.02)
-	mat.set_shader_parameter("transparency", 0.72)
+	mat.set_shader_parameter("color", Color(0.10, 0.17, 0.14, 1.0))
+	mat.set_shader_parameter("rapid", 0.008)
 	_water_material = mat
 	return mat

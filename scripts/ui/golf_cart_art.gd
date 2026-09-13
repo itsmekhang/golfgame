@@ -314,7 +314,7 @@ func _title_and_progress() -> void:
 	_line([Vector2(516, 48), Vector2(516, 65)], GREEN, 2)
 	_poly([Vector2(516, 48), Vector2(532, 52), Vector2(516, 57)], GOLD)
 	_ellipse(Vector2(516, 68), Vector2(9, 2), Color("bfccb8"), 20)
-	_text("A Z A L E A   H I L L S", Vector2(657, 62), 17, INK)
+	_text(CourseBuilder.COURSE_NAME, Vector2(657, 62), 22, INK)
 	_text("A great round starts here." if initial_load else "On to the next hole.", Vector2(640, 135), 38, INK)
 	_text("HEADING TO HOLE %02d" % hole_number, Vector2(640, 180), 13, MUTED)
 	_text(hole_name, Vector2(640, 216), 25, GREEN)

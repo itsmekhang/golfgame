@@ -17,16 +17,12 @@ var proj_label: Label
 var message_label: Label
 var minimap_rect: TextureRect
 var minimap_label: Label
+var minimap_shot_overlay: MinimapShotOverlay
 var minimap_focus_overlay: Control
 var help_overlay: Control
 var fps_label: Label
-## World-space "where's the hole" waypoint (Course._update_hole_marker) -- pinned to the
-## flag's projected screen position when it's on screen, or clamped to the nearest screen
-## edge pointing toward it otherwise, like a Fortnite/Forza Horizon objective marker.
-var hole_marker: Control
-## "Pin  XXX yd" caption riding just under hole_marker -- Course._update_hole_marker moves it
-## to follow and updates the yardage every frame as the ball's distance to the cup changes.
-var hole_marker_label: Label
+## Upright flag waypoint and yardage, sliding across the top toward the pin.
+var hole_marker: PinIndicator
 ## Points where the wind blows relative to the current camera facing (Course._update_wind_arrow
 ## sets its rotation every frame) -- not a fixed world compass, so it turns as the camera does.
 var wind_arrow: Control
@@ -127,6 +123,8 @@ func _ready() -> void:
 	minimap_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	minimap_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	mm_vb.add_child(minimap_rect)
+	minimap_shot_overlay = MinimapShotOverlay.new()
+	minimap_rect.add_child(minimap_shot_overlay)
 	minimap_focus_overlay = Control.new()
 	minimap_focus_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	minimap_focus_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -148,32 +146,9 @@ func _ready() -> void:
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD
 	message_label.visible = false
 
-	# Added last (of the always-visible gameplay elements) so it draws above the rest of the
-	# HUD -- position/visibility are driven every frame by Course._update_hole_marker, this
-	# just owns the node. The modeled flagpin's own live-3D HUD indicator (renders the pole+
-	# flag to a small transparent viewport) instead of a flat sprite -- see
-	# assets/flagpin/README.md. Sized down (its own default is 100x160) and positioning is
-	# done manually rather than via its point_at() helper, since that hides the marker
-	# outright when the target is behind the camera; this compass-style marker should stay
-	# visible and just slide toward the appropriate screen edge instead (see
-	# _update_hole_marker).
-	hole_marker = load("res://assets/flagpin/flagpin_indicator.tscn").instantiate()
-	hole_marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hole_marker = PinIndicator.new()
 	hole_marker.visible = false
 	root.add_child(hole_marker)
-	# Set after add_child: the scene's own saved offset_right/offset_bottom (100x160, its
-	# default) get applied when it enters the tree, which would otherwise clobber a size set
-	# beforehand. custom_minimum_size (also 100x160 by default) has to shrink too, or Control
-	# clamps .size back up to it regardless of what's assigned directly.
-	hole_marker.custom_minimum_size = Vector2(40, 64)
-	hole_marker.size = Vector2(40, 64)
-	hole_marker.pivot_offset = Vector2(20, 32)
-
-	hole_marker_label = _label(root, 13)
-	hole_marker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hole_marker_label.custom_minimum_size = Vector2(90, 0)
-	hole_marker_label.size = Vector2(90, 16)
-	hole_marker_label.visible = false
 
 	_build_help_overlay(root)
 

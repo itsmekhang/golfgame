@@ -14,6 +14,7 @@ var hazard_name: String:
 
 var water_level: float = 0.0
 var is_creek: bool = false
+var auto_extend: bool = true
 var max_depth: float = 1.6  # bed depth below the water surface at the middle
 var balls_swallowed: int = 0
 

@@ -7,6 +7,7 @@ extends Excavation
 var depth: float = 0.55  # floor below the rim at the middle
 var lip: float = 0.12  # raised turf lip outside the edge
 var rim_level: float = 0.0
+var rim_lift: float = 0.0
 var kind: String = "greenside"  # or "fairway"
 
 
@@ -35,7 +36,7 @@ static func from_polygon(pts: PackedVector2Array) -> Bunker:
 
 func finalize(layout: CourseLayout) -> void:
 	super.finalize(layout)
-	rim_level = outline_levels(layout)["mean"]
+	rim_level = outline_levels(layout)["mean"] + rim_lift
 
 
 ## Sand floor below the rim, blended lip outside.

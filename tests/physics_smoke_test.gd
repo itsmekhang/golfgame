@@ -43,7 +43,7 @@ func _init() -> void:
 		failures += 1
 
 	# Surface dictionary check
-	# green rolling friction now follows the round's Stimpmeter setting (default 10 ft)
+	# Green rolling friction follows the configured Stimpmeter setting.
 	var s := Surface.new().get_params(PhysicsEnums.SurfaceType.GREEN)
 	var want_mu := SurfacePhysicsCatalog.STIMP_RELEASE_MPS ** 2 / (2.0 * 9.81 * SurfacePhysicsCatalog.green_speed_ft * 0.3048)
 	if absf(s["u_kr"] - want_mu) > 1e-6:

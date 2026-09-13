@@ -7,15 +7,9 @@ extends SceneTree
 const VIEWS := 8
 const TILE_W := 512
 const TILE_H := 768
-const ELEVATION_DEG := 8.0
+const ELEVATION_DEG := 0.0
 const OUT_DIR := "res://nature_pack/impostors/"
-const SPECIES := [
-	"loblolly_pine_B", "loblolly_pine_C", "longleaf_pine_B", "eastern_white_pine_B",
-	"white_oak_B", "red_maple_B", "sweetgum_B", "tulip_poplar_B", "southern_magnolia_B", "live_oak_B",
-	"eastern_red_cedar_B", "river_birch_B", "flowering_dogwood_white_B", "flowering_dogwood_pink_B",
-	"crape_myrtle_B", "bald_cypress_B", "weeping_willow_B",
-	"azalea_pink_B", "azalea_white_B", "azalea_red_A", "rhododendron_A",
-]
+const SPECIES := ["loblolly_pine_A", "longleaf_pine_A", "eastern_white_pine_A", "white_oak_A", "red_maple_A", "sweetgum_A", "tulip_poplar_A", "southern_magnolia_A", "live_oak_A", "eastern_red_cedar_A", "river_birch_A", "flowering_dogwood_white_A", "flowering_dogwood_pink_A", "crape_myrtle_A", "bald_cypress_A", "weeping_willow_A"]
 
 
 func _init() -> void:
@@ -57,7 +51,7 @@ func _init() -> void:
 		for k in range(3):
 			await process_frame  # let the (huge) mesh upload before the first capture
 		var aabb := mesh.get_aabb()
-		var w := maxf(aabb.size.x, aabb.size.z) * 1.05
+		var w := Vector2(aabb.size.x, aabb.size.z).length() * 1.05
 		var h := aabb.size.y * 1.03
 		var extent := maxf(w, h * float(TILE_W) / float(TILE_H))
 		var center := Vector3(aabb.position.x + aabb.size.x * 0.5, 0.0, aabb.position.z + aabb.size.z * 0.5)
@@ -69,9 +63,9 @@ func _init() -> void:
 			var yaw := TAU * v / VIEWS
 			var dir := Vector3(cos(yaw), 0.0, sin(yaw))
 			var elev := deg_to_rad(ELEVATION_DEG)
-			var pos := dir * 200.0 * cos(elev) + Vector3(0.0, h * 0.5 + 200.0 * sin(elev), 0.0)
+			var pos := dir * 200.0 * cos(elev) + Vector3(0.0, aabb.position.y + aabb.size.y * 0.5 + 200.0 * sin(elev), 0.0)
 			cam.position = pos
-			cam.look_at(Vector3(0.0, h * 0.5, 0.0), Vector3.UP)
+			cam.look_at(Vector3(0.0, aabb.position.y + aabb.size.y * 0.5, 0.0), Vector3.UP)
 			cam.near = 1.0
 			cam.far = 500.0
 			for k in range(3):
@@ -80,7 +74,7 @@ func _init() -> void:
 			strip.blit_rect(img, Rect2i(Vector2i.ZERO, img.get_size()), Vector2i(TILE_W * v, 0))
 		var out := ProjectSettings.globalize_path(OUT_DIR + id + ".png")
 		strip.save_png(out)
-		meta[id] = {"width_m": extent, "height_m": extent * float(TILE_H) / float(TILE_W), "views": VIEWS}
+		meta[id] = {"width_m": extent, "height_m": extent * float(TILE_H) / float(TILE_W), "views": VIEWS, "bottom_m": aabb.position.y + aabb.size.y * 0.5 - cam.size * 0.5, "center_x": center.x, "center_z": center.z}
 		print("baked ", id, "  card %.1f x %.1f m" % [meta[id]["width_m"], meta[id]["height_m"]])
 	var f := FileAccess.open(OUT_DIR + "impostors.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify(meta, "  "))

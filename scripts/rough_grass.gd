@@ -1,21 +1,8 @@
 class_name RoughGrass
 extends RefCounted
-## Fills the rough with grass in 64 m tiles that can be rebuilt individually.
-## Dense beside fairways/greens (from the layout's cached distance-to-turf), sparser further out.
-##
-## Render modes (see `MODE`, key G cycles):
-##  - "wind": generated blade mesh (RoughGrass._blade_mesh) on shaders/grass_wind.gdshader --
-##    unshaded, colored by a generated vertical gradient, swayed by a tiling wind noise
-##    texture, pushed away from the ball. No per-instance texture, no baked geometry.
-##    Default: cheap enough to replace "kolosok" everywhere.
-##  - "gradient": user-supplied gradient/wind shader on a generated clump of short blades.
-##    Blades flatten around `interracting_object_pos` (the ball).
-##  - "atlas": user-supplied atlas shader on the SimpleGrassTextured cross-quad mesh + texture.
-##  - "sgt": stock SimpleGrassTextured node (addons/simplegrasstextured, MIT).
-##  - "kolosok": photo-scanned blade cards ("Trava Kolosok" atlas + OBJ clump) on the
-##    two-sided card shader (shaders/grass_cards.gdshader). 34 cards/clump + a 2.4 MB atlas
-##    per instance -- kept for reference but no longer the default; it's what was killing
-##    performance in the rough.
+## Grass geometry and placement helpers. Runtime uses GrassStreamer with 8 m
+## patches and scanned card meshes (12/6/3 cards for near/mid/far tiers).
+## Legacy wind/gradient/atlas/SGT builders remain available to editor tools.
 
 static var MODE: String = "wind"
 
@@ -40,7 +27,7 @@ static var _wild_mesh: Mesh = null
 static var _kolosok_cards: Array = []  # [[Vector3 x4, Vector2 x4], ...]
 static var _kolosok_meshes: Array = []
 
-const TILE := 32.0
+const TILE := 8.0
 const SGT_SCRIPT := "res://addons/simplegrasstextured/grass.gd"
 const SGT_MESH := "res://addons/simplegrasstextured/default_mesh.tres"
 const SGT_TEXTURE := "res://addons/simplegrasstextured/textures/grassbushcc008.png"
@@ -337,13 +324,14 @@ static func _sample_tile(layout: CourseLayout, key: Vector2i, params: Dictionary
 				continue
 			if layout.bunker_near(cell_xz, HAZARD_CLEARANCE) or layout.hazard_near(cell_xz, HAZARD_CLEARANCE):
 				continue
+			var near_hazard := layout.bunker_near(cell_xz, HAZARD_CLEARANCE + cell * 0.71) or layout.hazard_near(cell_xz, HAZARD_CLEARANCE + cell * 0.71)
 			for k in range(count):
 				var x := cx + rng.randf_range(-0.5, 0.5) * cell
 				var z := cz + rng.randf_range(-0.5, 0.5) * cell
 				var sample_xz := Vector2(x, z)
 				if not layout.bounds.has_point(sample_xz) or layout.cached_sdf(x, z).x < CourseLayout.FIRST_CUT_WIDTH:
 					continue
-				if layout.bunker_near(sample_xz, HAZARD_CLEARANCE) or layout.hazard_near(sample_xz, HAZARD_CLEARANCE):
+				if near_hazard and (layout.bunker_near(sample_xz, HAZARD_CLEARANCE) or layout.hazard_near(sample_xz, HAZARD_CLEARANCE)):
 					continue
 				# no grass cards on the pine-straw beds under the trees
 				if layout.straw_at(sample_xz) > 0.45:
@@ -511,12 +499,13 @@ static func _load_kolosok_cards() -> void:
 
 
 ## A clump: `KOLOSOK_CARDS_PER_CLUMP` random cards from the OBJ, pulled into a tight tuft.
-static func _kolosok_mesh(variant: int) -> Mesh:
+static func _kolosok_mesh(variant: int, lod: int = 0) -> Mesh:
 	_load_kolosok_cards()
-	while _kolosok_meshes.size() <= variant:
+	var cache_key := variant * 3 + lod
+	while _kolosok_meshes.size() <= cache_key:
 		_kolosok_meshes.append(null)
-	if _kolosok_meshes[variant] != null:
-		return _kolosok_meshes[variant]
+	if _kolosok_meshes[cache_key] != null:
+		return _kolosok_meshes[cache_key]
 	if _kolosok_cards.is_empty():
 		return _blade_mesh()
 	var rng := RandomNumberGenerator.new()
@@ -532,7 +521,9 @@ static func _kolosok_mesh(variant: int) -> Mesh:
 		for v in c[0]:
 			centre += Vector3(v.x, 0.0, v.z)
 	centre /= float(picked.size() * 4)
-	for c in picked:
+	# Same first cards and pivots in all tiers, so LOD changes do not move the tuft.
+	var card_count: int = [12, 6, 3][lod]
+	for c in picked.slice(0, card_count):
 		var pos: Array = c[0]
 		var uv: Array = c[1]
 		var card_c := Vector3.ZERO
@@ -559,7 +550,7 @@ static func _kolosok_mesh(variant: int) -> Mesh:
 		idx += 4
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays(), [], {}, 0)
-	_kolosok_meshes[variant] = mesh
+	_kolosok_meshes[cache_key] = mesh
 	return mesh
 
 
@@ -616,7 +607,7 @@ static func _material(mode: String) -> ShaderMaterial:
 	if mode == "kolosok":
 		mat.shader = load("res://shaders/grass_cards.gdshader")
 		mat.set_shader_parameter("main_texture", load(KOLOSOK_ATLAS))
-		mat.set_shader_parameter("tint", Color(0.82, 0.92, 0.72))
+		mat.set_shader_parameter("tint", Color(0.58, 0.78, 0.54))
 		mat.set_shader_parameter("base_darken", Color(0.5, 0.6, 0.4))
 		mat.set_shader_parameter("interracting_object_pos", Vector3(0, -1000, 0))
 		return mat
@@ -652,3 +643,56 @@ static func _material(mode: String) -> ShaderMaterial:
 	mat.set_shader_parameter("flatten_floor", 0.25)
 	mat.set_shader_parameter("interracting_object_pos", Vector3(0, -1000, 0))
 	return mat
+
+
+## Worker-only placement/packing. No scene nodes or rendering resources are created here.
+static func sample_tile_buffer(layout: CourseLayout, key: Vector2i, params: Dictionary) -> Dictionary:
+	var sampled := _sample_tile(layout, key, params)
+	var transforms: Array = sampled[0]
+	var colors: Array = sampled[1]
+	var origin2 := layout.bounds.position + (Vector2(key) + Vector2.ONE * 0.5) * TILE
+	var origin := Vector3(origin2.x, 0.0, origin2.y)
+	var order: Array = range(transforms.size())
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([params["seed"], key.x, key.y, "lod"])
+	# Prefixes stay evenly scattered when visible_instance_count reduces far density.
+	for i in range(order.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var temp: int = order[i]
+		order[i] = order[j]
+		order[j] = temp
+	var buffer := PackedFloat32Array()
+	buffer.resize(order.size() * 16)
+	var bounds := AABB()
+	for i in range(order.size()):
+		var t: Transform3D = transforms[order[i]]
+		t.origin -= origin
+		var c: Color = colors[order[i]]
+		var values := [t.basis.x.x, t.basis.y.x, t.basis.z.x, t.origin.x,
+			t.basis.x.y, t.basis.y.y, t.basis.z.y, t.origin.y,
+			t.basis.x.z, t.basis.y.z, t.basis.z.z, t.origin.z, c.r, c.g, c.b, c.a]
+		for k in range(16):
+			buffer[i * 16 + k] = values[k]
+		bounds = AABB(t.origin, Vector3.ZERO) if i == 0 else bounds.expand(t.origin)
+	return {"buffer": buffer, "origin": origin, "bounds": bounds.grow(1.5), "count": order.size()}
+
+
+## Main-thread commit: one MultiMesh buffer upload for the entire patch.
+static func tile_from_buffer(key: Vector2i, data: Dictionary, mesh: Mesh, mat: Material) -> MultiMeshInstance3D:
+	if data["count"] == 0:
+		return null
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = mesh
+	mm.instance_count = data["count"]
+	mm.buffer = data["buffer"]
+	mm.custom_aabb = data["bounds"]
+	var tile := MultiMeshInstance3D.new()
+	tile.name = _tile_name(key)
+	tile.position = data["origin"]
+	tile.multimesh = mm
+	tile.material_override = mat
+	tile.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	tile.layers = PerformanceSettings.DETAIL_LAYER
+	return tile

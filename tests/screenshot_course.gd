@@ -41,6 +41,35 @@ func _init() -> void:
 		course_node.camera.global_position = c + Vector3(0, 9, 22)
 		course_node.camera.look_at(c, Vector3.UP)
 		print("[shot] looking at ", hz.hazard_name)
+	if OS.get_environment("GOLF_LOOK_ROUGH") == "1":
+		var hole = course_node.layout.holes[hole_idx]
+		var forward: Vector3 = (hole.waypoints[1] - hole.waypoints[0]).normalized()
+		var right := Vector3(-forward.z, 0.0, forward.x)
+		var focus: Vector3 = hole.tee
+		for distance in range(12, 61, 2):
+			var candidate: Vector3 = hole.tee + forward * 15.0 + right * distance
+			var xz := Vector2(candidate.x, candidate.z)
+			if course_node.layout.cached_surface(xz) == PhysicsEnums.SurfaceType.ROUGH and course_node.layout.cached_turf(xz) > 4.5 and course_node.layout.straw_at(xz) < 0.3:
+				focus = candidate
+				break
+		focus.y = course_node.layout.cached_height(focus.x, focus.z)
+		course_node.camera.frozen = true
+		course_node.camera.global_position = focus - forward * 5.0 + Vector3.UP * 1.4
+		course_node.camera.look_at(focus + forward * 3.0 + Vector3.UP * 0.15)
+		course_node.set_process(false)
+		course_node.grass_root.focus_position = Vector2(focus.x, focus.z)
+		course_node.grass_root.view_position = course_node.camera.global_position
+		for frame in range(70):
+			await process_frame
+		print("[grass] stored %d clumps; max commit %.2f ms" % [course_node.grass_root.instance_count, course_node.grass_root.max_tile_build_usec / 1000.0])
+	if OS.get_environment("GOLF_HIGH_SHOT") == "1":
+		var hole = course_node.layout.holes[hole_idx]
+		var centre: Vector3 = (hole.tee + hole.cup) * 0.5
+		centre.y = course_node.layout.height_at(centre.x, centre.z)
+		course_node.camera.frozen = true
+		course_node.camera.global_position = centre + Vector3(70, 110, 120)
+		course_node.camera.look_at(centre + Vector3(0, 0, -250))
+		print("[shot] high camera; backdrop triangles ", course_node.backdrop_root.mesh.get_faces().size() / 3)
 	if shot:
 		course_node._fire_shot(100.0, Vector2.ZERO)
 		for i in range(90):

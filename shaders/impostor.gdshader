@@ -6,12 +6,14 @@
 // overlap from any angle and read as a volume. Instances closer than `near_cut`
 // collapse (their real mesh is drawn instead).
 shader_type spatial;
-render_mode cull_disabled, depth_prepass_alpha, diffuse_lambert_wrap;
+render_mode cull_disabled, depth_prepass_alpha, unshaded;
 
 uniform sampler2D atlas : source_color, filter_linear_mipmap, repeat_disable;
 uniform int views = 8;
 uniform float alpha_cut : hint_range(0.0, 1.0) = 0.45;
-uniform float near_cut = 45.0;
+uniform float near_cut = 450.0;
+uniform float far_cut = 900.0;
+uniform float color_scale = 1.0;
 
 varying float view_index;
 varying float flip;
@@ -30,7 +32,7 @@ void vertex() {
 	float az = atan(face.z, face.x) - inst_yaw;
 	view_index = mod(round(az / (TAU / float(views))), float(views));
 	flip = front ? 0.0 : 1.0;
-	if (cam_dist < near_cut) {
+	if (cam_dist < near_cut || cam_dist >= far_cut) {
 		VERTEX = vec3(0.0);
 	}
 	NORMAL = vec3(0.0, 1.0, 0.0);  // lit as from above; the bake carries the shading
@@ -41,7 +43,7 @@ void fragment() {
 	vec4 c = texture(atlas, vec2((u + view_index) / float(views), UV.y));
 	ALPHA = c.a;
 	ALPHA_SCISSOR_THRESHOLD = alpha_cut;
-	ALBEDO = c.rgb;
+	ALBEDO = c.rgb * color_scale;
 	ROUGHNESS = 0.9;
 	SPECULAR = 0.1;
 }

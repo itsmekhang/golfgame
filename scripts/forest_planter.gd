@@ -6,9 +6,12 @@ extends Node3D
 ## the woodland edges, and nothing on turf, sand or water.
 ##
 ## Rendering is all instanced: one MultiMesh tile per species/LOD (VegetationBatches),
-## LOD0 close, LOD1 mid, LOD2 far, shadows only on the two near tiers. Collision is
-## one PhysicsServer body holding a trunk cylinder + canopy cylinder per tree (no
+## Detailed near trees, lighter 3D crowns to 450 m, then baked cards. Shadows cover
+## the near tiers. The map has its own inexpensive crown silhouettes. Collision is
+## separate PhysicsServer bodies for solid trunks and permeable crowns (no
 ## nodes), on PropScatter.OBSTACLE_LAYER so the ball can hit them.
+
+const FOLIAGE_LAYER := 4  # queried by GolfBall as a soft, permeable crown
 
 const TREE_SPACING := 7.5  # metres between trees inside a wood (jittered grid)
 const FILL_SPACING := 9.0  # metres between trees in the fill forest off the paintings
@@ -32,7 +35,7 @@ const STRAW_CANOPY_FACTOR := 1.25  # straw bed radius as a multiple of the canop
 ## close, then a baked impostor card of the same model for the forest bulk. Where no
 ## impostor is baked the old low-poly LOD1/LOD2 meshes stand in.
 ## Baked impostor cards (tools/bake_impostors.gd) as the far tier.
-const USE_IMPOSTORS := false
+const USE_IMPOSTORS := true
 const MESH_AT := NaturePack.MESH_AT
 const SHRUB_MESH_AT := NaturePack.SHRUB_MESH_AT
 const LOD1_AT := 70.0
@@ -45,7 +48,8 @@ const SHRUB_FAR_AT := 60.0
 ## 50-240k vertices even when the shader collapses it, so only tiles actually
 ## next to the camera may carry meshes.
 const TILE_NEAR := 24.0
-const TILE_MID := 128.0
+const TILE_MID := 32.0
+const TILE_DISTANCE := 96.0
 const TILE_FAR := 256.0
 
 ## Species lists are kept short on purpose: every species in a tile is another
@@ -249,9 +253,18 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 				if ok_shrub.call(q):
 					shrub.call(q)
 
+	# Deliberately placed course-design trees still use the regular instancing and collision tiers.
+	for hole in layout.holes:
+		for tree in hole.planted_trees:
+			var p: Vector2 = tree[1]
+			if b.has_point(p) and layout.cached_surface(p) in [PhysicsEnums.SurfaceType.ROUGH, PhysicsEnums.SurfaceType.FAIRWAY]:
+				place.call(String(tree[0]), p, true)
+
 	# ---- rough islands inside fairways: a few trees each, ignoring the corridor guard
 	for hole in layout.holes:
 		for isl in hole.rough_islands:
+			if isl.size() > 3 and not bool(isl[3]):
+				continue
 			var ia: Vector2 = isl[0]
 			var ib: Vector2 = isl[1]
 			var r: float = isl[2] - 3.0
@@ -338,9 +351,13 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 			VegetationBatches.add_batches(planter, id + "_L0", NaturePack.mesh(id), xforms, null, true, near_at + TILE_NEAR * 0.75, TILE_NEAR, false, 0.0)
 			var mid := NaturePack.mesh_mid(id)
 			if mid != null:
-				VegetationBatches.add_batches(planter, id + "_L2", mid, xforms, null, true, NaturePack.MID_AT + TILE_MID * 0.75, TILE_MID, false, 0.0)
+				var mid_end := 60.0 if is_shrub else NaturePack.DENSE_AT
+				VegetationBatches.add_batches(planter, id + "_L2", mid, xforms, null, true, mid_end + TILE_MID * 0.75, TILE_MID, false, 0.0)
 			if not is_shrub:
-				VegetationBatches.add_batches(planter, id + "_IMP", imp[0], xforms, imp[1], false, far, TILE_FAR, false, 0.0)
+				var distant := NaturePack.mesh_distance(id)
+				if distant != null:
+					VegetationBatches.add_batches(planter, id + "_L3", distant, xforms, null, false, NaturePack.MID_AT + TILE_DISTANCE * 0.75, TILE_DISTANCE, false, maxf(0.0, NaturePack.DENSE_AT - TILE_DISTANCE * 0.75))
+				VegetationBatches.add_batches(planter, id + "_IMP", imp[0], xforms, imp[1], false, far + TILE_FAR * 0.75, TILE_FAR, false, maxf(0.0, NaturePack.MID_AT - TILE_FAR * 0.75))
 		else:
 			# real geometry only: full/LOD1 mesh up close, the pack's LOD2 mesh out to
 			# MID_AT, nothing beyond. Hand-overs are per instance in the shaders; the
@@ -357,10 +374,32 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 	# just vanished past 220 m -- pooled across every species into two cheap proxy
 	# shapes (~60 tris/tree, real 3D, no billboard/cross-card) instead of one more
 	# MultiMesh per species.
-	if not planter._far_pine.is_empty():
+	if not USE_IMPOSTORS and not planter._far_pine.is_empty():
 		VegetationBatches.add_batches(planter, "FAR_pine", NaturePack.far_proxy_mesh("pine"), planter._far_pine, null, false, PerformanceSettings.tree_distance() + TILE_FAR * 0.75, TILE_FAR, false, maxf(0.0, NaturePack.MID_AT - TILE_FAR * 0.75))
-	if not planter._far_hardwood.is_empty():
+	if not USE_IMPOSTORS and not planter._far_hardwood.is_empty():
 		VegetationBatches.add_batches(planter, "FAR_hardwood", NaturePack.far_proxy_mesh("hardwood"), planter._far_hardwood, null, false, PerformanceSettings.tree_distance() + TILE_FAR * 0.75, TILE_FAR, false, maxf(0.0, NaturePack.MID_AT - TILE_FAR * 0.75))
+	for batch in planter.get_children():
+		if batch is GeometryInstance3D:
+			batch.layers = PerformanceSettings.TREE_LAYER
+	# The overhead map needs crown silhouettes, not a second pass of every leaf.
+	var map_transforms: Array = []
+	for c in planter._colliders:
+		var origin: Vector3 = c[0] + Vector3.UP * (float(c[2]) + float(c[4]) * 0.65)
+		map_transforms.append(Transform3D(Basis.IDENTITY.scaled(Vector3(c[3], 0.7, c[3])), origin))
+	var crown := SphereMesh.new()
+	crown.radius = 1.0
+	crown.height = 2.0
+	crown.radial_segments = 8
+	crown.rings = 3
+	var map_material := StandardMaterial3D.new()
+	map_material.albedo_color = Color(0.08, 0.22, 0.10)
+	map_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var map_root := Node3D.new()
+	map_root.name = "MapTreeCrowns"
+	planter.add_child(map_root)
+	VegetationBatches.add_batches(map_root, "MapCrowns", crown, map_transforms, map_material, false, 0.0, 256.0)
+	for batch in map_root.get_children():
+		batch.layers = PerformanceSettings.MAP_LAYER
 	return planter
 
 
@@ -409,13 +448,21 @@ func _ready() -> void:
 		ps.body_set_collision_layer(body, PropScatter.OBSTACLE_LAYER)
 		ps.body_set_collision_mask(body, 0)
 		var trunk := ps.cylinder_shape_create()
-		ps.shape_set_data(trunk, {"radius": c[1], "height": c[2]})
-		ps.body_add_shape(body, trunk, Transform3D(Basis.IDENTITY, Vector3(0.0, c[2] * 0.5, 0.0)))
+		var trunk_height: float = c[2] + c[4] * 0.75
+		ps.shape_set_data(trunk, {"radius": c[1], "height": trunk_height})
+		ps.body_add_shape(body, trunk, Transform3D(Basis.IDENTITY, Vector3(0.0, trunk_height * 0.5, 0.0)))
+		var crown_body := ps.body_create()
+		ps.body_set_mode(crown_body, PhysicsServer3D.BODY_MODE_STATIC)
+		ps.body_set_collision_layer(crown_body, FOLIAGE_LAYER)
+		ps.body_set_collision_mask(crown_body, 0)
 		var canopy := ps.cylinder_shape_create()
 		ps.shape_set_data(canopy, {"radius": c[3], "height": c[4]})
-		ps.body_add_shape(body, canopy, Transform3D(Basis.IDENTITY, Vector3(0.0, c[2] + c[4] * 0.5, 0.0)))
+		ps.body_add_shape(crown_body, canopy, Transform3D(Basis.IDENTITY, Vector3(0.0, c[2] + c[4] * 0.5, 0.0)))
 		ps.body_set_state(body, PhysicsServer3D.BODY_STATE_TRANSFORM, Transform3D(Basis.IDENTITY, base))
 		ps.body_set_space(body, space)
+		ps.body_set_state(crown_body, PhysicsServer3D.BODY_STATE_TRANSFORM, Transform3D(Basis.IDENTITY, base))
+		ps.body_set_space(crown_body, space)
+		_rids.append(crown_body)
 		_rids.append(body)
 		_rids.append(trunk)
 		_rids.append(canopy)

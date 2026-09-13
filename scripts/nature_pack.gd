@@ -3,10 +3,8 @@ extends RefCounted
 ## Loads the Golf Nature Pack and hands out meshes ready for MultiMesh use.
 ##
 ## `assets/nature_pack/` is version 2 ("Flexible Leaves", vertex-coloured PBR, real
-## leaf geometry). The forest is real geometry at every distance, the way the pack's
-## own wrappers do it: full-detail (broadleaf) or LOD1 mesh inside MESH_AT, the LOD2
-## mesh out to MID_AT, nothing beyond. The 1M-triangle base meshes only ship for the
-## six broadleaf species. (Impostor cards were tried and rejected; tools/ keeps the baker.)
+## leaf geometry). Real geometry extends to MID_AT, followed by fixed cross cards
+## baked from detailed assets. Full-detail source models are loaded only by the baker.
 ## Materials are ours, not the GLBs': leaf/needle/petal/blade surfaces get the pack's
 ## wind shader, everything else a vertex-colour StandardMaterial3D with back-face culling.
 
@@ -60,9 +58,9 @@ static func has_far_tiers(id: String) -> bool:
 	return catalog_far().has(id) and (catalog_far()[id]["lods"] as Array).size() >= 2
 
 
-## Distance at which a tree/shrub mesh hands over to its impostor card, per instance
-## (the batches' per-tile visibility ranges are only a coarse first cut).
+## Near meshes, dense branch meshes, then sparse 3D crowns. Cross cards start at MID_AT.
 const MESH_AT := 26.0
+const DENSE_AT := 90.0
 const SHRUB_MESH_AT := 18.0
 static var _heavy_mats: Dictionary = {}  # max_dist -> [leaves, solid]
 
@@ -88,6 +86,7 @@ static func _heavy_materials(max_dist: float, min_dist: float = 0.0) -> Array:
 		var leaves := _foliage_mat.duplicate()
 		leaves.set_shader_parameter("max_dist", max_dist)
 		leaves.set_shader_parameter("min_dist", min_dist)
+		leaves.set_shader_parameter("sway_strength", 0.0 if min_dist > 0.0 else 0.05)
 		var solid := _solid_mat.duplicate()
 		solid.set_shader_parameter("max_dist", max_dist)
 		solid.set_shader_parameter("min_dist", min_dist)
@@ -175,8 +174,7 @@ const FULL_DETAIL_IDS := ["white_oak_A", "red_maple_A", "sweetgum_A", "tulip_pop
 const MID_AT := 450.0
 
 
-## The pack's LOD2 mesh for the mid-range tier, drawn only between the near tier's
-## cut and MID_AT.
+## The pack's LOD2 mesh between the near cut and DENSE_AT (90 m).
 static func mesh_mid(id: String) -> Mesh:
 	var entry: Dictionary = catalog().get(id, {})
 	if entry.is_empty() or not (entry["category"] in HEAVY_CATEGORIES):
@@ -185,13 +183,44 @@ static func mesh_mid(id: String) -> Mesh:
 	if lods.size() < 2:
 		return null
 	var near := SHRUB_MESH_AT if entry["category"] == "shrubs" else MESH_AT
-	var far := 60.0 if entry["category"] == "shrubs" else minf(MID_AT, PerformanceSettings.tree_distance())
+	var far := 60.0 if entry["category"] == "shrubs" else minf(DENSE_AT, PerformanceSettings.tree_distance())
 	return _load_mesh(DIR + lods[1]["path"], id, "mid#" + id, far, near)
+
+
+## Sparse 3D leaf clusters preserve the source crown and branches across the hole.
+static func mesh_distance(id: String) -> Mesh:
+	var key := "distance#" + id
+	if _mesh_cache.has(key):
+		return _mesh_cache[key]
+	var path := "res://nature_pack/models/trees/distance/" + id + ".res"
+	if not ResourceLoader.exists(path):
+		return null
+	var mesh: ArrayMesh = (load(path) as ArrayMesh).duplicate()
+	var mats := _heavy_materials(minf(MID_AT, PerformanceSettings.tree_distance()), DENSE_AT)
+	for i in range(mesh.get_surface_count()):
+		mesh.surface_set_material(i, mats[0] if _is_foliage(mesh.surface_get_name(i)) else mats[1])
+	_mesh_cache[key] = mesh
+	return mesh
 
 
 ## The full-detail base mesh from the offline bake folder (tools/bake_impostors.gd).
 static func base_mesh_for_bake(id: String) -> Mesh:
-	return _load_mesh(DIR + "models/_bake/" + id + ".glb", id, "bake#" + id)
+	# Preserve the fuller needles regenerated for the in-game pines.
+	if id.contains("_pine_"):
+		return _load_mesh(DIR + str(catalog()[id]["lods"][0]["path"]), id, "bake#" + id)
+	var doc := GLTFDocument.new()
+	var state := GLTFState.new()
+	var path := "res://assets/high fidelity assets/Golf_Nature_Pack/nature_pack/" + str(catalog()[id]["path"])
+	if doc.append_from_file(path, state) != OK:
+		return null
+	var scene := doc.generate_scene(state)
+	var mesh := _find_mesh(scene)
+	scene.free()
+	_materials()
+	for i in range(mesh.get_surface_count()):
+		var name := (mesh as ArrayMesh).surface_get_name(i)
+		mesh.surface_set_material(i, _foliage_mat if _is_foliage(name) else _solid_mat)
+	return mesh
 
 
 ## Baked impostor card for `id`: [Mesh quad, ShaderMaterial] or [] when not baked.
@@ -230,7 +259,7 @@ static func impostor(id: String) -> Array:
 			st.set_uv(uvs[c])
 			st.set_uv2(Vector2(yaw, 0.0))
 			st.set_normal(Vector3.UP)
-			st.add_vertex(corners[c])
+			st.add_vertex(corners[c] + Vector3(float(meta.get("center_x", 0.0)), float(meta.get("bottom_m", 0.0)), float(meta.get("center_z", 0.0))))
 		for idx in [0, 1, 2, 0, 2, 3]:
 			st.add_index(vi + idx)
 		vi += 4
@@ -240,6 +269,7 @@ static func impostor(id: String) -> Array:
 	mat.set_shader_parameter("atlas", tex)
 	mat.set_shader_parameter("views", int(meta["views"]))
 	mat.set_shader_parameter("near_cut", MID_AT)
+	mat.set_shader_parameter("far_cut", PerformanceSettings.tree_distance())
 	mesh.surface_set_material(0, mat)
 	_impostor_cache[id] = [mesh, mat]
 	return _impostor_cache[id]

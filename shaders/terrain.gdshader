@@ -34,7 +34,7 @@ uniform vec2 mask_size = vec2(1.0);
 // 2 m signed-distance texture: R turf (fairway/tee/green), G green. Same encoding.
 uniform sampler2D turf_sdf : hint_default_black, filter_linear, repeat_disable;
 uniform vec2 sdf_size = vec2(1.0);
-uniform float edge_soft = 0.7;      // metres of anti-aliasing across every outline
+uniform float edge_soft = 0.4;      // metres of anti-aliasing across every outline
 uniform float first_cut_width = 2.5;
 uniform float fringe_width = 2.5;
 uniform vec3 sand_color : source_color = vec3(0.90, 0.83, 0.62);
@@ -63,7 +63,7 @@ uniform vec2 straw_size = vec2(1.0);
 uniform sampler2D straw_texture : source_color, hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float straw_scale = 0.5;   // repeats per metre
 uniform float straw_mean = 1.0;
-uniform vec3 straw_color : source_color = vec3(0.50, 0.34, 0.19);
+uniform vec3 straw_color : source_color = vec3(0.36, 0.22, 0.14);
 
 varying vec3 world_pos;
 varying vec4 vcol;
@@ -83,6 +83,8 @@ void vertex() {
 }
 
 void fragment() {
+	// Preserve fine turf at the ball, but let slopes read smoothly down the hole.
+	float ground_detail = 1.0 - smoothstep(8.0, 65.0, distance(CAMERA_POSITION_WORLD, world_pos));
 	float d = texture(detail_noise, world_pos.xz * detail_scale).r - 0.5;
 	float m = texture(macro_noise, world_pos.xz * macro_scale).r - 0.5;
 	vec3 tint = vcol.rgb;
@@ -102,7 +104,7 @@ void fragment() {
 	vec3 green_tint = green_color_a;
 	tint = mix(tint, fringe_color, fringe_w);
 	tint = mix(tint, green_tint, mask.g);
-	vec3 col = tint * (1.0 + d * detail_strength * 2.0 + m * macro_strength * 2.0);
+	vec3 col = tint * (1.0 + d * detail_strength * 2.0 * ground_detail + m * macro_strength * 2.0);
 	vec3 turf = texture(turf_texture, world_pos.xz * fairway_scale).rgb / max(turf_mean, 0.05);
 	vec3 rough_t = texture(rough_texture, world_pos.xz * turf_scale).rgb / max(rough_mean, 0.05);
 	vec3 green_t = texture(green_texture, world_pos.xz * turf_scale * 2.0).rgb / max(green_mean, 0.05);
@@ -110,7 +112,10 @@ void fragment() {
 	vec3 grass_tex = mix(turf, rough_t, rough_w);
 	grass_tex = mix(grass_tex, green_t, mask.g);
 	vec3 textured = tint * grass_tex;
-	col = mix(col, textured * (1.0 + m * macro_strength), turf_strength);
+	col = mix(col, textured * (1.0 + m * macro_strength), turf_strength * mix(0.15, 1.0, ground_detail));
+	// Preserve the supplied rough tile's dark green albedo instead of whitening it
+	// through luminance normalization and a mostly untextured fairway tint.
+	col = mix(col, rough_t * rough_mean, rough_w);
 	// pine straw under the trees: the mask's soft disc edges plus detail noise break
 	// the outline up so beds read as raked needles thinning into the rough
 	float straw_raw = texture(straw_mask, (world_pos.xz - mask_origin) / straw_size).r;
@@ -120,7 +125,9 @@ void fragment() {
 	col = mix(col, straw, straw_w);
 	// sand and water bed from the mask (soft, polygon-accurate edges)
 	vec3 sand_tex = texture(sand_texture, world_pos.xz * sand_scale).rgb / max(sand_mean, 0.05);
-	vec3 sand = mix(sand_color, sand_color2, d + 0.5) * sand_tex * (1.0 + m * macro_strength);
+	// Keep the source sand grain without its yellow photographic color cast.
+	float sand_grain = dot(sand_tex, vec3(0.2126, 0.7152, 0.0722));
+	vec3 sand = mix(sand_color, sand_color2, d + 0.5) * mix(1.0, sand_grain, 0.35) * (1.0 + m * macro_strength);
 	col = mix(col, sand, mask.r);
 	col = mix(col, waterbed_color * (1.0 + d * 0.3), mask.a);
 	float trail = texture(sand_trail, (world_pos.xz - sand_trail_origin) / sand_trail_size).r;
@@ -134,8 +141,8 @@ void fragment() {
 	float turf_rough_v = texture(turf_roughness, world_pos.xz * fairway_scale).r;
 	float turf_ao_v = texture(turf_ao, world_pos.xz * fairway_scale).r;
 	NORMAL_MAP = turf_n;
-	NORMAL_MAP_DEPTH = fairway_w;
-	ROUGHNESS = mix(mix(1.0, 0.85, mask.r), turf_rough_v, fairway_w);
-	AO = mix(1.0, turf_ao_v, fairway_w);
+	NORMAL_MAP_DEPTH = fairway_w * ground_detail * 0.25;
+	ROUGHNESS = mix(mix(1.0, 0.90, mask.r), max(turf_rough_v, 0.88), fairway_w);
+	AO = mix(1.0, turf_ao_v, fairway_w * ground_detail * 0.3);
 	SPECULAR = mix(0.04, 0.15, mask.r);
 }

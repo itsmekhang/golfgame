@@ -14,18 +14,10 @@ static var _bunker: SurfacePhysicsSettings
 static func _ensure() -> void:
 	if _fairway != null:
 		return
-	# Rolling friction/viscosity trimmed down further, close to the green's own 0.028/0.0009,
-	# so fairway rolls only slightly less than green (previously 0.035/0.0012 -- noticeably
-	# more than green's own values -- still moving further from, not toward, the
-	# rolling-friction integrator's instability range found earlier: lower is the safe direction).
-	# kinetic_friction (ball_physics.gd's _calculate_friction_force) is the skid-phase friction
-	# applied right after a bounce, before spin catches up to pure rolling -- at the old 0.50 it
-	# was killing most of a shot's forward speed in that first instant of ground contact, well
-	# before rolling_friction ever got a chance to matter. FIRM (cart paths) sits at 0.30 and
-	# ROUGH at 0.62; 0.34 puts firm fairway turf close to the path end of that range instead of
-	# nearly as grabby as rough.
+	# Firmer stopping on fairways: increased rolling resistance, with the
+	# existing bounce/skid response and viscosity retained.
 	_fairway = SurfacePhysicsSettings.new(PhysicsEnums.SurfaceType.FAIRWAY,
-		0.50, 0.036, 0.0013, 0.29, 0.78, 0.0, 0.0, 0.0, 0.0, 0.0)
+		0.50, 0.054, 0.0013, 0.29, 0.78, 0.0, 0.0, 0.0, 0.0, 0.0)
 	_fairway_soft = SurfacePhysicsSettings.new(PhysicsEnums.SurfaceType.FAIRWAY_SOFT,
 		0.56, 0.070, 0.0024, 0.32, 0.92, 0.0, 0.0, 0.0, 0.0, 0.0)
 	_rough = SurfacePhysicsSettings.new(PhysicsEnums.SurfaceType.ROUGH,
@@ -48,7 +40,7 @@ static func _ensure() -> void:
 ## d = v^2 / (2 * mu * g)  ->  mu = v^2 / (2 * g * d). The catalog's original 0.028
 ## was equivalent to a ~20 ft green, which is why putts and approach rollout ran away.
 const STIMP_RELEASE_MPS := 1.83
-static var green_speed_ft: float = 10.0
+static var green_speed_ft: float = 9.0
 
 
 static func set_green_speed(stimp_ft: float) -> void:
@@ -67,7 +59,7 @@ static func _apply_green_speed() -> void:
 
 static func green_speed_label() -> String:
 	var word := "slow" if green_speed_ft < 8.5 else "medium" if green_speed_ft < 10.5 else "fast" if green_speed_ft < 12.5 else "tournament"
-	return "Greens %.0f ft (%s)" % [green_speed_ft, word]
+	return "Greens %s ft (%s)" % [String.num(green_speed_ft, 1), word]
 
 
 ## Returns the tuning for a surface. Unknown surfaces fall back to Fairway.

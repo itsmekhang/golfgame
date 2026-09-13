@@ -24,6 +24,9 @@ SPECIES = {name: [0, 1, 2] for name in [
     "sweetgum", "tulip_poplar", "southern_magnolia", "river_birch", "bald_cypress", "weeping_willow",
     "eastern_red_cedar", "flowering_dogwood_white", "flowering_dogwood_pink", "crape_myrtle"]}
 
+if "--pines-only" in sys.argv:
+    SPECIES = {k: v for k, v in SPECIES.items() if k in ("loblolly_pine", "longleaf_pine", "eastern_white_pine")}
+
 # Patch the generator's LOD rules in source form, then load it as a module.
 code = open(os.path.join(SRC, "realvegetation.py")).read()
 patches = [
@@ -41,7 +44,7 @@ patches = [
 for old, new in patches:
     assert old in code, "generator source changed; patch not found: " + old[:60]
     code = code.replace(old, new)
-code = "LEAF_GROW=[1.0,1.9,3.2]\nNEEDLE_GROW=[1.0,1.7,2.8]\nNEEDLE_WIDTH_GROW=[1.0,2.6,5.0]\n" + code
+code = "LEAF_GROW=[1.0,1.9,3.2]\nNEEDLE_GROW=[1.0,2.2,3.2]\nNEEDLE_WIDTH_GROW=[1.0,9.0,16.0]\n" + code
 spec = importlib.util.spec_from_loader("fullveg", loader=None)
 fullveg = importlib.util.module_from_spec(spec)
 fullveg.__file__ = os.path.join(SRC, "realvegetation.py")

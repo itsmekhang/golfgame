@@ -22,6 +22,7 @@ signal out_of_bounds(position: Vector3)
 signal holed(position: Vector3)
 
 const DT := BallPhysics.SIMULATION_DT
+const GROUND_CLEARANCE := 0.0015  # clearance for the stripe and world-coordinate rounding
 ## 0.5 mph (0.5 * 0.44704 m/s per mph) -- settle to rest as soon as the ball's down to a slow
 ## creep instead of waiting for it to fully stop, so the next shot isn't held up by a long tail
 ## of barely-moving roll.
@@ -31,11 +32,13 @@ const REST_SPEED := 0.22352
 const CREEP_SPEED := 0.7
 const CREEP_TIME := 2.0
 const MAX_SHOT_TIME := 20.0
-## Both the capture checkpoint (below) and the visual cup mouth/wall/floor (course.gd's
-## _add_flag) read this same constant, so they can never drift apart -- raising it grows
-## both together. Well over regulation 4.25 in (0.054 m) now, for a more generous hole.
+## The visible cup and its capture region share this mouth radius. A slow ball whose
+## body still overlaps the lip gets a little extra room to tip into the opening.
 const CUP_RADIUS := 0.08
-const CUP_CAPTURE_SPEED := 2.2
+const CUP_CAPTURE_SPEED := 2.3
+const CUP_CAPTURE_MARGIN := 0.01
+const CUP_LIP_MARGIN := 0.016
+const CUP_LIP_SPEED := 1.1
 
 @export var temperature_f: float = 75.0
 @export var altitude_ft: float = 0.0
@@ -50,6 +53,9 @@ var obstacle_mask: int = 2
 ## physics-server raycast against trees/rocks, which is by far the most expensive
 ## part of a simulated step and isn't needed for a preview line.
 var skip_obstacles: bool = false
+# One response per crown per shot prevents repeated slowing at a leaf boundary.
+var _foliage_touched: Array[RID] = []
+var _foliage_rng := RandomNumberGenerator.new()
 
 var velocity: Vector3 = Vector3.ZERO
 var omega: Vector3 = Vector3.ZERO
@@ -186,8 +192,8 @@ func _build_visual() -> void:
 
 ## Place the ball at rest on the ground at an XZ position.
 func place(xz: Vector2) -> void:
-	var y := layout.height_at(xz.x, xz.y) if layout != null else 0.0
-	global_position = Vector3(xz.x, y + BallPhysics.RADIUS, xz.y)
+	_foliage_touched.clear()
+	global_position = Vector3(xz.x, _contact_height(Vector3(xz.x, 0, xz.y)), xz.y)
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
 	state = PhysicsEnums.BallState.REST
@@ -216,6 +222,8 @@ func _refresh_lie() -> void:
 
 ## Launch with launch-monitor style numbers (mph, deg, rpm) toward `aim_dir` (world XZ).
 func launch(ball_speed_mph: float, vla_deg: float, backspin_rpm: float, sidespin_rpm: float, aim_dir: Vector3) -> void:
+	_foliage_touched.clear()
+	_foliage_rng.seed = hash([global_position, ball_speed_mph, vla_deg, aim_dir, backspin_rpm, sidespin_rpm])
 	if ball_speed_mph <= 0.0:
 		return
 	var flat := Vector3(aim_dir.x, 0.0, aim_dir.z)
@@ -315,13 +323,120 @@ func _physics_process(delta: float) -> void:
 	_update_visual(delta)
 
 
+## Soft crowns never push the ball back to an artificial cylinder wall. Trunks still
+## use the solid obstacle sweep. Multiple overlapping crowns can each affect a shot.
+func _pass_foliage(from: Vector3, to: Vector3) -> void:
+	if from.is_equal_approx(to):
+		return
+	var space := get_world_3d().direct_space_state
+	for i in range(4):
+		var query := PhysicsRayQueryParameters3D.create(from, to, ForestPlanter.FOLIAGE_LAYER, _foliage_touched)
+		query.hit_from_inside = true
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			break
+		_foliage_touched.append(hit["rid"])
+		var before := velocity.length()
+		velocity = foliage_velocity(velocity, _foliage_rng.randf(), _foliage_rng.randf_range(-1.0, 1.0))
+		omega *= velocity.length() / maxf(before, 0.001)
+
+
+## Gaps preserve flight; leaves take a little speed; a branch contact loses lift
+## and much more speed. The cap prevents any contact from adding kinetic energy.
+static func foliage_velocity(incoming: Vector3, contact: float, side: float) -> Vector3:
+	if contact < 0.25:
+		return incoming
+	var speed := incoming.length()
+	var result: Vector3
+	if contact < 0.78:
+		result = incoming.rotated(Vector3.UP, side * 0.055) * lerpf(0.92, 0.72, (contact - 0.25) / 0.53)
+		result.y -= minf(speed * 0.035, 1.5)
+	else:
+		result = incoming.rotated(Vector3.UP, side * 0.22) * lerpf(0.48, 0.18, (contact - 0.78) / 0.22)
+		result.y = minf(result.y, -minf(speed * 0.12, 4.0))
+	return result.limit_length(speed)
+
+
 func _ground_height(p: Vector3) -> float:
-	return layout.height_at(p.x, p.z) if layout != null else 0.0
+	if layout != null:
+		var drawn := layout.rendered_terrain.sample(p.x, p.z)
+		return drawn.x if is_finite(drawn.x) else layout.height_at(p.x, p.z)
+	return 0.0
+
+
+func _contact_height(p: Vector3) -> float:
+	if layout != null:
+		var supported := layout.rendered_terrain.support_height(p.x, p.z, BallPhysics.RADIUS + GROUND_CLEARANCE)
+		if is_finite(supported):
+			return supported
+		var normal := layout.normal_at(p.x, p.z)
+		return layout.height_at(p.x, p.z) + (BallPhysics.RADIUS + GROUND_CLEARANCE) / maxf(normal.y, 0.05)
+	return BallPhysics.RADIUS + GROUND_CLEARANCE
+
+
+## Solve first contact with each rendered triangle crossed by the flight segment.
+## This catches shallow strikes on narrow bunker lips even when both ends are clear.
+func _sweep_ground(from: Vector3, to: Vector3) -> Variant:
+	if layout == null or layout.rendered_terrain.tiles.is_empty():
+		return _sweep_unmeshed_ground(from, to)
+	var cuts := layout.rendered_terrain.segment_breaks(Vector2(from.x, from.z), Vector2(to.x, to.z))
+	var travel := to - from
+	for i in range(1, cuts.size()):
+		var t0: float = cuts[i - 1]
+		var t1: float = cuts[i]
+		if t1 - t0 < 0.0000001:
+			continue
+		var mid := from.lerp(to, (t0 + t1) * 0.5)
+		var plane := layout.rendered_terrain.sample(mid.x, mid.z)
+		if not is_finite(plane.x):
+			var fallback = _sweep_unmeshed_ground(from.lerp(to, t0), from.lerp(to, t1))
+			if fallback != null:
+				return fallback
+			continue
+		var contact0 := plane.x + plane.y * (from.x - mid.x) + plane.z * (from.z - mid.z)
+		contact0 += (BallPhysics.RADIUS + GROUND_CLEARANCE) * sqrt(1.0 + plane.y * plane.y + plane.z * plane.z)
+		var contact_delta := plane.y * travel.x + plane.z * travel.z
+		var gap0 := from.y - contact0 + (travel.y - contact_delta) * t0
+		var gap1 := from.y - contact0 + (travel.y - contact_delta) * t1
+		var hit_t := -1.0
+		if gap0 < -0.0005 or (gap0 <= 0.0 and gap1 < gap0):
+			hit_t = t0
+		elif gap0 > 0.0 and gap1 <= 0.0:
+			hit_t = lerpf(t0, t1, gap0 / (gap0 - gap1))
+		if hit_t >= 0.0:
+			var hit := from.lerp(to, hit_t)
+			hit.y = maxf(contact0 + contact_delta * hit_t, _contact_height(hit))
+			return hit
+	return null
+
+## Analytic fallback for previews and terrain outside the loaded tile region.
+func _sweep_unmeshed_ground(from: Vector3, to: Vector3) -> Variant:
+	var steps := maxi(1, int(ceil(from.distance_to(to) / 0.35)))
+	var previous := 0.0
+	for i in range(1, steps + 1):
+		var t := float(i) / steps
+		var p := from.lerp(to, t)
+		if p.y <= _contact_height(p):
+			var lo := previous
+			var hi := t
+			for j in range(8):
+				var mid := (lo + hi) * 0.5
+				var point := from.lerp(to, mid)
+				if point.y > _contact_height(point):
+					lo = mid
+				else:
+					hi = mid
+			var hit := from.lerp(to, hi)
+			hit.y = _contact_height(hit)
+			return hit
+		previous = t
+	return null
 
 
 func _step(dt: float) -> void:
 	shot_time += dt
 	var pos := global_position
+	var was_on_ground := on_ground
 
 	# Relative-air velocity for wind: integrate with (v - wind) for aero, but move with v.
 	var v_air := velocity - wind if not on_ground else velocity
@@ -346,17 +461,17 @@ func _step(dt: float) -> void:
 				new_pos = (hit["position"] as Vector3) + n * (BallPhysics.RADIUS * 1.5)
 				PhysicsLogger.info("[Obstacle] hit at %s" % [new_pos])
 
-	var ground_y := _ground_height(new_pos)
-	var contact_y := ground_y + BallPhysics.RADIUS
+	if not skip_obstacles and not on_ground:
+		_pass_foliage(pos, new_pos)
 
 	if not on_ground:
-		if new_pos.y <= contact_y and velocity.y < 0.0:
-			# Impact
-			new_pos.y = contact_y
+		var ground_hit = _sweep_ground(pos, new_pos)
+		if ground_hit != null:
+			new_pos = ground_hit
 			_handle_impact(new_pos)
 	else:
 		# Follow terrain while rolling
-		new_pos.y = contact_y
+		new_pos.y = _contact_height(new_pos)
 		floor_normal = layout.normal_at(new_pos.x, new_pos.z) if layout != null else Vector3.UP
 		_params.floor_normal = floor_normal
 		# Slope gravity: BallPhysics zeros the Y component; keep the ball on the surface and
@@ -371,12 +486,10 @@ func _step(dt: float) -> void:
 	if trail.is_empty() or trail[trail.size() - 1].distance_to(new_pos) > 0.5:
 		trail.append(new_pos)
 
-	# Hole capture
-	if cup_position != Vector3.ZERO and on_ground:
-		var d := Vector2(new_pos.x - cup_position.x, new_pos.z - cup_position.z).length()
-		if d < CUP_RADIUS + 0.01 and velocity.length() < CUP_CAPTURE_SPEED:
-			_finish_holed()
-			return
+	# A landing checks its contact point; only a rolling step sweeps across the lip.
+	if _cup_catches_step(pos if was_on_ground else new_pos, new_pos):
+		_finish_holed()
+		return
 
 	# Water: splash as soon as the ball drops through a hazard's surface, or when it
 	# comes to ground on any water cell (class map water on scanned courses).
@@ -433,6 +546,10 @@ func _update_surface_if_changed(pos: Vector3) -> void:
 
 func _handle_impact(pos: Vector3) -> void:
 	floor_normal = layout.normal_at(pos.x, pos.z) if layout != null else Vector3.UP
+	if layout != null:
+		var drawn := layout.rendered_terrain.sample(pos.x, pos.z)
+		if is_finite(drawn.x):
+			floor_normal = Vector3(-drawn.y, 1.0, -drawn.z).normalized()
 	var r: Dictionary = resolve_surface.call(pos) if resolve_surface.is_valid() else {"engine": current_surface, "surface": current_lie, "source": "default"}
 	current_surface = r["engine"]
 	current_lie = r["surface"]
@@ -511,13 +628,8 @@ func _handle_impact(pos: Vector3) -> void:
 			velocity.y = maxf(velocity.y * lerpf(0.55, 0.05, t), 0.0)
 			omega *= lerpf(0.5, 0.08, t)
 		_flag_bunker(pos, true)
-		# The physics themselves stop the ball dead here (no bounce, almost no roll) --
-		# this is purely a visual "negative bounce": the visible mesh (never the actual
-		# collision/lie position -- height lookups stay untouched) settles a little into the
-		# sand instead of just halting at the exact surface, deeper for a full plug than a
-		# lighter skid-in.
-		var sink := lerpf(0.008, 0.03, clampf((impact_steepness - 0.3) / (STICK_STEEPNESS - 0.3), 0.0, 1.0))
-		_play_sand_sink(sink)
+		# Sand still kills the shot's bounce and roll; keep the visible ball at its
+		# contact point instead of burying the mesh below the sand with a tween.
 
 	if not _first_impact_done:
 		_first_impact_done = true
@@ -595,6 +707,22 @@ func _finish_ob() -> void:
 	out_of_bounds.emit(global_position)
 
 
+## Sweep the rolling step so a grazing lip contact cannot fall between samples.
+## The extra 6 mm only catches slow balls; faster edge brushes keep rolling past.
+func _cup_catches_step(from: Vector3, to: Vector3) -> bool:
+	if cup_position == Vector3.ZERO or not on_ground:
+		return false
+	var speed := velocity.length()
+	if speed >= CUP_CAPTURE_SPEED:
+		return false
+	var cup := Vector2(cup_position.x, cup_position.z)
+	var closest := Geometry2D.get_closest_point_to_segment(cup, Vector2(from.x, from.z), Vector2(to.x, to.z))
+	var distance_sq := closest.distance_squared_to(cup)
+	if distance_sq < (CUP_RADIUS + CUP_CAPTURE_MARGIN) ** 2:
+		return true
+	return speed < CUP_LIP_SPEED and distance_sq < (CUP_RADIUS + CUP_LIP_MARGIN) ** 2
+
+
 func _finish_holed() -> void:
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
@@ -617,17 +745,6 @@ func _finish_holed() -> void:
 	tw.finished.connect(func(): holed.emit(target))
 
 
-## Visual-only sink into the sand on a bunker plug -- see _handle_impact. Animates the
-## mesh's own local offset, not global_position, so it never affects physics or lie lookups.
-func _play_sand_sink(depth: float) -> void:
-	if _mesh == null:
-		return
-	var tw := create_tween()
-	tw.set_trans(Tween.TRANS_QUAD)
-	tw.set_ease(Tween.EASE_OUT)
-	tw.tween_property(_mesh, "position:y", -depth, 0.22)
-
-
 func _update_visual(delta: float) -> void:
 	if _mesh == null:
 		return
@@ -641,7 +758,7 @@ func _update_visual(delta: float) -> void:
 func _update_shadow() -> void:
 	if _shadow_mesh == null or layout == null:
 		return
-	var ground_y := layout.height_at(global_position.x, global_position.z)
+	var ground_y := _ground_height(global_position)
 	var height_above := maxf(global_position.y - ground_y, 0.0)
 	_shadow_mesh.position = Vector3(0.0, ground_y - global_position.y + 0.01, 0.0)
 	var scale_t := clampf(height_above / 10.0, 0.0, 1.0)

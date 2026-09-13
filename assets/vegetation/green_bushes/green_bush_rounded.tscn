@@ -1,7 +1,24 @@
 [gd_scene format=3]
 
-[ext_resource type="ArrayMesh" path="res://assets/vegetation/green_bushes/green_bush_rounded.res" id="1_u44vv"]
+[ext_resource type="ArrayMesh" path="res://assets/vegetation/green_bushes/green_bush_rounded.res" id="1_1l5qw"]
+[ext_resource type="ArrayMesh" path="res://assets/vegetation/green_bushes/green_bush_rounded_mid.res" id="2_33h60"]
+[ext_resource type="ArrayMesh" path="res://assets/vegetation/green_bushes/green_bush_rounded_far.res" id="3_miwt3"]
 
-[node name="GreenBushRounded" type="MeshInstance3D" unique_id=1034119155]
+[node name="GreenBushRounded" type="Node3D" unique_id=550467183]
+
+[node name="Leaves" type="MeshInstance3D" parent="." unique_id=173252984]
+cast_shadow = 0
+visibility_range_end = 14.0
+mesh = ExtResource("1_1l5qw")
+
+[node name="Mid" type="MeshInstance3D" parent="." unique_id=170144467]
+cast_shadow = 0
+visibility_range_begin = 14.0
+visibility_range_end = 35.0
+mesh = ExtResource("2_33h60")
+
+[node name="Distant" type="MeshInstance3D" parent="." unique_id=760972605]
+cast_shadow = 0
+visibility_range_begin = 35.0
 visibility_range_end = 100.0
-mesh = ExtResource("1_u44vv")
+mesh = ExtResource("3_miwt3")

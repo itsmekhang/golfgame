@@ -32,7 +32,7 @@ func run() -> void:
 	world.add_child(ground)
 	var i := 0
 	for variant in ["rounded", "spreading", "upright"]:
-		var bush := load("res://assets/vegetation/green_bushes/green_bush_" + variant + ".tscn").instantiate() as MeshInstance3D
+		var bush := load("res://assets/vegetation/green_bushes/green_bush_" + variant + ".tscn").instantiate() as Node3D
 		world.add_child(bush)
 		bush.position.x = (i - 1) * 2.8
 		var label := Label3D.new()

@@ -85,7 +85,7 @@ const SCOUT_DIST := 30.81
 func _ready() -> void:
 	fov = 60.0
 	near = 0.05
-	far = 1500.0
+	far = 8000.0
 	_smooth_pos = global_position
 	_smooth_look = target.global_position if target != null else Vector3.ZERO
 

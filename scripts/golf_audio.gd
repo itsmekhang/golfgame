@@ -225,6 +225,6 @@ func play_holed() -> void:
 	_play_stinger(_cup_in, -2.0)
 
 
-## A good score (birdie or better) -- layered slightly after the cup-in sound.
+## Par or better -- layered slightly after the cup-in sound.
 func play_crowd_cheer() -> void:
 	_play_stinger(_crowd_cheer, -4.0, 0.35)

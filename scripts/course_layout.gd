@@ -1,5 +1,7 @@
 class_name CourseLayout
 extends RefCounted
+
+var rendered_terrain := TerrainContact.new()
 ## Course definition: holes, terrain height, excavations (ponds, creeks, bunkers) and lie
 ## surface lookup. All distances in metres. Filled in by CourseBuilder.
 
@@ -32,8 +34,14 @@ class Hole:
 	var fairway_profile: PackedVector3Array = PackedVector3Array()
 	var fairway_step: float = 4.0
 	var rough_islands: Array = []  # [Vector2 a, Vector2 b, float radius] capsules of rough kept inside the fairway, with trees
+	var fairway_patches: Array = []  # [Vector2 a, Vector2 b, float radius] added mown capsules
+	var planted_trees: Array = []  # [String nature-pack species, Vector2 world XZ]
+	var extend_creeks: bool = true
 	var green_radius: float = 12.0
 	var green_height: float = 0.6
+	var tee_height_offset: float = 0.0
+	var tee_apron: Vector2 = Vector2.ZERO  # extra level margin, then smooth blend width
+	var bunker_rim_lifts: Dictionary = {}
 	var green_center: Vector2 = Vector2.ZERO
 	## Traced green outline: radius (m) per angle bin around `green_center`, bins
 	## starting at world angle `green_rotation`. Empty = generic harmonic circle.
@@ -89,7 +97,7 @@ var terrain_hills: float = 0.0
 var landform_list: Array = []
 ## Fraction of each hole's proposed elevation profile that is applied (the handoff
 ## heights are full-scale reconstruction proposals; 1.0 = as proposed).
-const PROFILE_SCALE := 0.5
+const PROFILE_SCALE := 1.0
 ## Steepest overall grade a putting surface inherits from its hole profile (rise/run):
 ## a ball will not stop on much more than this at green speed.
 const GREEN_MAX_GRADE := 0.022
@@ -175,6 +183,9 @@ func _build_turf_areas() -> void:
 		var fw := FairwayArea.new()
 		fw.setup(pts, hole.fairway_half_width, hole.index, rng, hole.fairway_profile, hole.fairway_step)
 		fw.islands = hole.rough_islands
+		fw.patches = hole.fairway_patches
+		for patch in fw.patches:
+			fw.bounds = fw.bounds.merge(Rect2(patch[0], Vector2.ZERO).expand(patch[1]).grow(float(patch[2]) + FIRST_CUT_WIDTH + 3.0))
 		fw.area_name = "%s fairway" % hole.name
 		fairways.append(fw)
 		var approach := (pts[pts.size() - 1] - pts[maxi(pts.size() - 2, 0)]).normalized()
@@ -191,6 +202,7 @@ func _build_turf_areas() -> void:
 			te.setup(pts[0], first_dir, hole.index)
 		else:
 			te.setup(hole.tee_boxes[0][0], hole.tee_boxes[0][1], hole.index, hole.tee_boxes[0][2])
+		te.bounds = te.bounds.grow(hole.tee_apron.x + hole.tee_apron.y)
 		te.area_name = "%s tee" % hole.name
 		tees.append(te)
 		hole.bbox = Rect2()
@@ -230,6 +242,7 @@ func _hole_bunkers_to_excavations() -> void:
 	for hole in holes:
 		for bk in hole.bunker_polys:
 			var b := Bunker.from_polygon(bk[2])
+			b.rim_lift = float(hole.bunker_rim_lifts.get(bk[0], 0.0))
 			b.kind = bk[1]
 			if b.kind == "fairway":
 				b.depth = clampf(b.depth * 1.6, 0.6, 1.4)
@@ -244,6 +257,7 @@ func _hole_water_to_hazards() -> void:
 		for w in hole.water_polys:
 			var pts: PackedVector2Array = w[1]
 			var hz := WaterHazard.from_polygon(pts)
+			hz.auto_extend = hole.extend_creeks
 			var r := Rect2(pts[0], Vector2.ZERO)
 			for p in pts:
 				r = r.expand(p)
@@ -262,6 +276,7 @@ func _hole_water_to_hazards() -> void:
 		rng.seed = 6060 + hole.index
 		for cp in hole.creek_paths:
 			var s := WaterHazard.make_stream(cp[0], float(cp[1]), rng)
+			s.auto_extend = hole.extend_creeks
 			s.hazard_name = "%s Creek" % hole.name.split(" ")[0]
 			s.finalize(self)
 			water_hazards.append(s)
@@ -281,7 +296,7 @@ func _extend_creeks() -> void:
 	rng.seed = 5050
 	var originals := water_hazards.duplicate()
 	for hz in originals:
-		if not hz.is_creek:
+		if not hz.is_creek or not hz.auto_extend:
 			continue
 		var axis := _polygon_axis(hz.polygon)  # [end_a, end_b, dir a->b, width]
 		var end_a: Vector2 = axis[0]
@@ -546,6 +561,8 @@ func base_height_from(x: float, z: float, fds: Array) -> float:
 	var flatten := 0.0  # 0 = full noise, 1 = follows the target
 	var target := base
 	var offset := 0.0
+	var tee_weight := 0.0
+	var tee_target := 0.0
 	for i in range(holes.size()):
 		if fds[i] == null:
 			continue
@@ -565,10 +582,20 @@ func base_height_from(x: float, z: float, fds: Array) -> float:
 			flatten = g_t
 			target = hole.green_h + (hole_datum(hole, fds[i][5]) - hole.green_h) * hole.green_grade_scale + roll * 0.3
 		offset += hole.green_height * g_t
-		var t_t := 1.0 - smoothstep(0.0, 6.0, fds[i][3])
-		if t_t > flatten:
-			flatten = t_t
-			target = hole.tee_h + 0.3
+		if hole.tee_apron.y > 0.0:
+			# Blend the finished terrain into a level platform, so the downhill
+			# fairway and nearby landforms cannot leave a step at the tee's edge.
+			var weight := 1.0 - smoothstep(hole.tee_apron.x, hole.tee_apron.x + hole.tee_apron.y, fds[i][3])
+			if weight > tee_weight:
+				tee_weight = weight
+				tee_target = hole.tee_h + 0.3 + hole.tee_height_offset
+		else:
+			var t_t := 1.0 - smoothstep(0.0, 6.0, fds[i][3])
+			if t_t > flatten:
+				flatten = t_t
+				target = hole.tee_h + 0.3
+		# Lowered tee areas blend back into the surrounding grade over 30 metres.
+		offset += hole.tee_height_offset * (1.0 - smoothstep(0.0, 30.0, fds[i][3]))
 	if not landform_list.is_empty():
 		var lf := Landforms.offset_split(landform_list, Vector2(x, z))
 		# A putting surface stays relatively flat no matter what is sculpted around it:
@@ -589,7 +616,7 @@ func base_height_from(x: float, z: float, fds: Array) -> float:
 			var capped := GREEN_MAX_RELIEF * tanh(rel / GREEN_MAX_RELIEF)
 			total = g_hole.green_landform + lerpf(rel, capped, g_max)
 		offset += total
-	return lerpf(base, target, flatten) + offset
+	return lerpf(lerpf(base, target, flatten) + offset, tee_target, tee_weight)
 
 
 ## Datum height of a hole `along` metres from the tee: the proposed elevation profile
