@@ -64,8 +64,9 @@ func run() -> void:
 				check(stool_batch.multimesh.instance_count == seats.size(),"Bar/table seat count does not match supplied stools")
 				var box := stool_batch.multimesh.mesh.get_aabb()
 				check(absf(box.size.y - 1.12) < 0.02,"Supplied stool is incorrectly oriented or scaled")
-			for appliance in ["range","sink","prep"]:
+			for appliance in ["range","sink","prep","fridge_a","oven","table"]:
 				check(house.get_node_or_null("Batch_kitchen_"+appliance) != null,"Missing supplied kitchen "+appliance)
+			if tier >= 2: check(house.get_node_or_null("Batch_kitchen_fridge_b") != null,"Kitchen upgrade lacks its second fridge")
 			if tier >= 2:
 				check(house.get_node_or_null("Batch_kitchen_storage") != null,"Kitchen upgrade lacks Altesheim storage")
 				check(house.get_node_or_null("Batch_kitchen_potwash") != null,"Kitchen upgrade lacks Altesheim wash station")
@@ -81,9 +82,19 @@ func run() -> void:
 							for z in [bounds.position.z,bounds.end.z]:
 								var point: Vector3 = xf * Vector3(x,0,z)
 								check(kitchen.grow(0.06).has_point(Vector2(point.x,point.z)),"Kitchen fixture crosses wall: "+str(child.name))
+						if str(child.name) != "Batch_kitchen_table":
+							# backed right up to its wall (the models face -Z, so their back is +Z)
+							var back: Vector3 = xf * Vector3(bounds.get_center().x,0,bounds.end.z)
+							var to_wall := minf(minf(absf(back.x-kitchen.position.x),absf(kitchen.end.x-back.x)),minf(absf(back.z-kitchen.position.y),absf(kitchen.end.y-back.z)))
+							check(to_wall <= 0.04,"Kitchen fixture stands off its wall (%.2f m): %s" % [to_wall,child.name])
+			# the chefs get from the kitchen's front (the restaurant side) to every post they work
 			var center := kitchen.get_center()
-			var path := FacilityBuilder.nav_route(house,"restaurant__kitchen",Vector2(center.x,kitchen.position.y+0.8),Vector2(center.x,kitchen.end.y-0.8))
-			check(not path.is_empty(),"New appliances block kitchen staff aisle")
+			var chefs: Array = rig["spots"]["restaurant"].filter(func(s):return s["role"] == "chef")
+			check(chefs.size() == 3,"Kitchen lacks its three chef posts")
+			for chef: Dictionary in chefs:
+				var post: Vector3 = (chef["xf"] as Transform3D).origin
+				var path := FacilityBuilder.nav_route(house,"restaurant__kitchen",Vector2(center.x,kitchen.position.y+0.8),Vector2(post.x,post.z))
+				check(not path.is_empty(),"Kitchen appliances block the way to a chef post at %s" % post)
 			print("RESTAURANT L",level," T",tier," tables=",tables.size()," table seats=",table_seats.size())
 			if level == 4 and tier in [1,3]:
 				FacilityBuilder.set_view(built,FacilityBuilder.View.ROOF_OFF)

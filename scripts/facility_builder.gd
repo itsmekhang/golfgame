@@ -664,6 +664,7 @@ static func _build_one(it: Dictionary, height_at: Callable, colliders: bool, int
 		_range_field(ctx, lv)
 	_drape(ctx, r)
 	_valet_station_details(ctx, r)
+	_kitchen_reflections(ctx, r)
 	_practice_signs(ctx, r, lv)
 	node.set_meta("rig", r)
 	return node
@@ -943,11 +944,13 @@ static func _markers(group: Node, group_xf: Transform3D, r: Dictionary, batches:
 			# Source OBJ faces -Y in Blender; turn it to our +Y seating convention.
 			_batch(batches, "restaurant_stools", _first_mesh("res://assets/facilities/props/kitchen_gear/stool.glb"), xf * Transform3D(Basis(Vector3.UP, PI), Vector3.ZERO))
 		elif kind.begins_with("KITCHEN_"):
+			# The kitchen's pieces (tools/blender/kitchen_layout.py): each model centred on its
+			# footprint, its front -Z, its back against the wall
 			var appliance := kind.substr(8).to_lower()
 			var mesh := _first_mesh("res://assets/facilities/props/altesheim/%s.glb" % appliance)
 			_batch(batches, "kitchen_" + appliance, mesh, xf)
-			if mesh != null and appliance in ["range", "sink", "prep", "kettle", "storage", "potwash", "rack"]:
-				# Floor-level equipment blocks walking; overhead fixtures do not.
+			if mesh != null:
+				# All of it stands on the floor, so all of it blocks walking.
 				var box := mesh.get_aabb()
 				var count := maxi(1, ceili(box.size.x / 0.5))
 				for index in count:
@@ -2799,6 +2802,23 @@ static func _practice_signs(ctx: Dictionary, rig: Dictionary, level: int) -> voi
 				label.font_size=64;label.pixel_size=item[2];label.modulate=Color("f5efda")
 				label.outline_size=0;label.position.y=item[1];label.double_sided=false
 				face.add_child(label)
+
+
+## The kitchen's brushed steel (the Altesheim pieces) mirrors the white-tiled room round it, not
+## the sky: a box-projected probe filling the kitchen.
+static func _kitchen_reflections(ctx: Dictionary, rig: Dictionary) -> void:
+	var box: Dictionary = rig["boxes"].get("restaurant__kitchen", {})
+	if box.is_empty() or not (rig["rooms"] as Dictionary).has("restaurant"):
+		return
+	var rect: Rect2 = box["rect"]
+	var probe := ReflectionProbe.new()
+	probe.name = "KitchenReflections"
+	probe.size = Vector3(rect.size.x, 3.2, rect.size.y)
+	probe.box_projection = true
+	probe.interior = true
+	probe.max_distance = maxf(rect.size.x, rect.size.y) + 2.0
+	probe.position = Vector3(rect.get_center().x, float(box["y"]) + 1.6, rect.get_center().y)
+	(ctx["node"] as Node3D).add_child(probe)
 
 
 static func _valet_station_details(ctx:Dictionary,rig:Dictionary)->void:

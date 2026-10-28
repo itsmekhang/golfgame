@@ -1,0 +1,11 @@
+{
+ "oven":    {"node": "ID7423",  "turn": 180, "drop_tris": 20000, "brushed": ["material_4", "material_5", "material_7"], "about": "combi oven on its stand; the 13 perforated trays inside (82k tris each) left out"},
+ "range":   {"node": "ID6033",  "turn": 180, "about": "the cooking line: Whirlpool AKT 8700-IX domino + four-zone hob on their base units"},
+ "kettle":  {"node": "ID7192",  "turn": 180, "about": "tilting kettle / braising pan"},
+ "table":   {"node": "ID5425",  "turn": 0,   "about": "the big 3.55 x 1.0 work table with its overshelf (kitchen middle)"},
+ "prep":    {"node": "ID2507",  "turn": 0,   "about": "170-70-85 cabinet work table"},
+ "sink":    {"node": "ID2202",  "turn": 0,   "drop_tris": 30000, "about": "double sink with pre-rinse tap (the tap's 64k-tri spring left out)"},
+ "potwash": {"node": "ID2014",  "turn": 180, "about": "hand-wash / pot sink"},
+ "storage": {"node": "ID9658",  "turn": 0,   "about": "four-tier shelving"},
+ "rack":    {"node": "ID10836", "turn": 0,   "about": "gastronorm tray trolley"}
+}

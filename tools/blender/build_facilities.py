@@ -23,6 +23,7 @@ import zlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bpy  # noqa: E402
 import fm_lib as L  # noqa: E402
+import kitchen_layout as KL  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 OUT = os.path.join(ROOT, "assets", "facilities")
@@ -748,8 +749,9 @@ def clubhouse_l1(M):
 
 
 @furnished_last
-def room_restaurant(M, r, kitchen):
-    """A back-wall bar, a separate dining row and a continuous service aisle."""
+def room_restaurant(M, r, kitchen, back_doors=()):
+    """A back-wall bar, a separate dining row and a continuous service aisle; the kitchen behind it
+    (back_doors: [(x, width)] of doors in its back wall, kept clear)."""
     x0, y0, x1, y1 = r
     k0, ky0, k1, ky1 = kitchen
     z = M.floor_z
@@ -758,28 +760,13 @@ def room_restaurant(M, r, kitchen):
     for t in (1, 2, 3):
         B = M.room("restaurant", t)
         B.box((kw-.1, kd-.1, .02), ((k0+k1)/2, (ky0+ky1)/2, z+.05), "tile")
-        fridge_n = min(t, max(1, int((kw - 3.6) / 1.05)))
-        for i in range(fridge_n):
-            L.fridge(B, k0+.6+i*1.05, ky0+.5, z)
-        stove_w = min(3.4, kw-fridge_n*1.05-1.2)
-        cook_n = min(2 if t >= 2 else 1, max(1, int(stove_w / 1.6)))
-        for cook_i in range(cook_n):
-            cook_x = k1 - .55 - stove_w / 2 + (cook_i - (cook_n-1)/2) * 1.65
-            B.marker("KITCHEN_RANGE" if cook_i == 0 else "KITCHEN_KETTLE", cook_x, ky0 + .55, z, 0.0, 1.0)
-        prep_y = ky0 + kd*.60
-        B.marker("KITCHEN_PREP", k0 + .55, prep_y, z, -math.pi/2, 1.0)
-        B.marker("KITCHEN_SINK", k1 - .50, prep_y, z, math.pi/2, 1.0)
-        if t >= 2:
-            if kd < 6.0:
-                B.marker("KITCHEN_STORAGE", (k0+k1)/2, ky0 + .35, z, 0.0, 1.0)
-            else:
-                B.marker("KITCHEN_STORAGE", k0 + .45, min(prep_y + 2.1, ky1 - .95), z, -math.pi/2, 1.0)
-            B.marker("KITCHEN_POTWASH", k1 - .50, min(prep_y + 2.1, ky1 - .5), z, math.pi/2, 1.0)
-        if t >= 3:
-            B.marker("KITCHEN_RACK", k0 + .45, ky0 + min(2.5, kd * .34), z, -math.pi/2, 1.0)
-        M.spot("restaurant", t, k1 - 1.35, prep_y, z, math.pi/2, "chef")
-        M.spot("restaurant", t, k1-.55-stove_w/2, ky0+1.5, z, math.pi, "chef")
-        M.spot("restaurant", t, k0+1.45, prep_y, z, math.pi/2, "chef")
+        # the Altesheim kitchen pieces (tools/blender/kitchen_layout.py: Godot swaps each marker for
+        # its model in assets/facilities/props/altesheim)
+        fixtures, chefs = KL.layout(kitchen, t, back_doors)
+        for kind, kx, ky, krz in fixtures:
+            B.marker("KITCHEN_" + kind, kx, ky, z, krz, 1.0)
+        for cx, cy, face in chefs:
+            M.spot("restaurant", t, cx, cy, z, face, "chef")
         # A continuous bar replaces the cramped row of dining tables.
         bw = w - 3.5
         bx, by = x0 + 1.75 + bw/2, y0 + 1.65
@@ -1340,7 +1327,7 @@ def clubhouse_l2(M):
     for py in [y0 + 1.3 + i * 3.0 for i in range(5)]:
         L.column(G, x0 - 3.3, py, z, 3.0)
     L.railing(G, (x0 - 3.3, y0 + 1.3), (x0 - 3.3, y1 + 3.3), z, 0.9, post=False)
-    room_restaurant(M, (x0 + 0.15, -21.9, -4.1, y1 - 0.15), (x0 + 0.15, y0 + 0.15, -4.1, -22.1))
+    room_restaurant(M, (x0 + 0.15, -21.9, -4.1, y1 - 0.15), (x0 + 0.15, y0 + 0.15, -4.1, -22.1), [(-10.0, 1.2)])  # (the kitchen door: stoop below)
     room_lobby(M, (-3.9, -21.9, 3.9, y1 - 0.15), "+y")
     room_office(M, (-3.9, y0 + 0.15, 3.9, -22.1))
     room_pro_shop(M, (4.1, y0 + 0.15, x1 - 0.15, y1 - 0.15), "-x")
