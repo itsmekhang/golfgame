@@ -20,13 +20,15 @@ signal water_hazard_entered(hazard: WaterHazard, position: Vector3)
 signal bunker_entered(position: Vector3, plugged: bool)
 signal out_of_bounds(position: Vector3)
 signal holed(position: Vector3)
+## The ball caught the cup's lip without dropping: it hopped, turned away and slowed.
+signal lipped_out(position: Vector3)
 
 const DT := BallPhysics.SIMULATION_DT
 const GROUND_CLEARANCE := 0.0015  # clearance for the stripe and world-coordinate rounding
-## 0.5 mph (0.5 * 0.44704 m/s per mph) -- settle to rest as soon as the ball's down to a slow
+## 0.15 mph (0.15 * 0.44704 m/s per mph) -- settle to rest as soon as the ball's down to a slow
 ## creep instead of waiting for it to fully stop, so the next shot isn't held up by a long tail
 ## of barely-moving roll.
-const REST_SPEED := 0.22352
+const REST_SPEED := 0.067056
 ## A ball trickling below this speed (m/s) for CREEP_TIME seconds -- creeping down a
 ## slope, wobbling in a hollow -- is called at rest rather than holding up the next shot.
 const CREEP_SPEED := 0.7
@@ -39,6 +41,10 @@ const CUP_CAPTURE_SPEED := 2.3
 const CUP_CAPTURE_MARGIN := 0.01
 const CUP_LIP_MARGIN := 0.016
 const CUP_LIP_SPEED := 1.1
+## A rolling ball whose centre passes this close to the cup centre without dropping catches
+## the rim: it partly drops into the mouth, hits the far wall or the lip, hops, turns away and
+## loses speed (_cup_lip_step) instead of rolling over the hole as if it weren't there.
+const CUP_LIP_ZONE := CUP_RADIUS + BallPhysics.RADIUS * 0.7
 
 @export var temperature_f: float = 75.0
 @export var altitude_ft: float = 0.0
@@ -75,6 +81,10 @@ var last_hazard: WaterHazard = null
 ## Set when the ball is in a bunker (flagged at impact or rest).
 var in_bunker: bool = false
 var _bunker_flagged: bool = false
+## Set when the ball drops in the cup; cleared on the next place()/launch()/putt(). Lets the
+## prediction twin (course.gd's shadow_ball / Auto-Putt search) know a simulated putt fell.
+var was_holed: bool = false
+var _lip_done := false  # this pass over the cup already caught the lip
 var is_moving: bool:
 	get:
 		return state != PhysicsEnums.BallState.REST
@@ -199,6 +209,8 @@ func place(xz: Vector2) -> void:
 	state = PhysicsEnums.BallState.REST
 	on_ground = true
 	_finished = false
+	was_holed = false
+	_lip_done = false
 	_first_impact_done = false
 	_last_bounce_vy = -1.0
 	if _mesh != null:
@@ -285,6 +297,7 @@ func putt(speed_mps: float, aim_dir: Vector3) -> void:
 	_creep_timer = 0.0
 	_finished = false
 	_first_impact_done = true
+	_lip_done = false
 	_impact_spin_rpm = 0.0
 	carry_distance_m = 0.0
 	total_distance_m = 0.0
@@ -490,11 +503,13 @@ func _step(dt: float) -> void:
 	if _cup_catches_step(pos if was_on_ground else new_pos, new_pos):
 		_finish_holed()
 		return
+	if on_ground and was_on_ground:
+		_cup_lip_step(pos, new_pos)
 
 	# Water: splash as soon as the ball drops through a hazard's surface, or when it
 	# comes to ground on any water cell (class map water on scanned courses).
 	var hz: WaterHazard = layout.hazard_at(Vector2(new_pos.x, new_pos.z)) if layout != null else null
-	if hz != null and new_pos.y <= hz.water_level + BallPhysics.RADIUS and (velocity.y <= 0.0 or on_ground):
+	if hz != null and new_pos.y <= hz.water_level_at(Vector2(new_pos.x, new_pos.z)) + BallPhysics.RADIUS and (velocity.y <= 0.0 or on_ground):
 		_finish_water(hz)
 		return
 	if on_ground and current_lie == CourseLayout.SURFACE_WATER:
@@ -608,7 +623,7 @@ func _handle_impact(pos: Vector3) -> void:
 	# bounce), rough reads noticeably deader, and bunker is close to dead below -- both rough
 	# and bunker scale that damping up with impact_steepness rather than applying a single
 	# fixed cut, so only the higher-arc shots really stick.
-	if current_lie == PhysicsEnums.SurfaceType.ROUGH:
+	if CourseLayout.engine_surface(current_lie) == PhysicsEnums.SurfaceType.ROUGH:
 		var t := smoothstep(0.35, 0.85, impact_steepness)
 		velocity *= lerpf(1.0, 0.8, t)
 		velocity.y = maxf(velocity.y * lerpf(1.0, 0.72, t), 0.0)
@@ -692,7 +707,7 @@ func _finish_water(hz: WaterHazard) -> void:
 	last_hazard = hz
 	current_lie = CourseLayout.SURFACE_WATER
 	if hz != null:
-		global_position.y = hz.water_level - BallPhysics.RADIUS * 0.5
+		global_position.y = hz.water_level_at(Vector2(global_position.x, global_position.z)) - BallPhysics.RADIUS * 0.5
 		hz.notify_ball_entered(global_position)
 	PhysicsLogger.info("[Water] ball in %s at %s" % [hz.hazard_name if hz != null else "water", global_position])
 	entered_water.emit(global_position)
@@ -723,11 +738,62 @@ func _cup_catches_step(from: Vector3, to: Vector3) -> bool:
 	return speed < CUP_LIP_SPEED and distance_sq < (CUP_RADIUS + CUP_LIP_MARGIN) ** 2
 
 
+## A rolling ball that crosses the cup mouth too fast (or too wide) to drop catches the rim once
+## per pass. Where it crosses decides the reaction: dead centre drops into the mouth and hits the
+## back wall -- big speed loss, a pop up, little change of line; near the edge it rides round the
+## lip -- less loss, a small hop, a sharp turn away from the hole. Slower balls are turned more.
+func _cup_lip_step(from: Vector3, to: Vector3) -> void:
+	if cup_position == Vector3.ZERO:
+		return
+	var cup := Vector2(cup_position.x, cup_position.z)
+	if _lip_done:
+		if Vector2(to.x, to.z).distance_to(cup) > CUP_LIP_ZONE + 0.05:
+			_lip_done = false
+		return
+	var v2 := Vector2(velocity.x, velocity.z)
+	var speed := v2.length()
+	if speed < 0.05:
+		return
+	var dir := v2 / speed
+	# React as the ball crosses the line through the cup centre square to its path (the far
+	# half of the mouth), judged by how far off-centre its line runs -- not where it first
+	# touched the zone.
+	var f2 := Vector2(from.x, from.z) - cup
+	var t2 := Vector2(to.x, to.z) - cup
+	if not (f2.dot(dir) < 0.0 and t2.dot(dir) >= 0.0):
+		return
+	var off := t2 - dir * t2.dot(dir)  # cup centre -> the ball's line, square to it
+	var d := off.length()
+	if d >= CUP_LIP_ZONE:
+		return
+	_lip_done = true
+	# away from the hole, square to the line (the side of the cup the ball's line passes)
+	var away := off
+	if away.length() < 0.002:
+		var sgn := 1.0 if fposmod(cup.x * 37.0 + cup.y * 91.0 + speed * 13.0, 2.0) < 1.0 else -1.0
+		away = Vector2(-dir.y, dir.x) * sgn
+	away = away.normalized()
+	var edge := clampf(d / CUP_LIP_ZONE, 0.0, 1.0)  # 0 = dead centre, 1 = grazing the rim
+	var turn := deg_to_rad(minf(lerpf(4.0, 38.0, smoothstep(0.35, 0.9, edge)) * clampf(2.2 / speed, 0.5, 1.6), 70.0))
+	var new_dir := (dir * cos(turn) + away * sin(turn)).normalized()
+	var keep := lerpf(0.5, 0.75, edge)
+	keep = clampf(keep + 0.06 * (speed - CUP_CAPTURE_SPEED), keep, 0.85)  # a fast ball skims more
+	var hop := minf(lerpf(0.9, 0.3, edge) * clampf(speed / 2.5, 0.4, 1.4), 1.1)
+	velocity = Vector3(new_dir.x * speed * keep, hop, new_dir.y * speed * keep)
+	omega *= keep
+	on_ground = false
+	PhysicsLogger.info("[Cup] lipped out at %.2f m/s, %.0f%% of radius, turned %.0f deg" % [speed, edge * 100.0, rad_to_deg(turn)])
+	lipped_out.emit(global_position)
+
+
 func _finish_holed() -> void:
 	velocity = Vector3.ZERO
 	omega = Vector3.ZERO
 	state = PhysicsEnums.BallState.REST
 	_finished = true
+	was_holed = true
+	if _shadow_mesh != null:
+		_shadow_mesh.visible = false
 	var start := global_position
 	var target := Vector3(cup_position.x, cup_position.y - 0.1, cup_position.z)
 	# A quick eased roll-to-centre-and-drop instead of an instant teleport into the cup --
@@ -758,6 +824,7 @@ func _update_visual(delta: float) -> void:
 func _update_shadow() -> void:
 	if _shadow_mesh == null or layout == null:
 		return
+	_shadow_mesh.visible = not was_holed
 	var ground_y := _ground_height(global_position)
 	var height_above := maxf(global_position.y - ground_y, 0.0)
 	_shadow_mesh.position = Vector3(0.0, ground_y - global_position.y + 0.01, 0.0)

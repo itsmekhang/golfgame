@@ -1,0 +1,100 @@
+{
+  "vertices": 12538,
+  "triangles": 25040,
+  "nonmanifold_edges": 0,
+  "connected_components": 11,
+  "body_dimensions_mm_xyz": [
+    114.00000005960464,
+    28.00000086426735,
+    71.99999690055847
+  ],
+  "nominal_body_dimensions_mm_width_depth_height": [
+    114,
+    72,
+    28
+  ],
+  "units": "metres",
+  "head_only": true,
+  "shaft_origin_metres": [
+    -0.04100000113248825,
+    0.07000000029802322,
+    -0.01600000075995922
+  ],
+  "shaft_axis": [
+    -0.32556816935539246,
+    0.9455185532569885,
+    0.0
+  ],
+  "bore_diameter_mm": 9.4,
+  "original_shaft_tip_diameter_mm": 9.2,
+  "lie_degrees": 71,
+  "face_loft_degrees": 3.5,
+  "materials": 5,
+  "closed_assembly_parts": [
+    {
+      "name": "Half-moon mallet body",
+      "vertices": 6016,
+      "triangles": 12028,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "White bow alignment inlay",
+      "vertices": 560,
+      "triangles": 1116,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Micro-milled striking face",
+      "vertices": 584,
+      "triangles": 1164,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "White underside perimeter arc",
+      "vertices": 1004,
+      "triangles": 2004,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Lime cavity badge rim",
+      "vertices": 352,
+      "triangles": 700,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Black cavity badge",
+      "vertices": 352,
+      "triangles": 700,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "ARC cavity lettering",
+      "vertices": 858,
+      "triangles": 1712,
+      "nonmanifold_edges": 0,
+      "connected_components": 3
+    },
+    {
+      "name": "Compact black offset neck",
+      "vertices": 1756,
+      "triangles": 3508,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Stainless socket sleeve",
+      "vertices": 1056,
+      "triangles": 2108,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    }
+  ],
+  "horizontal_face_grooves": 32,
+  "texture_images": 0
+}

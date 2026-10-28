@@ -1,4 +1,5 @@
 extends Node3D
+const TEE_SIGN = preload("res://scripts/tee_hole_sign.gd")
 ## Course scene controller (mirrors OpenFairway's HoleSceneControllerBase):
 ## builds terrain + props, wires the ball, supplies the ResolveLieSurface delegate,
 ## and runs the stroke loop (aim -> power -> accuracy -> shot -> result).
@@ -17,6 +18,11 @@ var bunker_visits: int = 0
 var layout: CourseLayout
 var resolver: LieSurfaceResolver
 var ball: GolfBall
+var swing_rig: ClubSwingRig
+## Tests that call _fire_shot() directly and check the ball's state on the very
+## next line set this so the shot launches immediately, same as before the swing
+## animation existed, instead of waiting out the animation delay.
+var skip_swing_animation: bool = false
 var camera: OrbitCamera
 var hud: Hud
 var audio: GolfAudio
@@ -36,6 +42,7 @@ var aim_line: MeshInstance3D
 var props_root: Node3D
 var decor_root: Node3D
 var nature_props_root: Node3D
+var facilities_root: Node3D  # course-manager buildings (Course Studio courses only)
 var active_region := Rect2()
 var _hole_loading := false
 ## Cart-boarding loading screen shown at startup and on every hole change (see
@@ -43,10 +50,10 @@ var _hole_loading := false
 ## site created it (_ready() at startup, or transition_to_hole() otherwise) owns freeing it;
 ## _ensure_hole_region() just updates its progress if one is already up rather than creating
 ## a second overlay on top of it.
-## Shared with ball.wind (_build_ball) and the flagpins' wind-responsive animation
-## (_add_flag) so both agree on the same current wind instead of the flag animating an
-## unrelated fixed ambient breeze regardless of what the HUD/ball physics actually use.
-const COURSE_WIND := Vector3(1.5, 0.0, -0.8)
+## Every hole gets its own wind (see wind_for_hole), shared by ball.wind (start_hole) and that
+## hole's flagpin (_add_flag) so the flag never flutters against what the ball actually feels.
+## Speeds are skewed toward calm-to-breezy with the odd properly windy hole up to this cap.
+const WIND_MAX_MPS := 6.0  # ~13 mph
 const LOADING_SCENE := preload("res://scenes/ui/golf_loading_screen.tscn")
 ## Modeled pole with real SoftBody3D cloth (see assets/world_flagstick/README.md) -- used in
 ## _add_flag in place of the old procedural CylinderMesh/BoxMesh pole and flag panel.
@@ -59,11 +66,6 @@ var _transitioning := true
 ## CPU-painted bunker trail (see scripts/sand_trail.gd), rebuilt alongside terrain_root.
 var sand_trail: SandTrail
 var _terrain_material: ShaderMaterial
-## A standing instance of the terrain's own ShaderMaterial, built once up front (unlike
-## _terrain_material above, which only exists for whichever hole's region is currently
-## loaded) so every hole's cup patch (_add_flag) can render with the exact same shading and
-## feature-mask lookup as the ground around it, however that hole's own region gets built.
-var _flag_patch_material: ShaderMaterial
 var _sand_trail_tick := 0
 ## Extra buffer beyond hole_bbox()'s own margin, so a sliced/hooked shot still lands on
 ## built terrain/props instead of a void.
@@ -90,7 +92,7 @@ var _minimap_elapsed := 1.0
 var _minimap_last_ball := Vector3(INF, INF, INF)
 ## Minimap-only tree silhouettes and pin icon, hidden from the main camera.
 const MINIMAP_LAYER := 0x200  # layer 10
-const MINIMAP_HEIGHT_PX := 280
+const MINIMAP_HEIGHT_PX := 440  # 2x the displayed height; smooth downsampling in the cached map
 var _minimap_built := false
 ## World-space frame the minimap camera is currently cropped to (see _update_minimap_frame),
 ## kept around so _minimap_world_to_local can place the overhead-camera focus circle.
@@ -98,21 +100,44 @@ var _minimap_center := Vector2.ZERO
 var _minimap_forward := Vector2(0.0, -1.0)
 var _minimap_right := Vector2(1.0, 0.0)
 var _minimap_scale := 1.0  # world metres per minimap-texture pixel
-var _tracker_accum := 0.0
 var _tracker_inputs: Array = []
-const TRACKER_INTERVAL := 0.35
+var _tracker_running := false
+var _tracker_steps := 0
+## Full swings preview the flight only (to the first bounce); putts preview the whole roll.
+## Bounce and roll steps cost ~10x a flight step (terrain normal + lie lookups every step).
+var _tracker_flight_only := false
+## Aim the running simulation was started with, and the aim / ball position the line on
+## screen was drawn for. While a new preview computes, the old one is swung around the ball
+## by the aim change so turning the aim never waits on the simulation.
+var _tracker_pending_yaw := 0.0
+var _tracker_shown_yaw := 0.0
+var _tracker_shown_pivot := Vector3(INF, INF, INF)
+var _tracker_shown_landing := Vector3.ZERO
+var _tracker_shown_pts := PackedVector3Array()
+var _tracker_applied_yaw := 0.0
+## A putt preview rolls only this far from the ball (cup distance + PUTT_PREVIEW_PAST_CUP_M):
+## the full-power putt it simulates would otherwise roll ~70 m over up to TRACKER_MAX_TIME.
+var _tracker_start := Vector3.ZERO
+var _tracker_putt_limit_m := 0.0
+var _tracker_ring := true  # false while a cut-short putt preview has no resting spot to mark
+const PUTT_PREVIEW_PAST_CUP_M := 2.0
+const PUTT_PREVIEW_MIN_M := 3.0
+## Hold the swing button (Space / left click) while the ball is moving to run the game this
+## much faster. The ball sub-steps at a fixed 120 Hz, so the shot plays out identically.
+const FAST_FORWARD_SCALE := 3.0
+var _ff_armed := false  # the press that hit the shot must be released before it fast-forwards
+const TRACKER_BUDGET_USEC := 4000
+const TRACKER_STEPS_PER_FRAME := 240
+const PREVIEW_YELLOW := Color(1.0, 0.9, 0.2)  # matches the minimap preview line
+const SHOT_RIBBON = preload("res://shaders/shot_ribbon.gdshader")
+const LANDING_TARGET = preload("res://shaders/landing_target.gdshader")
 ## Cap the preview sim so a long, slow-to-rest putt/chip can't hold a frame open;
 ## most shots are done well inside this and the real shot is unaffected either way.
 const TRACKER_MAX_TIME := 12.0
 var _pre_shot_pos := Vector3.ZERO
-## A short beat after a normal shot comes to rest before another swing can start --
-## every other way a shot ends already holds here (holed: 3s, OB/water drop: 1.2s,
-## mulligan: message only) but a plain rest went straight from ball-stops to
-## swing-ready with no pause at all, so the result never had a moment on screen
-## before the next swing could already be underway. Gates the swing input only;
-## camera/club-switch/aim keep working immediately so it never feels like a stall.
-const SHOT_RESULT_HOLD_MS := 1000.0
-var _result_hold_until_msec := 0.0
+## Ground distance (yd) from where the current/last shot was struck to the ball: counts up
+## live in flight and roll, then holds the final total on the HUD until the next swing.
+var _shot_yd := 0.0
 var _penalty_pending := false
 var _last_interactor := Vector3(INF, INF, INF)
 ## Mulligan (M): a snapshot taken right when a shot is fired, restorable on demand instead of
@@ -123,6 +148,16 @@ var _mulligan_valid := false
 var _mulligan_strokes := 0
 var _mulligan_water_balls := 0
 var _mulligan_bunker_visits := 0
+
+## Progression / economy layer (see scripts/economy/): the between-round clubhouse hub, the
+## ledger for the round in progress, and the RNG for club dispersion on the fired shot only
+## (the tracker preview always shows the intended line).
+var hub: HubMenu
+var tracker: RoundTracker
+## True from the moment the round's last hole drops until the player tees off again.
+var _round_complete_pending := false
+var _shot_rng := RandomNumberGenerator.new()
+var _auto_putt_busy := false
 
 
 var _t0 := 0
@@ -136,10 +171,12 @@ func _t(label: String) -> void:
 
 func _ready() -> void:
 	_set_transition_active(true)
-	var spec := CourseBuilder.hole_info(0)
+	GolfLoadingScreen.set_course(_course_title(), GameLaunch.custom_course == "")
+	var first := round_start_index()  # hole 10 for the back nine
+	var spec := _hole_info(first)
 	_loading_screen = LOADING_SCENE.instantiate()
 	add_child(_loading_screen)
-	_loading_screen.begin_hole(1, spec["name"], spec["par"], spec["yd"], true)
+	_loading_screen.begin_hole(first + 1, spec["name"], spec["par"], spec["yd"], true)
 	# Let the loading screen draw before the (synchronous) course build starts.
 	if DisplayServer.get_name() != "headless":
 		await _loading_screen.covered
@@ -148,6 +185,8 @@ func _ready() -> void:
 		await get_tree().process_frame
 	_t0 = Time.get_ticks_msec()
 	_load_layout()
+	# again: an unreadable Course Studio course falls back to Augusta
+	GolfLoadingScreen.set_course(_course_title(), GameLaunch.custom_course == "")
 	_t("layout")
 	if not layout.authored_hazards:
 		WaterHazardGenerator.generate(layout, hazard_seed, 1, 0.3)
@@ -168,14 +207,26 @@ func _ready() -> void:
 	_build_minimap()
 	hud = Hud.new()
 	add_child(hud)
+	hud.set_course_title(_course_title())
+	hud.main_menu_requested.connect(_on_main_menu)
 	audio = GolfAudio.new()
 	add_child(audio)
 	hud.strike_selector.strike_changed.connect(func(v: Vector2) -> void: strike = v)
+	_shot_rng.randomize()
+	hub = HubMenu.new()
+	add_child(hub)
+	hub.tee_off_requested.connect(_on_hub_tee_off_span)
+	hub.closed.connect(_on_hub_closed)
+	hub.abandon_requested.connect(_on_hub_abandon)
+	if GameState.current != null:
+		GameState.current.bag_changed.connect(_on_bag_changed)
+		GameState.current.business_ticked.connect(_on_business_ticked)
+	_begin_round()
 	resolver.register_zones(get_tree())
 	_loading_screen.update_progress(0.7, "Finding the first tee…")
 	# _ensure_hole_region (called from start_hole) sees _loading_screen already set and just
 	# updates its progress instead of creating a second overlay on top of this one.
-	await start_hole(0)
+	await start_hole(round_start_index())
 	_snap_camera_to_tee()
 	if grass_root is GrassStreamer:
 		grass_root.active = true
@@ -224,7 +275,7 @@ func _ensure_hole_region(hole: CourseLayout.Hole) -> void:
 	if owns_screen:
 		_loading_screen = LOADING_SCENE.instantiate()
 		add_child(_loading_screen)
-		_loading_screen.begin_hole(hole.index + 1, hole.name, hole.par, roundi(hole.length_yd))
+		_loading_screen.begin_hole(hole.index + 1, _hole_info(hole.index)["name"], hole.par, int(_hole_info(hole.index).get("yd", roundi(hole.length_yd))))
 		if DisplayServer.get_name() != "headless":
 			await _loading_screen.covered
 		else:
@@ -254,10 +305,15 @@ func _ensure_hole_region(hole: CourseLayout.Hole) -> void:
 		decor_root.queue_free()
 	if nature_props_root != null:
 		nature_props_root.queue_free()
+	if terrain_root != null:
+		# Release the previous forest's physics bodies before adding the next one.
+		# Keeping both alive until the same frame ends can exhaust Jolt's body pool.
+		await get_tree().process_frame
 	layout.rendered_terrain.tiles.clear()
 	terrain_root = Node3D.new()
 	terrain_root.name = "Terrain"
 	_terrain_material = TerrainBuilder.terrain_material(layout)
+	TurfShells.attach(_terrain_material, layout)  # short living turf near the camera
 	terrain_root.set_meta("material", _terrain_material)
 	TerrainBuilder.rebuild_tiles(layout, terrain_root, region)
 	add_child(terrain_root)
@@ -292,6 +348,7 @@ func _ensure_hole_region(hole: CourseLayout.Hole) -> void:
 	nature_props_root = ForestPlanter.build(layout, course_seed, Rect2(0, 0, 1, 1) if OS.get_environment("GOLF_NO_FOREST") == "1" else region)
 	add_child(nature_props_root)
 	print("[Forest] %d trees, %d shrubs; props %d ms, forest %d ms" % [nature_props_root.tree_count, nature_props_root.shrub_count, t1 - t0, Time.get_ticks_msec() - t1])
+	_build_facilities()
 	active_region = region
 	if owns_screen:
 		_loading_screen.update_progress(0.95, "Almost ready…")
@@ -304,7 +361,20 @@ func _ensure_hole_region(hole: CourseLayout.Hole) -> void:
 
 
 func _load_layout() -> void:
-	layout = CourseBuilder.build(course_seed)
+	# A Course Studio course from the start menu, else Augusta.
+	if GameLaunch.custom_course != "":
+		var painted := PaintedCourse.load_file(GameLaunch.custom_course)
+		if painted != null and not painted.holes.is_empty():
+			var gs := GameState.current
+			if gs != null and gs.business.owned and gs.business.course_path == GameLaunch.custom_course:
+				FacilityBuilder.grade(painted, gs.business.placements, gs.business.built)  # the club's building plots
+			layout = PaintedLayout.build(painted)
+			print("[PaintedLayout] %s: %d holes in %d ms" % [painted.course_name, layout.holes.size(), (layout as PaintedLayout).last_build_ms])
+		else:
+			push_warning("Course Studio course unreadable: " + GameLaunch.custom_course)
+			GameLaunch.custom_course = ""
+	if layout == null:
+		layout = CourseBuilder.build(course_seed)
 	print("[CourseBuilder] ", CourseBuilder.last_report)
 	# GOLF_STIMP can override the round's speed. Default rounds use 20% slower greens.
 	var stimp_env := OS.get_environment("GOLF_STIMP")
@@ -321,7 +391,9 @@ func _build_world() -> void:
 	# Lighting & sky
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
-	sun.rotation_degrees = Vector3(-38.0, 35.0, 0.0)
+	# 25 degrees up: low enough that the sun disc (shaders/golf_sky.gdshader) is actually in
+	# frame when the camera faces it, instead of sitting just above the top of the view.
+	sun.rotation_degrees = Vector3(-25.0, 35.0, 0.0)
 	sun.light_energy = 1.35
 	sun.light_color = Color(1.0, 0.98, 0.94)
 	sun.light_angular_distance = 0.53
@@ -342,16 +414,13 @@ func _build_world() -> void:
 	if OS.get_environment("GOLF_SKY") == "cinematic":
 		sky.sky_material = _sky_material()
 	else:
-		var psm := ProceduralSkyMaterial.new()
-		psm.sky_top_color = Color(0.25, 0.48, 0.9)
-		psm.sky_horizon_color = Color(0.7, 0.8, 0.9)
-		psm.ground_horizon_color = psm.sky_horizon_color
-		# Cumulus cover: a generated equirect noise texture alpha-masked into puffs and
-		# painted over the procedural sky -- one texture sample, no ray march, so it costs
-		# nothing like the cinematic shader that kept tripping GPU timeouts.
-		psm.sky_cover = _cloud_cover_texture()
-		psm.sky_cover_modulate = Color(1.0, 1.0, 1.0, 0.35)
-		sky.sky_material = psm
+		# Gradient sky + cumulus cover (a generated equirect noise texture alpha-masked into
+		# puffs) + a visible sun disc and glow -- one texture sample, no ray march, so it
+		# costs nothing like the cinematic shader that kept tripping GPU timeouts.
+		var sky_mat := ShaderMaterial.new()
+		sky_mat.shader = load("res://shaders/golf_sky.gdshader")
+		sky_mat.set_shader_parameter("sky_cover", _cloud_cover_texture())
+		sky.sky_material = sky_mat
 	sky.process_mode = Sky.PROCESS_MODE_REALTIME if OS.get_environment("GOLF_SKY") == "cinematic" else Sky.PROCESS_MODE_QUALITY
 	sky.radiance_size = Sky.RADIANCE_SIZE_128
 	e.background_mode = Environment.BG_SKY
@@ -375,6 +444,9 @@ func _build_world() -> void:
 	e.fog_sky_affect = 0.0
 	e.ssao_enabled = false
 	e.glow_enabled = false
+	if not GolfLook.classic() and tm == "":
+		GolfLook.apply(e, sun)
+	env.name = "WorldEnvironment"
 	env.environment = e
 	add_child(env)
 
@@ -407,8 +479,8 @@ func _build_world() -> void:
 	_t("grass")
 
 	# Tee markers + flags for every hole
-	_flag_patch_material = TerrainBuilder.terrain_material(layout)
 	for hole in layout.holes:
+		add_child(TEE_SIGN.for_layout(layout,hole))
 		_add_tee_markers(hole)
 		_add_flag(hole)
 
@@ -417,12 +489,11 @@ func _build_world() -> void:
 	# Trail & aim line meshes
 	trail_mesh = MeshInstance3D.new()
 	trail_mesh.name = "Trail"
-	var tmat := StandardMaterial3D.new()
-	tmat.albedo_color = Color(1.0, 1.0, 1.0, 1.0)
-	tmat.vertex_color_use_as_albedo = true  # the tail fades out through vertex alpha
-	tmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	tmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	tmat.no_depth_test = false
+	var tmat := ShaderMaterial.new()
+	tmat.shader = SHOT_RIBBON
+	tmat.set_shader_parameter("color_start", Color(1, 1, 1, 0.95))
+	tmat.set_shader_parameter("color_end", Color(1, 1, 1, 0.95))
+	tmat.set_shader_parameter("end_fade", 0.0)  # the tail fades out through vertex alpha
 	trail_mesh.material_override = tmat
 	trail_mesh.layers = PerformanceSettings.SHOT_LAYER
 	add_child(trail_mesh)
@@ -430,24 +501,24 @@ func _build_world() -> void:
 	shot_tracker_line = MeshInstance3D.new()
 	shot_tracker_line.name = "ShotTracker"
 	shot_tracker_line.layers = PerformanceSettings.SHOT_LAYER
-	var amat := StandardMaterial3D.new()
-	amat.albedo_color = Color(1.0, 0.9, 0.2, 0.9)
-	amat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	amat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var amat := ShaderMaterial.new()
+	amat.shader = SHOT_RIBBON
+	amat.set_shader_parameter("color_start", Color(PREVIEW_YELLOW, 0.9))
+	amat.set_shader_parameter("color_end", Color(PREVIEW_YELLOW, 0.95))
+	amat.set_shader_parameter("core_white", 0.12)
+	amat.set_shader_parameter("dash_m", 4.0)
 	shot_tracker_line.material_override = amat
 	add_child(shot_tracker_line)
 
 	landing_marker = MeshInstance3D.new()
 	landing_marker.name = "LandingMarker"
 	landing_marker.layers = PerformanceSettings.SHOT_LAYER
-	var torus := TorusMesh.new()
-	torus.inner_radius = 0.5
-	torus.outer_radius = 0.8
-	landing_marker.mesh = torus
-	var lmat := StandardMaterial3D.new()
-	lmat.albedo_color = Color(1.0, 0.9, 0.2, 0.85)
-	lmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	lmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var target := QuadMesh.new()
+	target.size = Vector2(2.0, 2.0)  # unit radius, camera-facing; scaled with distance in _draw_shot_tracker
+	landing_marker.mesh = target
+	var lmat := ShaderMaterial.new()
+	lmat.shader = LANDING_TARGET
+	lmat.set_shader_parameter("tint", PREVIEW_YELLOW)
 	landing_marker.material_override = lmat
 	add_child(landing_marker)
 	aim_line = shot_tracker_line  # kept for any external references
@@ -549,51 +620,45 @@ static func _noise2d(seed_v: int, frequency: float) -> NoiseTexture2D:
 	return t
 
 
+## Tee markers: a pair of oversized lacquered golf balls on low dark-green collars, set square
+## to the line of play either side of the tee.
 func _add_tee_markers(hole: CourseLayout.Hole) -> void:
-	for sx: float in [-2.0, 2.0]:
-		var m := MeshInstance3D.new()
+	var next := hole.waypoints[1] if hole.waypoints.size() > 1 else hole.cup
+	var dir := Vector2(next.x - hole.tee.x, next.z - hole.tee.z).normalized()
+	if dir == Vector2.ZERO:
+		dir = Vector2(0, -1)
+	var side := Vector2(-dir.y, dir.x)
+	var ball_mat := StandardMaterial3D.new()
+	ball_mat.albedo_color = Color(0.95, 0.95, 0.93)
+	ball_mat.roughness = 0.25
+	ball_mat.clearcoat_enabled = true
+	ball_mat.clearcoat = 0.6
+	var collar_mat := StandardMaterial3D.new()
+	collar_mat.albedo_color = Color(0.06, 0.2, 0.12)
+	collar_mat.roughness = 0.4
+	for s: float in [-2.6, 2.6]:
+		var p := Vector2(hole.tee.x, hole.tee.z) + side * s
+		var root := Node3D.new()
+		root.name = "TeeMarker"
+		root.position = Vector3(p.x, layout.height_at(p.x, p.y), p.y)
+		var collar := MeshInstance3D.new()
 		var cm := CylinderMesh.new()
-		cm.top_radius = 0.08
-		cm.bottom_radius = 0.1
-		cm.height = 0.25
-		m.mesh = cm
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.9, 0.9, 0.95)
-		m.material_override = mat
-		var x := hole.tee.x + sx
-		var z := hole.tee.z
-		m.position = Vector3(x, layout.height_at(x, z) + 0.12, z)
-		add_child(m)
-
-
-## A flat ring from `inner` to `outer` radius (in the XZ plane, local to `center`), with a
-## genuine triangulated gap in the middle -- see _add_flag: this is what lets the cup actually
-## be seen at all without faking draw order, since the terrain mesh itself has no real opening
-## cut into it anywhere. Vertex colour/UV are sampled the exact same way TerrainBuilder builds
-## the real terrain tiles (matched against `layout`'s world position, not just a flat guessed
-## colour), and the caller is expected to render it with that same ShaderMaterial -- a flat
-## StandardMaterial3D here was tried first and reliably came out visibly off (too cool/teal
-## when shaded, too bright when unshaded) because it responds to scene lighting differently
-## than the terrain's own custom shader does, however its albedo was tuned.
-static func _terrain_matched_annulus_mesh(layout: CourseLayout, center: Vector2, inner: float, outer: float, segments: int) -> ArrayMesh:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in range(segments):
-		var a0 := i * TAU / segments
-		var a1 := (i + 1) * TAU / segments
-		var in0 := Vector2(cos(a0), sin(a0)) * inner
-		var out0 := Vector2(cos(a0), sin(a0)) * outer
-		var in1 := Vector2(cos(a1), sin(a1)) * inner
-		var out1 := Vector2(cos(a1), sin(a1)) * outer
-		for p in [in0, out0, out1, in0, out1, in1]:
-			var wx: float = center.x + p.x
-			var wz: float = center.y + p.y
-			var col := TerrainBuilder._color_for(layout, wx, wz, PhysicsEnums.SurfaceType.GREEN, 0.0)
-			st.set_color(col.srgb_to_linear())
-			st.set_uv(Vector2(wx, wz) * 0.05)
-			st.set_normal(Vector3.UP)
-			st.add_vertex(Vector3(p.x, 0.0, p.y))
-	return st.commit() as ArrayMesh
+		cm.top_radius = 0.075
+		cm.bottom_radius = 0.09
+		cm.height = 0.06
+		collar.mesh = cm
+		collar.material_override = collar_mat
+		collar.position.y = 0.02
+		root.add_child(collar)
+		var ball := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = 0.1
+		sm.height = 0.2
+		ball.mesh = sm
+		ball.material_override = ball_mat
+		ball.position.y = 0.15
+		root.add_child(ball)
+		add_child(root)
 
 
 ## Builds the cup at the same position and mouth radius used by GolfBall's capture
@@ -606,74 +671,21 @@ func _add_flag(hole: CourseLayout.Hole) -> void:
 	var gy := layout.height_at(c.x, c.z)
 	root.position = Vector3(c.x, gy, c.z)
 
-	# The terrain mesh is solid and unbroken -- there's no real hole cut into it anywhere
-	# near the cup, and the whole-course grid is far too coarse to cut an 8cm hole out of
-	# precisely. A previous version tried to fake this with no_depth_test (draw the cup on
-	# top of everything, ignoring what's actually in front), but that made the *terrain*
-	# look wrong instead: from any low/grazing angle the cup's full silhouette painted over
-	# perfectly valid, closer ground, reading as the cup floating above the green or the
-	# ground going transparent around it, because nothing was actually being occluded by
-	# anything -- draw order was mesh-index order, not physical depth.
-	#
-	# Real fix: give the cup a genuine geometric opening near ground level, with everything
-	# below using normal depth testing so it's only ever seen through that real opening --
-	# not painted on top of nearer ground regardless of what's actually in front.
-	#
-	# `patch` is a small green-tinted annulus (the old fake "collar"'s shape, done right this
-	# time) covering the ring just outside the cup mouth: raised a hair above the real terrain
-	# so it reliably wins depth-testing against the redundant, untouched terrain triangles
-	# directly beneath it, blending the transition into the surrounding green.
-	#
-	# The terrain tile itself still has one continuous, unbroken triangle spanning straight
-	# across the cup's own opening too, though (nothing has actually cut a hole in *it*) --
-	# without addressing that separately it would still win the depth test there (it's above
-	# y=0, closer to the camera than anything recessed below it) and hide the cup outright,
-	# same as before this rewrite. `mask` is a flat, near-zero-height dark disc sized to just
-	# that opening, using no_depth_test purely to beat that one triangle. Unlike the old
-	# wall's no_depth_test (a 16cm-tall structure that painted a visible floating silhouette
-	# from any angle), a flat disc with no vertical extent can't read as "floating" -- worst
-	# case it draws in front of the wall/floor/rim's own correct shading too and the hole just
-	# looks like a flat dark circle instead of a shaded 3D bowl, never like it's above ground.
+	# TerrainBuilder cuts the actual tile mesh at the mouth. Normal depth testing
+	# now reveals the recessed liner and the ball instead of a solid black cover.
 	const CUP_DEPTH := 0.16
-	const PATCH_EPSILON := 0.003  # just enough to beat coplanar z-fighting with the tile below
-	# Starts just outside the rim's own outer edge (CUP_RADIUS + 0.006) so the two abut
-	# cleanly instead of overlapping and fighting over which one covers the rim's outer lip.
-	var patch := MeshInstance3D.new()
-	patch.mesh = _terrain_matched_annulus_mesh(layout, Vector2(c.x, c.z),
-		GolfBall.CUP_RADIUS + 0.006, GolfBall.CUP_RADIUS + 0.22, 24)
-	# The real terrain shader/mask, not a guessed flat colour (see _terrain_matched_annulus_mesh)
-	# -- this is what actually guarantees a match under any lighting, not just the one
-	# screenshot a colour was picked from.
-	patch.material_override = _flag_patch_material
-	patch.position = Vector3(0, PATCH_EPSILON, 0)
-	root.add_child(patch)
-
-	var mask := MeshInstance3D.new()
-	var mask_mesh := CylinderMesh.new()
-	mask_mesh.top_radius = GolfBall.CUP_RADIUS
-	mask_mesh.bottom_radius = GolfBall.CUP_RADIUS
-	mask_mesh.height = 0.002
-	mask_mesh.radial_segments = 24
-	mask.mesh = mask_mesh
-	var mask_mat := StandardMaterial3D.new()
-	mask_mat.albedo_color = Color(0.02, 0.018, 0.018)
-	mask_mat.no_depth_test = true
-	mask_mat.render_priority = -1
-	mask.material_override = mask_mat
-	mask.position = Vector3(0, -0.002, 0)
-	root.add_child(mask)
-
 	var wall := MeshInstance3D.new()
+	wall.name = "CupLiner"
 	var wall_mesh := CylinderMesh.new()
 	wall_mesh.top_radius = GolfBall.CUP_RADIUS
 	wall_mesh.bottom_radius = GolfBall.CUP_RADIUS
 	wall_mesh.height = CUP_DEPTH
 	wall_mesh.cap_top = false
 	wall_mesh.cap_bottom = false
-	wall_mesh.radial_segments = 24
+	wall_mesh.radial_segments = TerrainCupCutout.SEGMENTS
 	wall.mesh = wall_mesh
 	var wall_mat := StandardMaterial3D.new()
-	wall_mat.albedo_color = Color(0.035, 0.03, 0.03)
+	wall_mat.albedo_color = Color(0.42, 0.45, 0.41)
 	# Only the concave inward-facing side should ever be visible (the outward face is,
 	# physically, underground) -- with normal depth testing now in effect this also avoids
 	# any near/far-wall ambiguity, since only one side exists to draw at all.
@@ -684,11 +696,12 @@ func _add_flag(hole: CourseLayout.Hole) -> void:
 	root.add_child(wall)
 
 	var cup_floor := MeshInstance3D.new()
+	cup_floor.name = "CupFloor"
 	var floor_mesh := CylinderMesh.new()
 	floor_mesh.top_radius = GolfBall.CUP_RADIUS
 	floor_mesh.bottom_radius = GolfBall.CUP_RADIUS
 	floor_mesh.height = 0.01
-	floor_mesh.radial_segments = 24
+	floor_mesh.radial_segments = TerrainCupCutout.SEGMENTS
 	cup_floor.mesh = floor_mesh
 	var floor_mat := StandardMaterial3D.new()
 	floor_mat.albedo_color = Color(0.015, 0.015, 0.015)
@@ -701,7 +714,7 @@ func _add_flag(hole: CourseLayout.Hole) -> void:
 	rim_mesh.inner_radius = GolfBall.CUP_RADIUS - 0.004
 	rim_mesh.outer_radius = GolfBall.CUP_RADIUS + 0.006
 	rim_mesh.ring_segments = 8
-	rim_mesh.rings = 24
+	rim_mesh.rings = TerrainCupCutout.SEGMENTS
 	rim.mesh = rim_mesh
 	var rim_mat := StandardMaterial3D.new()
 	rim_mat.albedo_color = Color(0.92, 0.92, 0.88)
@@ -719,7 +732,7 @@ func _add_flag(hole: CourseLayout.Hole) -> void:
 	root.add_child(pole)
 	pole.phase_offset = hole.index * 0.7  # stops multiple simultaneously-visible flags (rare, but possible near-adjacent holes) fluttering in lockstep
 	pole.place_in_cup(root.global_position, 0.12)
-	pole.set_wind_velocity(COURSE_WIND)
+	pole.set_wind_velocity(wind_for_hole(hole.index))
 
 
 func _build_ball() -> void:
@@ -728,7 +741,7 @@ func _build_ball() -> void:
 	ball.layout = layout
 	ball.resolve_surface = Callable(self, "_resolve_lie_surface")
 	ball.obstacle_mask = PropScatter.OBSTACLE_LAYER
-	ball.wind = COURSE_WIND
+	ball.wind = wind_for_hole(0)
 	add_child(ball)
 	ball.came_to_rest.connect(_on_ball_rest)
 	ball.water_hazard_entered.connect(_on_ball_water)
@@ -736,6 +749,10 @@ func _build_ball() -> void:
 	ball.out_of_bounds.connect(_on_ball_ob)
 	ball.holed.connect(_on_ball_holed)
 	ball.first_impact.connect(_on_first_impact)
+
+	swing_rig = ClubSwingRig.new()
+	swing_rig.name = "SwingRig"
+	add_child(swing_rig)
 
 	# Hidden twin used only to simulate the pre-shot trajectory preview with the
 	# exact same flight/bounce/roll code the real shot will run.
@@ -900,24 +917,63 @@ func start_hole(index: int) -> void:
 	await _ensure_hole_region(hole)
 	hole_index = index
 	strokes = 0
+	_shot_yd = 0.0
 	_mulligan_valid = false
-	_result_hold_until_msec = 0.0
 	ball.cup_position = Vector3(hole.cup.x, layout.height_at(hole.cup.x, hole.cup.z), hole.cup.z)
+	ball.wind = wind_for_hole(index)
+	shadow_ball.wind = ball.wind
 	ball.place(Vector2(hole.tee.x, hole.tee.z))
 	_face_cup()
 	camera.mode = OrbitCamera.Mode.AIM
-	camera.distance = 6.0
+	camera.distance = OrbitCamera.DEFAULT_AIM_DISTANCE
 	club_index = 0
 	phase = SwingPhase.IDLE
 	trail_mesh.mesh = null
 	_update_minimap_frame(hole)
 	_refresh_hud()
+	hud.clear_shot_result()
+	hud.show_hole_intro(index + 1, _hole_info(index)["name"], hole.par, int(_hole_info(index).get("yd", roundi(hole.length_yd))),
+		wind_report(ball.wind, Vector2(hole.cup.x - hole.tee.x, hole.cup.z - hole.tee.z)))
+
+
+## Deterministic per course seed and hole, so R (restart) and replays of the same course play
+## in the same conditions while each hole still plays differently from the last.
+static func wind_for_hole(index: int) -> Vector3:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([course_seed, index, "wind"])
+	var speed := WIND_MAX_MPS * pow(rng.randf(), 1.6)
+	var angle := rng.randf() * TAU
+	return Vector3(sin(angle), 0.0, -cos(angle)) * speed
+
+
+## Tee-box read of the wind relative to the line of play (tee -> cup), e.g.
+## "Wind 9 mph: into you, right-to-left".
+static func wind_report(wind: Vector3, play_dir: Vector2) -> String:
+	var mph := wind.length() / ShotSetup.MPS_PER_MPH
+	if mph < 2.0 or play_dir.length() < 0.01:
+		return "Calm on this hole"
+	var w := Vector2(wind.x, wind.z).normalized()
+	var fwd := play_dir.normalized()
+	var right := Vector2(-fwd.y, fwd.x)
+	var along := w.dot(fwd)
+	var across := w.dot(right)
+	var parts: Array[String] = []
+	if along > 0.38:
+		parts.append("helping")
+	elif along < -0.38:
+		parts.append("into you")
+	if absf(across) > 0.38:
+		parts.append("left-to-right" if across > 0.0 else "right-to-left")
+	return "Wind %.0f mph: %s" % [mph, ", ".join(parts)]
 
 
 ## Freezes/restores gameplay input and physics for the duration of a loading screen --
 ## nothing should be able to swing, drag the camera, or have the ball keep moving while the
 ## course underneath it is being torn down and rebuilt.
 func _set_transition_active(active: bool) -> void:
+	if active:
+		_tracker_running = false
+		_tracker_inputs.clear()
 	if grass_root is GrassStreamer:
 		grass_root.set_suspended(active)
 	_transitioning = active
@@ -959,7 +1015,7 @@ func transition_to_hole(index: int) -> void:
 	var hole := layout.holes[index]
 	_loading_screen = LOADING_SCENE.instantiate()
 	add_child(_loading_screen)
-	_loading_screen.begin_hole(index + 1, hole.name, hole.par, roundi(hole.length_yd))
+	_loading_screen.begin_hole(index + 1, _hole_info(index)["name"], hole.par, int(_hole_info(index).get("yd", roundi(hole.length_yd))))
 	if DisplayServer.get_name() != "headless":
 		await _loading_screen.covered
 	else:
@@ -977,8 +1033,26 @@ func transition_to_hole(index: int) -> void:
 	_set_transition_active(false)
 
 
+## Minimum ball-to-cup distance (metres) this will actually turn the camera for. Any
+## closer and the direction is too short to be a stable bearing -- a few centimetres of
+## rest-position noise between putts can swing it by nearly 180°, which the camera then
+## visibly whips around to follow. Below this, just keep the last aim_yaw (already
+## pointing roughly at the cup from the previous, farther-away shot) instead of
+## recomputing a jittery direction from a near-zero vector.
+const FACE_CUP_MIN_DIST := 1.2
+
 func _face_cup() -> void:
 	var to_cup := ball.cup_position - ball.global_position
+	to_cup.y = 0.0
+	if to_cup.length() < FACE_CUP_MIN_DIST:
+		return
+	# Course Studio doglegs and curves: aim down the hole's line of play (a drive ahead at
+	# most), not straight at a pin hidden round the corner.
+	if layout is PaintedLayout:
+		var b := Vector2(ball.global_position.x, ball.global_position.z)
+		var p := (layout as PaintedLayout).aim_point(hole_index, b, 215.0)
+		if p.distance_to(b) >= FACE_CUP_MIN_DIST:
+			to_cup = Vector3(p.x - b.x, 0.0, p.y - b.y)
 	camera.aim_yaw = atan2(-to_cup.x, -to_cup.z)
 
 
@@ -989,12 +1063,22 @@ func _current_club() -> Clubs.Club:
 func _unhandled_input(event: InputEvent) -> void:
 	if ball == null:
 		return
+	if hub != null and hub.is_open():
+		if event.is_action_pressed("ui_cancel") or event.is_action_pressed("hub_toggle"):
+			hub.close()
+		return  # the clubhouse owns input while it's up
 	if event.is_action_pressed("ui_cancel"):
 		hud.toggle_help()
 		return
 	if hud != null and hud.is_help_open():
 		return  # swallow gameplay input while the how-to-play overlay is open
+	if event.is_action_pressed("hub_toggle"):
+		if phase == SwingPhase.IDLE and not _transitioning and not _auto_putt_busy:
+			hub.open()
+		return
 	if event.is_action_pressed("reset_hole"):
+		if tracker != null:
+			tracker.restart_hole()
 		start_hole(hole_index)
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -1005,7 +1089,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_tree().reload_current_scene()
 			return
 		if k == KEY_N and phase != SwingPhase.IN_FLIGHT:
-			transition_to_hole((hole_index + 1) % layout.holes.size())
+			if tracker != null:
+				tracker.skip_hole()
+			if hole_index + 1 >= round_start_index() + round_holes():
+				# Skipping off the end of the round abandons it: no payout, no restock.
+				hud.show_message("Round abandoned (hole skipped). Back to the 1st tee.", 2.5)
+				_begin_round()
+				transition_to_hole(round_start_index())
+			else:
+				hud.show_message("Hole skipped: this round can't be completed for pay.", 2.5)
+				transition_to_hole(hole_index + 1)
 			return
 		if k == KEY_H and not layout.authored_hazards:
 			hazard_seed = randi() % 100000
@@ -1036,9 +1129,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		club_index = mini(club_index + 1, Clubs.bag().size() - 1)
 		_refresh_hud()
 	elif event.is_action_pressed("swing"):
+		# No swinging blind: the bird's-eye view (C) and the Z landing-spot scout both look
+		# away from the ball, so the swing is locked until the player is back behind it.
+		if camera.mode == OrbitCamera.Mode.OVERHEAD or camera.scouting or Input.is_physical_key_pressed(KEY_Z):
+			hud.show_message("Back to the ball to swing (%s)" % ("press C" if camera.mode == OrbitCamera.Mode.OVERHEAD else "release Z"), 1.5)
+			return
 		match phase:
 			SwingPhase.IDLE:
-				if Time.get_ticks_msec() < _result_hold_until_msec:
+				if _current_club().illegal_kind == "auto_putt":
+					_auto_putt()
 					return
 				phase = SwingPhase.POWER
 				power = 0.0
@@ -1049,7 +1148,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
-	if ball == null:
+	_update_fast_forward()
+	if ball == null or _transitioning or _hole_loading:
 		return
 	if grass_root is GrassStreamer:
 		var grass_focus: Vector3 = ball.global_position
@@ -1067,6 +1167,7 @@ func _process(delta: float) -> void:
 		camera.pan_bounds = active_region.grow(-65.0)
 	else:
 		camera.pan_bounds = active_region
+	hud.set_shot_phase(phase)
 	match phase:
 		SwingPhase.POWER:
 			power += power_dir * POWER_SPEED * delta
@@ -1081,10 +1182,14 @@ func _process(delta: float) -> void:
 			trail_mesh.visible = true
 			_update_trail()
 			_push_interactor()
-			hud.dist_label.text = "Ball: %.0f mph  h %.0f ft  %s" % [ball.velocity.length() / ShotSetup.MPS_PER_MPH, (ball.global_position.y - layout.height_at(ball.global_position.x, ball.global_position.z)) * ShotSetup.FEET_PER_METER, "flight" if not ball.on_ground else "rolling"]
+			hud.set_flight(ball.velocity.length() / ShotSetup.MPS_PER_MPH,
+				(ball.global_position.y - layout.height_at(ball.global_position.x, ball.global_position.z)) * ShotSetup.FEET_PER_METER,
+				ball.on_ground, _shot_distance_yd())
 		_:
 			pass
 	if phase != SwingPhase.IN_FLIGHT:
+		var club := _current_club()
+		swing_rig.show_at_address(club.model_id, club.condition, ball.global_position, camera.aim_direction(), ball.distance_to_cup_yd())
 		_update_shot_tracker(delta)
 		_push_interactor()
 		# Z: hold to snap-look at the anticipated landing spot, release to fly back.
@@ -1098,6 +1203,46 @@ func _process(delta: float) -> void:
 	_sand_trail_tick += 1
 	if sand_trail != null and _sand_trail_tick % 6 == 0:
 		sand_trail.flush()
+
+
+## Hold the swing button while the ball is moving to fast-forward the shot. Only a fresh
+## press counts, so keeping the button down after the strike doesn't speed the shot up.
+func _update_fast_forward() -> void:
+	var held := Input.is_action_pressed("swing")
+	if not held:
+		_ff_armed = true
+	var moving := ball != null and phase == SwingPhase.IN_FLIGHT and ball.is_moving and not _transitioning and not _hole_loading
+	var overlay_open := (hud != null and hud.is_help_open()) or (hub != null and hub.is_open())
+	var on := moving and held and _ff_armed and not overlay_open
+	var speed := FAST_FORWARD_SCALE if on else 1.0
+	if Engine.time_scale != speed:
+		Engine.time_scale = speed
+		if hud != null:
+			hud.set_fast_forward(speed)
+
+
+func _exit_tree() -> void:
+	Engine.time_scale = 1.0  # never leave the menu or a reloaded course running fast
+
+
+## The club's buildings (Course Manager) when this is the club's course: each at the level it's
+## built to, a staked-out "coming soon" site while it's only placed. Walls block the ball.
+func _build_facilities() -> void:
+	if facilities_root != null:
+		facilities_root.queue_free()
+		facilities_root = null
+	if not (layout is PaintedLayout):
+		return
+	var gs := GameState.current
+	if gs == null or not gs.business.owned or gs.business.course_path != GameLaunch.custom_course or gs.business.placements.is_empty():
+		return
+	var painted: PaintedCourse = (layout as PaintedLayout).course
+	var items: Array = []
+	for t in gs.business.placements:
+		var pl: Dictionary = gs.business.placements[t]
+		items.append({"type": t, "pos": pl["pos"], "rot": pl["rot"], "level": gs.business.level(t), "name": painted.course_name if painted != null else "", "rooms": gs.business.rooms})
+	facilities_root = FacilityBuilder.build(items, func(p: Vector2) -> float: return layout.height_at(p.x, p.y), true)
+	add_child(facilities_root)
 
 
 ## Push the ball position into the grass/vegetation shaders only when it actually
@@ -1119,20 +1264,32 @@ func _shot_params(club: Clubs.Club, pfrac: float, hit: Vector2, lie: int, aim: V
 	# Strike-point sensitivity is deliberately gentle: a full heel/toe or low/high
 	# strike shapes the shot, it does not wreck it.
 	var shape := clampf(hit.x, -1.0, 1.0)
-	var sidespin := shape * 1300.0
-	var push_deg := shape * 3.0
+	# Equipment layer (data/club_catalog.json via Clubs.make_club, bounded by economy.json):
+	#  - control  >1: heel/toe shaping is more precise, i.e. less unintended push/side spin;
+	#  - forgiveness >1: off-centre strikes cost less speed, <1 they cost more;
+	#  - distance: ball-speed multiplier; spin: backspin multiplier;
+	#  - condition: a worn club loses up to a few % of speed (dispersion is applied in
+	#    _fire_shot only, never in this shared preview path). Loaners are all 1.0, so the
+	#    stock bag plays exactly as before.
+	var sidespin := shape * 1300.0 / club.control
+	var push_deg := shape * 3.0 / club.control
 	var dir := aim.rotated(Vector3.UP, deg_to_rad(-push_deg))
+	var cond_pen := (1.0 - clampf(club.condition, 0.0, 1.0)) * EconomyConfig.modifier_bound("condition_speed_penalty_max", 0.03)
 	if club.is_putter:
-		return {"putter": true, "dir": dir, "speed_mps": lerpf(0.4, 9.0, pfrac * pfrac)}
+		# Putter forgiveness: a heel/toe putt loses a little pace on an unforgiving head. Small
+		# on purpose -- rarity and scratches must never make putting random.
+		var putt_pen := absf(shape) * 0.05 * clampf(2.0 - club.forgiveness, 0.5, 1.5)
+		return {"putter": true, "dir": dir, "speed_mps": lerpf(0.4, 9.0, pfrac * pfrac) * (1.0 - putt_pen) * (1.0 - cond_pen * 0.5)}
 
 	var low := clampf(-hit.y, 0.0, 1.0)   # strike below centre: more loft & spin, less speed
 	var high := clampf(hit.y, 0.0, 1.0)   # strike above centre: flatter, less spin, more roll
 	var off_center := clampf(absf(hit.y), 0.0, 1.0)
-	var speed_mph := club.ball_speed_mph * lerpf(0.35, 1.0, pfrac) * (1.0 - off_center * 0.25)
-	var backspin := club.backspin_rpm * lerpf(0.7, 1.0, pfrac) * (1.0 + low * 0.4) * (1.0 - high * 0.3)
+	var off_pen := clampf(off_center * 0.25 / club.forgiveness, 0.0, 0.4)
+	var speed_mph := club.ball_speed_mph * club.distance * lerpf(0.35, 1.0, pfrac) * (1.0 - off_pen) * (1.0 - cond_pen)
+	var backspin := club.backspin_rpm * club.spin * lerpf(0.7, 1.0, pfrac) * (1.0 + low * 0.4) * (1.0 - high * 0.3)
 	var vla := maxf(club.vla_deg + low * 7.0 - high * 4.0, 2.0)
 	# Lie penalties (rough: flyer/less spin & speed, bunker: much less speed, more loft)
-	if lie == PhysicsEnums.SurfaceType.ROUGH:
+	if CourseLayout.engine_surface(lie) == PhysicsEnums.SurfaceType.ROUGH:
 		speed_mph *= 0.9
 		backspin *= 0.65
 		vla += 1.5
@@ -1147,32 +1304,74 @@ func _shot_params(club: Clubs.Club, pfrac: float, hit: Vector2, lie: int, aim: V
 	return {"putter": false, "dir": dir, "speed_mph": speed_mph, "vla": vla, "backspin": backspin, "sidespin": sidespin}
 
 
-func _fire_shot(pwr: float, hit: Vector2) -> void:
+func _fire_shot(pwr: float, hit: Vector2, override_sp: Dictionary = {}) -> void:
+	_tracker_running = false
+	_tracker_inputs.clear()
 	var club := _current_club()
 	var aim := camera.aim_direction()
+	# Dispersion: a small random push on the *fired* shot only, scaled by how far off the
+	# sweet spot the strike was, the club's own dispersion and its condition. Bounded by
+	# economy.json; loaners have none, putters at most a fraction of a degree.
+	var jitter := _dispersion_deg(club, hit)
+	if jitter != 0.0:
+		aim = aim.rotated(Vector3.UP, deg_to_rad(jitter))
 	_mulligan_pos = ball.global_position
 	_mulligan_strokes = strokes
 	_mulligan_water_balls = water_balls
 	_mulligan_bunker_visits = bunker_visits
 	_mulligan_valid = true
 	strokes += 1
+	if tracker != null:
+		tracker.record_stroke(club)
+		if tracker.sandbox and GameState.current != null:
+			GameState.current.round_in_progress = false
+	_sync_round_in_progress()
 	_pre_shot_pos = ball.global_position
+	_shot_yd = 0.0
 	phase = SwingPhase.IN_FLIGHT
+	_ff_armed = false
 	shot_tracker_line.visible = false
 	landing_marker.visible = false
-	# Refresh from the new ball position immediately when the next shot is ready.
-	_tracker_accum = TRACKER_INTERVAL
-	camera.mode = OrbitCamera.Mode.FOLLOW
+	# IN_FLIGHT also covers the backswing, before launch()/putt() clears the
+	# ball's path. Retire the previous shot now so it cannot flash before impact.
+	ball.trail.clear()
+	trail_mesh.mesh = null
+	trail_mesh.visible = false
+	hud.minimap_shot_overlay.set_tail(PackedVector3Array())
 	hud.power_bar.value = 0
 	hud.result_label.text = ""
+	hud.clear_shot_result()
 
 	var lie := ball.current_lie
 	# Mistimed power taps shorten the shot below the full-swing distance shown by
 	# the tracker; only a perfectly timed tap (pwr == 100) reaches it.
 	var pfrac := clampf(pwr / 100.0, 0.05, 1.0)
-	var sp := _shot_params(club, pfrac, hit, lie, aim)
+	var sp := _shot_params(club, pfrac, hit, lie, aim) if override_sp.is_empty() else override_sp
 	var est_carry_yd := Clubs.stock_carry_yd(club_index, pfrac)
-	audio.play_shot(club, lie, hit, ball.global_position, est_carry_yd)
+	# The camera stays in the player's aim view through the swing (so the club is
+	# actually visible swinging) and only cuts to FOLLOW at the moment of impact,
+	# which is also when the ball is actually launched -- see _impact_shot().
+	if skip_swing_animation or swing_rig == null:
+		_impact_shot(club, sp, lie, hit, est_carry_yd)
+	else:
+		swing_rig.swing(func() -> void: _impact_shot(club, sp, lie, hit, est_carry_yd), club.is_putter)
+
+
+## The instant the club reaches the ball: launches it, plays the shot sound and cuts
+## the camera to follow the flight. Runs synchronously and immediately when
+## skip_swing_animation is set (tests, tools) or there is no visual club to swing;
+## otherwise it is the impact callback of swing_rig.swing(), fired partway through
+## the animated downswing so the ball leaves exactly when the club gets there.
+func _impact_shot(club: Clubs.Club, sp: Dictionary, lie: int, hit: Vector2, est_carry_yd: float) -> void:
+	camera.mode = OrbitCamera.Mode.FOLLOW
+	if lie == CourseLayout.SURFACE_BUNKER and not sp["putter"]:
+		var toward: Vector3 = sp["dir"]
+		_spawn_sand_blast(ball.global_position, Vector3(toward.x, 0.0, toward.z))
+	if club.illegal_kind == "grenade":
+		audio.play_grenade(ball.global_position)
+		_grenade_effect(ball.global_position)
+	else:
+		audio.play_shot(club, lie, hit, ball.global_position, est_carry_yd)
 	if sp["putter"]:
 		ball.putt(sp["speed_mps"], sp["dir"])
 	else:
@@ -1188,6 +1387,8 @@ func _fire_shot(pwr: float, hit: Vector2) -> void:
 func _mulligan() -> void:
 	if not _mulligan_valid or ball == null:
 		return
+	if tracker != null:
+		tracker.undo_last_stroke()
 	strokes = _mulligan_strokes
 	water_balls = _mulligan_water_balls
 	bunker_visits = _mulligan_bunker_visits
@@ -1196,7 +1397,8 @@ func _mulligan() -> void:
 	camera.mode = OrbitCamera.Mode.AIM
 	_face_cup()
 	_mulligan_valid = false
-	hud.show_message("Mulligan!", 1.5)
+	_shot_yd = 0.0
+	hud.show_callout("Mulligan", "Take it again", "info", 1.2)
 	_refresh_hud()
 
 
@@ -1204,16 +1406,20 @@ func _on_first_impact(pos: Vector3, _surface: int) -> void:
 	audio.play_bounce(pos)
 
 
+func _shot_distance_yd() -> float:
+	var d := ball.global_position - _pre_shot_pos
+	_shot_yd = Vector2(d.x, d.z).length() * ShotSetup.YARDS_PER_METER
+	return _shot_yd
+
+
 func _on_ball_rest(_pos: Vector3, lie: int) -> void:
+	_shot_distance_yd()
 	phase = SwingPhase.IDLE
-	_result_hold_until_msec = Time.get_ticks_msec() + SHOT_RESULT_HOLD_MS
 	camera.mode = OrbitCamera.Mode.AIM
 	_face_cup()
 	var d := ball.distance_to_cup_yd()
-	var lie_tag := "IN THE BUNKER" if lie == CourseLayout.SURFACE_BUNKER else "Lie"
-	hud.result_label.text = "Carry %.0f yd   Total %.0f yd   Apex %.0f ft   %s: %s" % [
-		ball.carry_distance_m * ShotSetup.YARDS_PER_METER, ball.total_distance_m * ShotSetup.YARDS_PER_METER,
-		ball.max_height_m * ShotSetup.FEET_PER_METER, lie_tag, CourseLayout.surface_label(lie)]
+	hud.show_shot_result(ball.carry_distance_m * ShotSetup.YARDS_PER_METER, ball.total_distance_m * ShotSetup.YARDS_PER_METER,
+		ball.max_height_m * ShotSetup.FEET_PER_METER, d, CourseLayout.surface_label(lie), lie)
 	club_index = Clubs.suggest(d, lie == PhysicsEnums.SurfaceType.GREEN)
 	_refresh_hud()
 
@@ -1222,8 +1428,8 @@ func _on_ball_water(hz: WaterHazard, pos: Vector3) -> void:
 	strokes += 1
 	water_balls += 1
 	var where: String = hz.hazard_name if hz != null else "the water"
-	hud.show_message("SPLASH!  Ball in %s\n+1 penalty stroke" % where, 3.0)
-	hud.result_label.text = "WATER HAZARD: %s   (carry %.0f yd)" % [where, ball.carry_distance_m * ShotSetup.YARDS_PER_METER]
+	hud.show_callout("Splash", "In %s   ·   +1 penalty stroke" % where, "bad")
+	hud.show_shot_penalty("Water hazard", "%s   ·   carry %.0f yds" % [where, ball.carry_distance_m * ShotSetup.YARDS_PER_METER])
 	_spawn_splash(pos)
 	_refresh_hud()
 	_drop_ball(_pre_shot_pos)
@@ -1231,7 +1437,7 @@ func _on_ball_water(hz: WaterHazard, pos: Vector3) -> void:
 
 func _on_ball_bunker(pos: Vector3, plugged: bool) -> void:
 	bunker_visits += 1
-	hud.show_message("BUNKER!  %s" % ("Plugged in the sand" if plugged else "Rolled into the sand"), 2.5)
+	hud.show_callout("Bunker", "Plugged in the sand" if plugged else "Rolled into the sand", "bad", 1.8)
 	if sand_trail != null:
 		sand_trail.stamp(Vector2(pos.x, pos.z), 1.6 if plugged else 1.0)
 	_refresh_hud()
@@ -1265,9 +1471,108 @@ func _spawn_splash(pos: Vector3) -> void:
 	get_tree().create_timer(2.0).timeout.connect(p.queue_free)
 
 
+## A soft round white puff (alpha falls off to the edge), built synchronously and cached: a
+## GradientTexture2D is generated in the background and draws black for its first frames.
+static var _puff_texture: ImageTexture
+const SAND_DUST_SHADER := preload("res://shaders/sand_dust.gdshader")
+
+static func _soft_puff_texture() -> ImageTexture:
+	if _puff_texture == null:
+		var size := 64
+		var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
+		for y in range(size):
+			for x in range(size):
+				var d := Vector2(x + 0.5 - size * 0.5, y + 0.5 - size * 0.5).length() / (size * 0.5)
+				img.set_pixel(x, y, Color(1, 1, 1, clampf(1.0 - d, 0.0, 1.0) ** 1.6))
+		_puff_texture = ImageTexture.create_from_image(img)
+	return _puff_texture
+
+
+## Bunker shot: a spray of sand grains thrown up and toward the target, a soft dust cloud that
+## drifts up and fades, and a crater stamped where the ball sat.
+func _spawn_sand_blast(pos: Vector3, toward: Vector3) -> void:
+	var fwd := toward.normalized() if toward.length() > 0.01 else Vector3.FORWARD
+	var sand_ramp := Gradient.new()
+	sand_ramp.colors = PackedColorArray([Color(0.84, 0.74, 0.55), Color(0.7, 0.6, 0.43)])
+
+	# grains: a fast, dense burst that falls back to the sand
+	var grains := CPUParticles3D.new()
+	grains.one_shot = true
+	grains.explosiveness = 0.92
+	grains.amount = 170
+	grains.lifetime = 1.1
+	grains.direction = (Vector3.UP * 1.2 + fwd).normalized()
+	grains.spread = 38.0
+	grains.initial_velocity_min = 2.5
+	grains.initial_velocity_max = 8.0
+	grains.gravity = Vector3(0, -9.8, 0)
+	grains.damping_min = 0.5
+	grains.damping_max = 1.5
+	grains.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	grains.emission_sphere_radius = 0.08
+	grains.scale_amount_min = 0.012
+	grains.scale_amount_max = 0.035
+	grains.color_initial_ramp = sand_ramp
+	# unshaded so the grains read as sand even inside the golfer's shadow
+	var grain_mat := StandardMaterial3D.new()
+	grain_mat.vertex_color_use_as_albedo = true
+	grain_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var grain_mesh := SphereMesh.new()
+	grain_mesh.radius = 0.5
+	grain_mesh.height = 1.0
+	grain_mesh.radial_segments = 6
+	grain_mesh.rings = 3
+	grain_mesh.material = grain_mat
+	grains.mesh = grain_mesh
+	grains.position = pos
+	grains.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(grains)
+	grains.emitting = true
+
+	# dust: soft billboard puffs that rise slowly, swell and fade
+	var dust := CPUParticles3D.new()
+	dust.one_shot = true
+	dust.explosiveness = 0.8
+	dust.amount = 40
+	dust.lifetime = 2.4
+	dust.direction = (Vector3.UP * 1.5 + fwd).normalized()
+	dust.spread = 55.0
+	dust.initial_velocity_min = 0.6
+	dust.initial_velocity_max = 2.2
+	dust.gravity = Vector3(0, 0.15, 0)
+	dust.damping_min = 1.2
+	dust.damping_max = 2.0
+	dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	dust.emission_sphere_radius = 0.15
+	dust.scale_amount_min = 0.6
+	dust.scale_amount_max = 1.1
+	var swell := Curve.new()
+	swell.add_point(Vector2(0.0, 0.5))
+	swell.add_point(Vector2(1.0, 1.6))
+	dust.scale_amount_curve = swell
+	var puff_mat := ShaderMaterial.new()
+	puff_mat.shader = SAND_DUST_SHADER
+	puff_mat.set_shader_parameter("puff", _soft_puff_texture())
+	puff_mat.set_shader_parameter("tint", Color(0.7, 0.63, 0.5, 0.7))
+	var puff := QuadMesh.new()
+	puff.material = puff_mat
+	dust.mesh = puff
+	dust.position = pos + Vector3.UP * 0.1
+	# a transparent billboard still casts a solid shadow -- a black disc on the sand
+	dust.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(dust)
+	dust.emitting = true
+
+	if sand_trail != null:
+		sand_trail.stamp(Vector2(pos.x, pos.z), 1.4)
+	get_tree().create_timer(3.0).timeout.connect(func() -> void:
+		grains.queue_free()
+		dust.queue_free())
+
+
 func _on_ball_ob(_pos: Vector3) -> void:
 	strokes += 1
-	hud.show_message("Out of bounds! +1 penalty", 2.5)
+	hud.show_callout("Out of bounds", "+1 penalty stroke", "bad")
 	_drop_ball(_pre_shot_pos)
 
 
@@ -1286,51 +1591,62 @@ func _on_ball_holed(_pos: Vector3) -> void:
 	var rel := strokes - hole.par
 	var names := {-3: "Albatross!", -2: "Eagle!", -1: "Birdie!", 0: "Par", 1: "Bogey", 2: "Double bogey"}
 	var label: String = names.get(rel, "+%d" % rel if rel > 0 else "%d" % rel)
+	if strokes == 1:
+		label = "Hole in one!"
 	scores.append(strokes)
-	hud.show_message("In the hole!  %s  (%d)" % [label, strokes], 3.0)
+	var tone := "great" if rel < 0 else ("good" if rel == 0 else "info")
+	hud.show_callout(label.trim_suffix("!"), "In the hole   ·   %d stroke%s   ·   %s" % [strokes, "" if strokes == 1 else "s", "E" if rel == 0 else "%+d" % rel], tone, 2.6)
 	audio.play_holed()
 	if rel <= 0:
 		audio.play_crowd_cheer()
 	phase = SwingPhase.IN_FLIGHT
+	if tracker != null:
+		tracker.finish_hole(hole_index - round_start_index(), strokes)
 	await get_tree().create_timer(3.0).timeout
-	if hole_index + 1 < layout.holes.size():
+	if hole_index + 1 < round_start_index() + round_holes():
 		await transition_to_hole(hole_index + 1)
 	else:
-		var total := 0
-		var par := 0
-		for i in range(scores.size()):
-			total += scores[i]
-			par += layout.holes[i].par
-		hud.show_message("Round complete: %d (%+d)   R to replay" % [total, total - par], 8.0)
-		scores.clear()
-		await transition_to_hole(0)
+		_finish_round()
 
 
 func _refresh_hud() -> void:
 	var hole := layout.holes[hole_index]
 	var club := _current_club()
-	hud.hole_label.text = "Hole %d  %s   Par %d" % [hole_index + 1, hole.name, hole.par]
+	hud.set_hole(hole_index + 1, _hole_info(hole_index)["name"], hole.par, int(_hole_info(hole_index).get("yd", roundi(hole.length_yd))))
 	var total_score := 0
 	var total_par := 0
 	for i in range(scores.size()):
 		total_score += scores[i]
-		total_par += layout.holes[i].par
-	hud.score_label.text = "Strokes: %d    Round: %d (%+d)    Water: %d   Bunkers: %d" % [strokes, total_score, total_score - total_par, water_balls, bunker_visits]
-	hud.club_label.text = "Club: %s  (%s)" % [club.name, club.short]
-	hud.lie_label.text = "Lie: %s   Slope: %.1f°" % [CourseLayout.surface_label(ball.current_lie), rad_to_deg(acos(clampf(ball.floor_normal.y, -1.0, 1.0)))]
-	hud.dist_label.text = "To pin: %.0f yd" % ball.distance_to_cup_yd()
+		total_par += layout.holes[round_start_index() + i].par
+	hud.set_score(strokes, total_score, total_score - total_par, water_balls, bunker_visits)
+	hud.set_club(club.name, club.short,
+		EconomyConfig.condition_grade(club.condition) if not club.is_starter and club.instance_id != "" else "",
+		club.model_id)
+	if GameState.current != null:
+		hud.wallet_footer.visible = true
+		hud.cash_label.text = str(GameState.current.cash)
+		var sandbox_now := (tracker != null and tracker.sandbox) or GameState.current.bag_has_illegal()
+		hud.sandbox_label.visible = sandbox_now
+		hud.sandbox_label.text = "SANDBOX ROUND: illegal club in play. No money, progress, records or restock." if (tracker != null and tracker.sandbox) else "ILLEGAL CLUB EQUIPPED: the first swing with it makes this a sandbox round."
+	else:
+		hud.wallet_footer.visible = false
+		hud.sandbox_label.visible = false
+	hud.set_lie(CourseLayout.surface_label(ball.current_lie), rad_to_deg(acos(clampf(ball.floor_normal.y, -1.0, 1.0))), ball.current_lie)
+	hud.set_distance(_shot_yd)
 	var w := ball.wind
-	hud.wind_label.text = "Wind: %.0f mph %s    %s" % [w.length() / ShotSetup.MPS_PER_MPH, _compass(w), SurfacePhysicsCatalog.green_speed_label()]
-	hud.help_label.text = "A/D or right-drag: aim   W/S: club   Drag the ball: strike point   Space/click: swing (tap to lock power)   C: bird's-eye (arrows pan, right-drag to look, wheel zoom)   Z: hold to scout the landing spot (right-drag to look)   M: mulligan (replay last shot)   N: next hole   R: restart hole   J: reroll terrain (seed %d)   Esc: how to play" % course_seed
+	hud.set_conditions(w.length() / ShotSetup.MPS_PER_MPH, _compass(w), SurfacePhysicsCatalog.green_speed_ft)
+	# Live side-bet status; sandbox rounds can't pay, so they don't show bets.
+	if tracker != null and not tracker.sandbox:
+		hud.set_side_bets(SideBets.rows(tracker.side_bets, tracker.to_result()))
+	else:
+		hud.set_side_bets([])
 
 
 func _update_minimap(delta: float) -> void:
 	if not _minimap_built:
 		return
 	hud.minimap_rect.visible = true
-	hud.minimap_label.visible = true
-	hud.minimap_rect.texture = minimap_viewport.get_texture()
-	hud.minimap_label.text = "Hole %d  %s" % [hole_index + 1, layout.holes[hole_index].name]
+	hud.set_minimap_texture(minimap_viewport.get_texture())
 	# Shot graphics update in 2D from the same points as the main view, independently
 	# of the expensive map texture. Aiming while stationary must update the tracer too.
 	var tex_size := Vector2(minimap_viewport.size)
@@ -1378,17 +1694,11 @@ func _update_hole_marker() -> void:
 		hud.hole_marker.visible = false
 		return
 	var marker := hud.hole_marker
-	var half_width := marker.size.x * 0.5
+	var half_width := marker.size.x * marker.scale.x * 0.5
 	var min_x := half_width + 12.0
 	var max_x := vp_size.x - half_width - 12.0
-	# Leave room for the score panel and minimap as the waypoint reaches either side.
-	var info_panel := hud.hole_label.get_parent().get_parent() as Control
-	var map_panel := hud.minimap_rect.get_parent().get_parent() as Control
-	var clear_left := info_panel.get_global_rect().end.x + half_width + 12.0
-	var clear_right := map_panel.get_global_rect().position.x - half_width - 12.0
-	if clear_left < clear_right:
-		min_x = maxf(min_x, clear_left)
-		max_x = minf(max_x, clear_right)
+	# Only the screen edges constrain the waypoint. Hud draws its visible content
+	# above it without hiding the transparent space inside any layout container.
 	var target := ball.cup_position + Vector3.UP * 2.0
 	var offset := target - camera.global_position
 	var depth := (-camera.global_transform.basis.z).dot(offset)
@@ -1399,7 +1709,7 @@ func _update_hole_marker() -> void:
 		# Keep the same flag at the appropriate side when the cup is out of view.
 		x = max_x if camera.global_transform.basis.x.dot(offset) >= 0.0 else min_x
 	marker.set_distance(ball.distance_to_cup_yd())
-	marker.position = Vector2(x - half_width, HOLE_MARKER_TOP_Y - PinIndicator.SYMBOL_CENTER.y)
+	marker.global_position = Vector2(x - half_width, HOLE_MARKER_TOP_Y - PinIndicator.SYMBOL_CENTER.y * marker.scale.y)
 	hud.hole_marker.visible = true
 
 
@@ -1410,7 +1720,7 @@ func _update_hole_marker() -> void:
 func _update_wind_arrow() -> void:
 	if hud.wind_arrow == null or camera == null:
 		return
-	var wind_xz := Vector2(COURSE_WIND.x, COURSE_WIND.z)
+	var wind_xz := Vector2(ball.wind.x, ball.wind.z)
 	if wind_xz.length() < 0.01:
 		hud.wind_arrow.visible = false
 		return
@@ -1459,6 +1769,49 @@ static func _compass(v: Vector3) -> String:
 ## the real sample points, never altering the underlying physics) -- a bounce's instantaneous
 ## velocity reversal is a real sharp corner in the raw samples, but reads as a rounded
 ## parabola once drawn through this instead of straight point-to-point segments.
+## A flat ribbon along `pts` (width laid horizontally across the path) for the tracer and
+## the flight trail: UV.x 0..1 along, UV.y across, UV2.x metres along, vertex alpha per point.
+static func _ribbon_mesh(pts: PackedVector3Array, widths: PackedFloat32Array, alphas: PackedFloat32Array) -> ArrayMesh:
+	var n := pts.size()
+	if n < 2:
+		return null
+	var total := 0.0
+	for k in range(1, n):
+		total += pts[k].distance_to(pts[k - 1])
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var along := 0.0
+	var prev_l := Vector3.ZERO
+	var prev_r := Vector3.ZERO
+	var prev_uv := 0.0
+	var prev_m := 0.0
+	var prev_a := 0.0
+	for k in range(n):
+		if k > 0:
+			along += pts[k].distance_to(pts[k - 1])
+		var tangent := (pts[mini(k + 1, n - 1)] - pts[maxi(k - 1, 0)])
+		var side := tangent.cross(Vector3.UP)
+		if side.length_squared() < 1e-6:
+			side = Vector3.RIGHT
+		side = side.normalized() * widths[k] * 0.5
+		var l := pts[k] - side
+		var r := pts[k] + side
+		var uv := along / maxf(total, 0.001)
+		if k > 0:
+			for v in [[prev_l, prev_uv, 0.0, prev_m, prev_a], [prev_r, prev_uv, 1.0, prev_m, prev_a], [r, uv, 1.0, along, alphas[k]],
+					[prev_l, prev_uv, 0.0, prev_m, prev_a], [r, uv, 1.0, along, alphas[k]], [l, uv, 0.0, along, alphas[k]]]:
+				st.set_color(Color(1, 1, 1, v[4]))
+				st.set_uv(Vector2(v[1], v[2]))
+				st.set_uv2(Vector2(v[3], 0.0))
+				st.add_vertex(v[0])
+		prev_l = l
+		prev_r = r
+		prev_uv = uv
+		prev_m = along
+		prev_a = alphas[k]
+	return st.commit()
+
+
 static func _smooth_path(points: PackedVector3Array, subdivisions: int = 5) -> PackedVector3Array:
 	var n := points.size()
 	if n < 3 or subdivisions <= 1:
@@ -1515,85 +1868,467 @@ func _update_trail() -> void:
 	pts.reverse()  # tip first, ball last
 	pts = _smooth_path(pts)
 	hud.minimap_shot_overlay.set_tail(pts)
-	var im := ImmediateMesh.new()
-	im.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
 	var n := pts.size()
+	var widths := PackedFloat32Array()
+	var alphas := PackedFloat32Array()
 	for k in range(n):
 		var t := float(k) / float(n - 1)  # 0 at the tip, 1 at the ball
-		im.surface_set_color(Color(1.0, 1.0, 1.0, t * t * 0.9))
-		im.surface_add_vertex(pts[k])
-	im.surface_end()
-	trail_mesh.mesh = im
+		widths.append(lerpf(0.015, 0.085, t))
+		alphas.append(t * t * 0.9)
+	trail_mesh.mesh = _ribbon_mesh(pts, widths, alphas)
 
 
-## Simulate a full-power (pfrac = 1) shot with the current club, aim and strike
-## point using the same physics the real shot uses, and draw the resulting flight
-## + roll-out path with a landing marker. Recomputed a few times a second (never
-## every frame -- a full flight sim is hundreds of physics steps) so it tracks the
-## player's aim and strike point live without a per-frame cost.
-func _update_shot_tracker(delta: float) -> void:
+## Simulate a full-power (pfrac = 1) shot with the current club, aim and strike point using
+## the same physics the real shot uses, and draw the path with a landing ring: the flight to
+## the first bounce for a full swing, the whole roll for a putt. The inputs are compared every
+## frame and a change restarts the simulation at once; small bounded batches keep it from
+## blocking a frame, and meanwhile the previous line swings with the aim (_follow_aim_preview).
+func _update_shot_tracker(_delta: float) -> void:
 	var showing := phase != SwingPhase.IN_FLIGHT
-	shot_tracker_line.visible = showing
-	landing_marker.visible = showing
+	# A preview drawn from the ball's previous spot stays hidden until the new one is ready.
+	var drawn_here := showing and ball != null and _tracker_shown_pivot.is_equal_approx(ball.global_position)
+	shot_tracker_line.visible = drawn_here
+	landing_marker.visible = drawn_here and _tracker_ring
 	# the white flight trail only while the ball is flying (the IN_FLIGHT branch shows
 	# it again); at address just the tracer
 	trail_mesh.visible = false
-	if not showing or ball == null or shadow_ball == null:
+	if not showing or ball == null or shadow_ball == null or _auto_putt_busy or _transitioning or _hole_loading:
+		_tracker_running = false
+		_tracker_inputs.clear()
 		return
-	_tracker_accum += delta
-	if _tracker_accum < TRACKER_INTERVAL:
+	if _tracker_running and _tracker_inputs.is_empty():
+		# Terrain edits explicitly invalidate even an in-flight preview.
+		_tracker_running = false
 		return
-	_tracker_accum = 0.0
 	var club := _current_club()
 	var aim := camera.aim_direction()
 	var inputs: Array = [layout, ball.global_position, ball.cup_position, ball.wind,
 		_shot_params(club, 1.0, strike, ball.current_lie, aim), strike]
-	if inputs == _tracker_inputs:
+	if inputs != _tracker_inputs:
+		# Drop a stale simulation rather than finish a preview for an aim already left behind.
+		_tracker_inputs = inputs
+		_tracker_pending_yaw = camera.aim_yaw
+		_begin_trajectory(club, strike, aim)
+		_tracker_steps = 0
+		_tracker_running = true
+	if _tracker_running and _advance_trajectory():
+		_tracker_running = false
+		_tracker_shown_yaw = _tracker_pending_yaw
+		_tracker_applied_yaw = 0.0
+		_tracker_shown_pivot = ball.global_position
+		_draw_shot_tracker(_trajectory_result())
+		shot_tracker_line.visible = true
+		landing_marker.visible = _tracker_ring
+	elif drawn_here:
+		_follow_aim_preview()
+
+
+## Swing the last drawn preview around the ball by however far the aim has turned since it
+## was simulated, so the line follows A/D and right-drag immediately; the exact simulation
+## replaces it a few frames later (wind and terrain differ slightly along the new line).
+func _follow_aim_preview() -> void:
+	var dyaw := camera.aim_yaw - _tracker_shown_yaw
+	if is_equal_approx(dyaw, _tracker_applied_yaw):
 		return
-	_tracker_inputs = inputs
-	var result := _predict_trajectory(club, strike, aim)
-	_draw_shot_tracker(result)
+	_tracker_applied_yaw = dyaw
+	var pivot := Transform3D(Basis.IDENTITY, _tracker_shown_pivot)
+	var about := pivot * Transform3D(Basis(Vector3.UP, dyaw), Vector3.ZERO) * pivot.affine_inverse()
+	shot_tracker_line.global_transform = about
+	landing_marker.global_position = about * _tracker_shown_landing
+	if hud != null:
+		hud.minimap_shot_overlay.set_preview(about * _tracker_shown_pts, about * _tracker_shown_landing)
 
 
-func _predict_trajectory(club: Clubs.Club, hit: Vector2, aim: Vector3) -> Dictionary:
+func _begin_trajectory(club: Clubs.Club, hit: Vector2, aim: Vector3) -> void:
 	var lie := ball.current_lie
 	var sp := _shot_params(club, 1.0, hit, lie, aim)
 	shadow_ball.cup_position = ball.cup_position
 	shadow_ball.wind = ball.wind
 	shadow_ball.place(Vector2(ball.global_position.x, ball.global_position.z))
+	_tracker_flight_only = not sp["putter"]
+	_tracker_start = ball.global_position
+	var to_cup := Vector2(ball.cup_position.x - _tracker_start.x, ball.cup_position.z - _tracker_start.z).length()
+	_tracker_putt_limit_m = maxf(to_cup + PUTT_PREVIEW_PAST_CUP_M, PUTT_PREVIEW_MIN_M) if sp["putter"] else 0.0
 	if sp["putter"]:
 		shadow_ball.putt(sp["speed_mps"], sp["dir"])
 	else:
 		shadow_ball.launch(sp["speed_mph"], sp["vla"], sp["backspin"], sp["sidespin"], sp["dir"])
+
+
+func _advance_trajectory() -> bool:
+	var deadline := Time.get_ticks_usec() + TRACKER_BUDGET_USEC
 	var max_steps := int(TRACKER_MAX_TIME / GolfBall.DT) + 4
-	var steps := 0
-	while shadow_ball.is_moving and steps < max_steps:
+	var batch_steps := 0
+	while not _trajectory_done() and _tracker_steps < max_steps:
 		shadow_ball._physics_process(GolfBall.DT)
-		steps += 1
+		_tracker_steps += 1
+		batch_steps += 1
+		if batch_steps >= TRACKER_STEPS_PER_FRAME or Time.get_ticks_usec() >= deadline:
+			break
+	return _trajectory_done() or _tracker_steps >= max_steps
+
+
+## A full swing's preview stops where the ball first comes down; a putt's once it has rolled
+## a little past the cup's distance (or comes to rest sooner).
+func _trajectory_done() -> bool:
+	if not shadow_ball.is_moving:
+		return true
+	if _tracker_flight_only:
+		return shadow_ball._first_impact_done
+	var p := shadow_ball.global_position
+	return Vector2(p.x - _tracker_start.x, p.z - _tracker_start.z).length() >= _tracker_putt_limit_m
+
+
+func _trajectory_result() -> Dictionary:
 	return {
 		"trail": shadow_ball.trail,
 		"landing": shadow_ball.global_position,
 		"carry_yd": shadow_ball.carry_distance_m * ShotSetup.YARDS_PER_METER,
-		"total_yd": shadow_ball.total_distance_m * ShotSetup.YARDS_PER_METER,
+		# a flight-only or cut-short putt preview never comes to rest, so it has no total
+		"total_yd": -1.0 if _tracker_flight_only or shadow_ball.is_moving else shadow_ball.total_distance_m * ShotSetup.YARDS_PER_METER,
 		"in_water": shadow_ball.in_water,
+		"putt": not _tracker_flight_only,
+		"stopped": not shadow_ball.is_moving,
 	}
 
 
 func _draw_shot_tracker(result: Dictionary) -> void:
 	var trail: PackedVector3Array = result.get("trail", PackedVector3Array())
 	var pts := _smooth_path(trail)
-	var im := ImmediateMesh.new()
+	var eye := camera.global_position if camera != null else ball.global_position
+	shot_tracker_line.global_transform = Transform3D.IDENTITY
 	if trail.size() >= 2:
-		im.surface_begin(Mesh.PRIMITIVE_LINE_STRIP)
+		# Keep a near-constant on-screen width: thin by the ball, wider far downrange.
+		var raised := PackedVector3Array()
+		var widths := PackedFloat32Array()
+		var alphas := PackedFloat32Array()
 		for p in pts:
-			im.surface_add_vertex(p + Vector3.UP * 0.03)
-		im.surface_end()
-	shot_tracker_line.mesh = im
+			raised.append(p + Vector3.UP * 0.05)
+			widths.append(clampf(p.distance_to(eye) * 0.0045, 0.05, 1.6))
+			alphas.append(1.0)
+		shot_tracker_line.mesh = _ribbon_mesh(raised, widths, alphas)
+	else:
+		shot_tracker_line.mesh = null
 	var landing: Vector3 = result.get("landing", ball.global_position)
+	_tracker_shown_pts = pts
+	_tracker_shown_landing = landing
 	hud.minimap_shot_overlay.set_preview(pts, landing)
-	landing_marker.global_position = landing + Vector3.UP * 0.1
-	var carry: float = result.get("carry_yd", 0.0)
-	var total: float = result.get("total_yd", 0.0)
-	var hazard_note := "  (into water)" if result.get("in_water", false) else ""
-	hud.proj_label.text = "Full swing: %.0f yd carry, %.0f yd total%s" % [carry, total, hazard_note]
-	hud.strike_label.text = "Strike point: %s\n(drag the ball to shape the shot)" % hud.strike_selector.describe()
+	var target_r := clampf(landing.distance_to(eye) * 0.018, 0.7, 4.0)  # ~constant on-screen size
+	landing_marker.scale = Vector3.ONE * target_r
+	landing_marker.global_position = landing  # the shader lifts the ring to sit on the ground
+	var putt: bool = result.get("putt", false)
+	_tracker_ring = not putt or result.get("stopped", true)
+	if putt:
+		hud.set_prediction(0.0, -1.0, result.get("in_water", false), ball.distance_to_cup_yd() * 3.0)
+	else:
+		hud.set_prediction(result.get("carry_yd", 0.0), result.get("total_yd", 0.0), result.get("in_water", false))
+
+
+# ---------------------------------------------------------------- progression layer
+# Round bookkeeping, the clubhouse hub and the admin-only illegal clubs. Everything that
+# touches money, unlocks or stock goes through GameState (scripts/economy/game_state.gd);
+# this file only feeds it strokes and hands it the finished round once.
+
+## Name / par / yards for the loading screen and HUD: Augusta's card, or the Course Studio
+## course's own holes (yardage from the tee to the pin). Only Augusta's holes have names;
+## a Course Studio hole's name is "" and the screens show just its number.
+func _hole_info(i: int) -> Dictionary:
+	if GameLaunch.custom_course != "":
+		if layout != null and i < layout.holes.size():
+			var h: CourseLayout.Hole = layout.holes[i]
+			return {"name": "", "par": h.par, "yd": roundi(h.length_yd)}
+		return {"name": "", "par": 4, "yd": 0}
+	return CourseBuilder.hole_info(i)
+
+
+## The course's name for the loading screen and HUD: the Course Studio course's own name
+## (read from its file until the layout is built), else Augusta National.
+func _course_title() -> String:
+	if layout != null:
+		return layout.name_pretty
+	if GameLaunch.custom_course != "":
+		var title := PaintedCourse.peek_name(GameLaunch.custom_course)
+		if title != "":
+			return title
+	return CourseBuilder.COURSE_NAME
+
+
+## Esc overlay -> start menu. The round in progress is dropped (nothing is paid for it).
+func _on_main_menu() -> void:
+	if _transitioning:
+		return
+	if GameState.current != null:
+		GameState.current.round_in_progress = false
+	get_tree().change_scene_to_file(GameLaunch.exit_scene())
+
+
+## First hole index (0-based) of the selected round span.
+func round_start_index() -> int:
+	return 9 if round_span == "back9" else 0
+
+
+## Holes in this round: 9 for front9/back9, else economy.json's holes_per_round,
+## capped by the course and by how many holes remain from the start index.
+func round_holes() -> int:
+	var course_size := layout.holes.size() if layout != null else 18
+	var remaining := maxi(course_size - round_start_index(), 0)
+	if round_span == "front9" or round_span == "back9":
+		return mini(9, remaining)
+	return mini(EconomyConfig.holes_per_round(), remaining)
+
+
+func _begin_round() -> void:
+	var pars: Array[int] = []
+	for i in range(round_start_index(), round_start_index() + round_holes()):
+		pars.append(layout.holes[i].par)
+	if GameState.current != null:
+		tracker = GameState.current.begin_round(pars)
+	else:
+		tracker = RoundTracker.start("local-%d" % Time.get_ticks_msec(), pars)
+	# Course Studio courses are for fun: no money or progress (an easy home-made par 3
+	# must not become a cash farm for the shops).
+	if GameLaunch.custom_course != "" and tracker != null:
+		tracker.sandbox = true
+	scores.clear()
+	strokes = 0
+	water_balls = 0
+	bunker_visits = 0
+	_round_complete_pending = false
+	_sync_round_in_progress()
+
+
+## GameState locks bag edits and sales while a round has strokes on the card (a sandbox round
+## is exempt: it can't pay or progress anyway).
+func _sync_round_in_progress() -> void:
+	if GameState.current == null:
+		return
+	var in_progress := tracker != null and not tracker.sandbox and (strokes > 0 or scores.size() > 0)
+	GameState.current.round_in_progress = in_progress
+
+
+func _finish_round() -> void:
+	_round_complete_pending = true
+	var result := tracker.to_result() if tracker != null else {}
+	result["start_hole"] = round_start_index()
+	var summary := {}
+	if GameState.current != null and not result.is_empty():
+		summary = GameState.current.complete_round(result)
+	var total := int(result.get("total", 0))
+	var rel := int(result.get("rel_par", 0))
+	if summary.get("sandbox", false):
+		hud.show_message("Sandbox round complete: %d (%+d). Nothing earned." % [total, rel], 4.0)
+	else:
+		hud.show_message("Round complete: %d (%+d)   +$%d" % [total, rel, int(summary.get("payout", 0))], 4.0)
+	tracker = null
+	_sync_round_in_progress()
+	phase = SwingPhase.IDLE
+	if hub != null:
+		hub.show_round_summary(summary, result)
+
+
+## "front9" | "back9" | "full18" -- set by the hub's Tee off row, read by round_holes()
+## and round_start_index(). Defaults to a full round for the very first tee-off, before
+## the hub has ever been opened.
+var round_span := GameLaunch.round_span
+
+
+func _on_hub_tee_off_span(span: String) -> void:
+	if _transitioning:
+		return
+	round_span = span
+	await _on_hub_tee_off(true)
+
+
+func _on_hub_tee_off(start_new: bool = false) -> void:
+	if _transitioning:
+		return
+	# Explicit Tee off must replace the untouched round created at scene load,
+	# including its scorecard and starting tee when selecting Front/Back 9.
+	if start_new or _round_complete_pending or tracker == null:
+		_begin_round()
+		await transition_to_hole(round_start_index())
+	_refresh_hud()
+
+
+func _on_hub_closed() -> void:
+	if _round_complete_pending:
+		_on_hub_tee_off()
+	else:
+		_refresh_hud()
+
+
+## Give up on the current round: no payout, no restock, straight back to the first tee.
+func _on_hub_abandon() -> void:
+	if _transitioning:
+		return
+	_begin_round()
+	hud.show_message("Round abandoned. Back to the tee.", 2.5)
+	await transition_to_hole(round_start_index())
+	_refresh_hud()
+
+
+## The owned course earned (or paid out) in the background: keep the HUD wallet current.
+func _on_business_ticked() -> void:
+	if hud != null and GameState.current != null:
+		hud.cash_label.text = str(GameState.current.cash)
+
+
+func _on_bag_changed() -> void:
+	var b := Clubs.bag()
+	club_index = clampi(club_index, 0, maxi(0, b.size() - 1))
+	if ball != null and not ball.is_moving:
+		club_index = Clubs.suggest(ball.distance_to_cup_yd(), ball.current_lie == PhysicsEnums.SurfaceType.GREEN)
+	_tracker_inputs.clear()
+	if hud != null:
+		_refresh_hud()
+
+
+## Random push (degrees) for the fired shot: club dispersion scaled by how far off the sweet
+## spot the strike was, divided by forgiveness, plus a condition term. Hard-capped by data.
+func _dispersion_deg(club: Clubs.Club, hit: Vector2) -> float:
+	var off := clampf(hit.length(), 0.0, 1.0)
+	var cap := EconomyConfig.modifier_bound("putter_dispersion_deg_max", 0.3) if club.is_putter else EconomyConfig.modifier_bound("dispersion_deg_max", 2.5)
+	var cond_max := EconomyConfig.modifier_bound("condition_putter_dispersion_deg_max", 0.25) if club.is_putter else EconomyConfig.modifier_bound("condition_dispersion_deg_max", 1.0)
+	var sigma := club.dispersion_deg * (0.25 + 0.75 * off) / club.forgiveness + (1.0 - clampf(club.condition, 0.0, 1.0)) * cond_max * (0.3 + 0.7 * off)
+	if sigma <= 0.0001:
+		return 0.0
+	return clampf(_shot_rng.randfn(0.0, sigma * 0.5), -cap, cap)
+
+
+## Auto-Putt 9000 (admin sandbox): reads the green with the shot predictor, searches lines
+## and paces, and fires the first one that drops inside its configured range. Out of range
+## it still putts the best line it found. Spread over frames so it never hitches.
+func _auto_putt() -> void:
+	if _auto_putt_busy or ball == null or shadow_ball == null:
+		return
+	_tracker_running = false
+	_tracker_inputs.clear()
+	_auto_putt_busy = true
+	var club := _current_club()
+	var cfg := EconomyConfig.illegal_cfg()
+	var range_m := float(cfg.get("auto_putt_range_m", 20.0))
+	var max_speed := float(cfg.get("auto_putt_max_speed_mps", 9.0))
+	var to_cup := ball.cup_position - ball.global_position
+	to_cup.y = 0.0
+	var dist := to_cup.length()
+	var base_dir := to_cup.normalized() if dist > 0.001 else camera.aim_direction()
+	hud.show_message("AUTO-PUTT 9000: reading the green…", 1.2)
+	phase = SwingPhase.IN_FLIGHT  # blocks swing/club input while we think
+	var best_dir := base_dir
+	var best_speed := clampf(0.6 + dist * 0.45, 0.5, max_speed)
+	var best_gap := INF
+	var holed := false
+	if dist <= range_m:
+		# Pass 1: straight at it, find the pace that stops nearest the cup (or drops).
+		var straight_speed := best_speed
+		for k in range(14):
+			var speed := lerpf(0.6, max_speed, float(k) / 13.0)
+			var r := _sim_putt(speed, base_dir)
+			if r["holed"]:
+				holed = true
+				best_dir = base_dir
+				best_speed = speed
+				break
+			if r["gap"] < best_gap:
+				best_gap = r["gap"]
+				straight_speed = speed
+				best_dir = base_dir
+				best_speed = speed
+			await get_tree().process_frame
+		# Pass 2: play the break -- small yaw offsets around the best pace.
+		if not holed:
+			for yaw_deg in [-0.75, 0.75, -1.5, 1.5, -2.5, 2.5, -4.0, 4.0, -6.0, 6.0]:
+				var dir := base_dir.rotated(Vector3.UP, deg_to_rad(yaw_deg))
+				for f in [1.0, 0.9, 1.12, 1.25]:
+					var speed := clampf(straight_speed * f, 0.5, max_speed)
+					var r := _sim_putt(speed, dir)
+					if r["holed"]:
+						holed = true
+						best_dir = dir
+						best_speed = speed
+						break
+					if r["gap"] < best_gap:
+						best_gap = r["gap"]
+						best_dir = dir
+						best_speed = speed
+				if holed:
+					break
+				await get_tree().process_frame
+	phase = SwingPhase.IDLE
+	camera.aim_yaw = atan2(-best_dir.x, -best_dir.z)
+	if dist > range_m:
+		hud.show_message("AUTO-PUTT 9000: out of range (%.0f m > %.0f m). Best effort." % [dist, range_m], 2.0)
+	else:
+		hud.show_message("AUTO-PUTT 9000: %s" % ("LOCKED ON" if holed else "no drop found, best line"), 1.5)
+	_auto_putt_busy = false
+	_fire_shot(100.0, Vector2.ZERO, {"putter": true, "dir": best_dir, "speed_mps": best_speed})
+
+
+func _sim_putt(speed: float, dir: Vector3) -> Dictionary:
+	shadow_ball.cup_position = ball.cup_position
+	shadow_ball.wind = ball.wind
+	shadow_ball.place(Vector2(ball.global_position.x, ball.global_position.z))
+	shadow_ball.putt(speed, dir)
+	var max_steps := int(TRACKER_MAX_TIME / GolfBall.DT) + 4
+	var steps := 0
+	while shadow_ball.is_moving and steps < max_steps:
+		shadow_ball._physics_process(GolfBall.DT)
+		steps += 1
+	var gap := shadow_ball.global_position.distance_to(ball.cup_position)
+	return {"holed": shadow_ball.was_holed, "gap": 0.0 if shadow_ball.was_holed else gap}
+
+
+## Grenade Prototype Driver (admin sandbox): a fireball, a shockwave ring and a camera kick.
+func _grenade_effect(pos: Vector3) -> void:
+	var fire := CPUParticles3D.new()
+	fire.one_shot = true
+	fire.explosiveness = 1.0
+	fire.amount = 160
+	fire.lifetime = 1.1
+	fire.direction = Vector3.UP
+	fire.spread = 80.0
+	fire.initial_velocity_min = 6.0
+	fire.initial_velocity_max = 16.0
+	fire.gravity = Vector3(0, -6.0, 0)
+	fire.scale_amount_min = 0.15
+	fire.scale_amount_max = 0.5
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1.0, 0.95, 0.6, 1.0))
+	grad.set_color(1, Color(0.6, 0.1, 0.0, 0.0))
+	grad.add_point(0.35, Color(1.0, 0.45, 0.05, 0.9))
+	fire.color_ramp = grad
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.7, 0.3)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.5, 0.1)
+	mat.emission_energy_multiplier = 4.0
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var sm := SphereMesh.new()
+	sm.radius = 0.5
+	sm.height = 1.0
+	sm.material = mat
+	fire.mesh = sm
+	fire.position = pos + Vector3.UP * 0.2
+	add_child(fire)
+	fire.emitting = true
+	get_tree().create_timer(2.5).timeout.connect(fire.queue_free)
+
+	var ring := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.9
+	torus.outer_radius = 1.0
+	var rmat := StandardMaterial3D.new()
+	rmat.albedo_color = Color(1.0, 0.85, 0.4, 0.85)
+	rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	torus.material = rmat
+	ring.mesh = torus
+	ring.position = pos + Vector3.UP * 0.05
+	add_child(ring)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(ring, "scale", Vector3(14.0, 1.0, 14.0), 0.7).from(Vector3(0.3, 1.0, 0.3)).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(rmat, "albedo_color:a", 0.0, 0.7)
+	tw.chain().tween_callback(ring.queue_free)
+	if camera != null:
+		camera.shake = 0.9

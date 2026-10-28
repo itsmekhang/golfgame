@@ -1,0 +1,237 @@
+{
+  "asset_type": "head_only",
+  "family": "driver",
+  "model": "OFG D2 Carbon",
+  "units": "metres",
+  "import_scale": 1.0,
+  "body_dimensions_mm_xyz": [
+    126.07841566205025,
+    58.99999861139804,
+    112.60826885700226
+  ],
+  "face_loft_degrees_at_center": 10.5,
+  "lie_degrees": 61.0,
+  "shaft_tip_diameter_mm": 9.2,
+  "bore_diameter_mm": 9.4,
+  "face_bulge_radius_mm": 310,
+  "face_roll_radius_mm": 280,
+  "design": "Black carbon crown, crimson carbon face, scarlet rim, twin sole weights and graphite keel",
+  "body_envelope_volume_cc_before_hosel": 439.0675824275929,
+  "shaft_socket_metres": [
+    -0.05460000038146973,
+    0.07400000095367432,
+    -0.013000000268220901
+  ],
+  "shaft_axis": [
+    -0.48480960726737976,
+    0.874619722366333,
+    0.0
+  ],
+  "scoreline_segments": 18,
+  "scoreline_width_mm": 0.4,
+  "scoreline_depth_mm": 0.23,
+  "total_triangles": 71624,
+  "materials": 10,
+  "embedded_texture_images": 3,
+  "components": [
+    {
+      "name": "01 D2 monocoque shell and flowing hosel",
+      "vertices": 14988,
+      "triangles": 29972,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 439.7900508767302
+    },
+    {
+      "name": "04 Tapered hollow ferrule",
+      "vertices": 1224,
+      "triangles": 2448,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.6787926056663668
+    },
+    {
+      "name": "05 Titanium hosel collar",
+      "vertices": 786,
+      "triangles": 1572,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.05060476161878901
+    },
+    {
+      "name": "06 Scarlet perimeter of sole shield",
+      "vertices": 2733,
+      "triangles": 5462,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 2.2284055993563268
+    },
+    {
+      "name": "07 Carbon composite sole shield",
+      "vertices": 2579,
+      "triangles": 5154,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 3.0766918989548793
+    },
+    {
+      "name": "08 Sculpted central graphite keel",
+      "vertices": 1742,
+      "triangles": 3480,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 1.8737479021901762
+    },
+    {
+      "name": "09 Heel machined sole strake",
+      "vertices": 1202,
+      "triangles": 2400,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.2613298142137025
+    },
+    {
+      "name": "10 Toe machined sole strake",
+      "vertices": 1202,
+      "triangles": 2400,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.26113057723280736
+    },
+    {
+      "name": "11 Elastomer floor of front relief channel",
+      "vertices": 148,
+      "triangles": 292,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.19552012871205643
+    },
+    {
+      "name": "12 Rear weight scarlet gasket",
+      "vertices": 1120,
+      "triangles": 2240,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.06811696024446312
+    },
+    {
+      "name": "12 Rear weight titanium bezel",
+      "vertices": 1112,
+      "triangles": 2224,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.08998625375522937
+    },
+    {
+      "name": "12 Rear weight recessed hex bolt",
+      "vertices": 656,
+      "triangles": 1308,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.3600911287285487
+    },
+    {
+      "name": "13 Forward heel weight scarlet gasket",
+      "vertices": 1112,
+      "triangles": 2224,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.05231215729394945
+    },
+    {
+      "name": "13 Forward heel weight titanium bezel",
+      "vertices": 1088,
+      "triangles": 2176,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.06642387815482997
+    },
+    {
+      "name": "13 Forward heel weight recessed hex bolt",
+      "vertices": 656,
+      "triangles": 1308,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.1810100603469992
+    },
+    {
+      "name": "14 D2 sole wordmark",
+      "vertices": 462,
+      "triangles": 920,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 2,
+      "volume_cc": 0.0015071766256169134
+    },
+    {
+      "name": "15 Carbon designation",
+      "vertices": 1374,
+      "triangles": 2744,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 6,
+      "volume_cc": 0.0006521648343368716
+    },
+    {
+      "name": "16 Loft engraving",
+      "vertices": 708,
+      "triangles": 1404,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 4,
+      "volume_cc": 0.00027898311110967713
+    },
+    {
+      "name": "17 Maker mark",
+      "vertices": 672,
+      "triangles": 1336,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 3,
+      "volume_cc": 0.0004050504482299471
+    },
+    {
+      "name": "18 Crown alignment left",
+      "vertices": 142,
+      "triangles": 280,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.0012369768398734402
+    },
+    {
+      "name": "19 Crown alignment right",
+      "vertices": 142,
+      "triangles": 280,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "closed_components": 1,
+      "volume_cc": 0.0012394240060870456
+    }
+  ],
+  "reference_meshes": [
+    {
+      "file": "Downloads/driver 1.obj",
+      "triangles": 500000
+    },
+    {
+      "file": "Downloads/driver/base.obj",
+      "triangles": 500000
+    }
+  ]
+}

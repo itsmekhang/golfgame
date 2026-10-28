@@ -51,7 +51,7 @@ func _draw() -> void:
 			"line":
 				draw_polyline(_vectors(command["points"]), color, command["width"], true)
 			"text":
-				var font := ThemeDB.fallback_font
+				var font: Font = UITheme.font(700 if int(command["size"]) >= 20 else 600, 100, 0 if int(command["size"]) >= 20 else 2)
 				var text_value: String = command["text"]
 				var font_size: int = command["size"]
 				var at := Vector2(command["x"], command["y"])

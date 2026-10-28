@@ -1,0 +1,12 @@
+# Blender 4.3.0 MTL File: 'None'
+# www.blender.org
+
+newmtl Warm_satin_stainless_steel
+Ns 324.899994
+Ka 0.940000 0.940000 0.940000
+Kd 0.255000 0.270000 0.260000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3

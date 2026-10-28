@@ -110,7 +110,7 @@ func run() -> void:
 	await settle()
 	course.camera.frozen = false
 	var planned: PackedVector2Array = course.hud.minimap_shot_overlay._preview_points
-	course._fire_shot(100.0, Vector2.ZERO)
+	course.skip_swing_animation = true; course._fire_shot(100.0, Vector2.ZERO)
 	check(not course.shot_tracker_line.visible and not course.landing_marker.visible, 'Main-view yellow preview hides immediately on the hit')
 	await settle(2.0)
 	check(not course.shot_tracker_line.visible and course.trail_mesh.visible, 'Main view keeps only the live white tail during flight')

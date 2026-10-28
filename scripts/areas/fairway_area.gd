@@ -24,6 +24,8 @@ var _extend: float = 0.0  # metres the mown band continues past the last waypoin
 ## wobbled like every edge.
 var islands: Array = []
 var patches: Array = []  # added fairway capsules, evaluated before the rough cutouts
+var cut_zones: Array = []  # PackedVector2Array outlines mown as first cut (see CourseLayout._mown_sd)
+var _cut_bounds: Array = []
 
 
 func setup(pts: PackedVector2Array, p_half_width: float, p_hole: int, rng: RandomNumberGenerator,
@@ -89,6 +91,41 @@ func centreline(p: Vector2) -> Array:
 	return [best, along, side, along_ext]
 
 
+## Distance down the hole for the mowing stripes. centreline()'s nearest-point `along` jumps
+## across the bisector on the inside of every bend (and stalls in a wedge on the outside),
+## which tore the stripe bands apart on doglegs. Here every segment's own unclamped
+## projection is blended by how much farther the point is from that segment than from the
+## nearest one, so the value runs smoothly round a bend and the bands fan through it.
+const STRIPE_BLEND_M := 15.0
+
+func stripe_along(p: Vector2) -> float:
+	var n := waypoints.size() - 1
+	if n < 1:
+		return 0.0
+	var dists := PackedFloat32Array()
+	var alongs := PackedFloat32Array()
+	dists.resize(n)
+	alongs.resize(n)
+	var nearest := INF
+	var acc := 0.0
+	for i in range(1, n + 1):
+		var a := waypoints[i - 1]
+		var ab := waypoints[i] - a
+		var raw := (p - a).dot(ab) / maxf(ab.length_squared(), 0.0001)
+		var seg := ab.length()
+		dists[i - 1] = p.distance_to(a + ab * clampf(raw, 0.0, 1.0))
+		alongs[i - 1] = acc + raw * seg
+		nearest = minf(nearest, dists[i - 1])
+		acc += seg
+	var sum := 0.0
+	var weight := 0.0
+	for i in range(n):
+		var w := exp(-(dists[i] - nearest) / STRIPE_BLEND_M)
+		sum += alongs[i] * w
+		weight += w
+	return sum / weight
+
+
 ## Local half width on one side of the routing (`side` +1 right / -1 left). Generic
 ## holes: narrow off the tee, swelling in the landing zones. Traced holes: the profile.
 func width_at(along: float, side: float = 1.0) -> float:
@@ -122,10 +159,78 @@ func signed_distance_from(p: Vector2, cl: Array) -> float:
 	for isl in islands:
 		var r: float = isl[2]
 		var dd := CourseArea.dist_to_segment(p, isl[0], isl[1])
-		if dd < r + 8.0:
-			sd = maxf(sd, r - dd + CourseArea.wobble(p, 2.0, 0.08, hole_index + 90))
+		if dd < r + 12.0:
+			sd = maxf(sd, r - dd + island_wobble(p, isl))
 	return sd
 
 
 func length_m() -> float:
 	return _length
+
+
+## How far an island's edge pushes out (+) or in (-) at `p`: a fine 2 m ripple, plus -- on
+## tree islands -- broad lobes that scale with the island, so no two read as the same smooth
+## oval. Treeless side cuts that shape a fairway edge keep just the ripple.
+func island_wobble(p: Vector2, isl: Array) -> float:
+	var w := CourseArea.wobble(p, 2.0, 0.08, hole_index + 90)
+	if is_tree_island(isl):
+		w += CourseArea.wobble(p, clampf(float(isl[2]) * 0.32, 1.5, 7.0), 0.03, hole_index + 133)
+	return w
+
+
+## Signed distance to the nearest first-cut zone outline (negative inside); 1e9 when far away.
+func cut_zone_distance(p: Vector2) -> float:
+	if cut_zones.is_empty():
+		return 1.0e9
+	if _cut_bounds.size() != cut_zones.size():
+		_cut_bounds.clear()
+		for z in cut_zones:
+			var r := Rect2(z[0], Vector2.ZERO)
+			for q in z:
+				r = r.expand(q)
+			_cut_bounds.append(r.grow(10.0))
+	var sd := 1.0e9
+	for k in range(cut_zones.size()):
+		if not (_cut_bounds[k] as Rect2).has_point(p):
+			continue
+		var poly: PackedVector2Array = cut_zones[k]
+		var d := 1.0e9
+		for i in range(poly.size()):
+			d = minf(d, CourseArea.dist_to_segment(p, poly[i], poly[(i + 1) % poly.size()]))
+		sd = minf(sd, -d if Geometry2D.is_point_in_polygon(p, poly) else d)
+	return sd
+
+
+## True when island `isl` is a tree island: rough straight off the fairway, no first cut.
+## Optional fifth value overrides; by default every tree-bearing (vegetated) island is one,
+## while treeless side-rough cutouts keep the usual first-cut band.
+static func is_tree_island(isl: Array) -> bool:
+	if isl.size() > 4:
+		return bool(isl[4])
+	return isl.size() < 4 or bool(isl[3])
+
+
+## Signed distance into the tree islands (negative inside), on the same wobbled outline as
+## the fairway cutout itself.
+func tree_island_distance(p: Vector2) -> float:
+	var sd := 1.0e9
+	for isl in islands:
+		if not is_tree_island(isl):
+			continue
+		var d := CourseArea.dist_to_segment(p, isl[0], isl[1]) - float(isl[2])
+		if d < 12.0:
+			sd = minf(sd, d - island_wobble(p, isl))
+	return sd
+
+
+## Tree-bearing cutouts share exactly the fairway cutout's wobbled outline.
+## A fourth value of false denotes ordinary treeless side rough instead.
+func tree_patch_distance(p: Vector2) -> float:
+	var sd := 1.0e9
+	for isl in islands:
+		if isl.size() > 3 and not bool(isl[3]):
+			continue
+		var d := CourseArea.dist_to_segment(p, isl[0], isl[1]) - float(isl[2])
+		if d < 12.0:
+			sd = minf(sd, d - island_wobble(p, isl))
+	return sd

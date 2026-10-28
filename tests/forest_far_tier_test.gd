@@ -1,7 +1,9 @@
 extends SceneTree
-## Sanity check for the pooled far-tier tree proxies (NaturePack.far_proxy_mesh /
-## ForestPlanter._far_pine/_far_hardwood): builds a real hole's forest and checks the
-## FAR_pine/FAR_hardwood batches exist, are sized sensibly, and sit beyond MID_AT.
+## Sanity check for the forest tiers (ForestPlanter.LOW_POLY_TREES): builds a real hole's
+## forest and checks every tree has a medium-detail near tier ("_L2", no high-poly "_L0") and
+## exactly one far batch -- impostor cards ("_IMP"), or the low-poly crown ("_LP") only for a
+## species with no baked impostor -- starting by NaturePack.DENSE_AT and reaching the tree
+## distance.
 ## Run: godot --headless --path . --script tests/forest_far_tier_test.gd
 
 func _init() -> void:
@@ -9,37 +11,48 @@ func _init() -> void:
 
 
 func run() -> void:
+	var ok := true
 	var layout := CourseBuilder.build(7)
 	layout.build_cache(4.0)
 	var hole: CourseLayout.Hole = layout.holes[6]  # No. 7: has real woods
 	var region := layout.hole_bbox(hole).grow(60.0)
 	var forest := ForestPlanter.build(layout, 7, region)
 	root.add_child(forest)
-	print("[Forest] trees=%d shrubs=%d far_pine_xf=%d far_hardwood_xf=%d" % [
-		forest.tree_count, forest.shrub_count, forest._far_pine.size(), forest._far_hardwood.size()])
-	var far_nodes := 0
-	var far_instances := 0
+	var tree_ids: Array = ForestPlanter.PINES + ForestPlanter.HARDWOODS + ForestPlanter.UNDERSTORY_TREES + ForestPlanter.FRINGE_TREES + ForestPlanter.WATERSIDE
+	var lp_instances := 0
+	var impostor_nodes := 0
+	var tree_detail_nodes := 0
+	var tree_high_nodes := 0
 	for child in forest.get_children():
-		if child.name.begins_with("FAR_"):
-			far_nodes += 1
-			far_instances += (child as MultiMeshInstance3D).multimesh.instance_count
-			var mat: Material = (child as MultiMeshInstance3D).multimesh.mesh.surface_get_material(0)
-			# Handed over from MID_AT, minus a tile-radius margin so a tile whose centre
-			# sits past MID_AT but partly overlaps it still gets included (same pattern
-			# as the other LOD tiers' `+ TILE_x * 0.75` end margins).
-			var expected_begin := maxf(0.0, NaturePack.MID_AT - ForestPlanter.TILE_FAR * 0.75)
-			assert(is_equal_approx(child.visibility_range_begin, expected_begin), "far tier should start at MID_AT minus the tile margin")
-			assert(mat != null, "far proxy mesh has no material")
-	var tri_count := 0
-	for kind in ["pine", "hardwood"]:
-		var m := NaturePack.far_proxy_mesh(kind)
-		var arrays := (m as ArrayMesh).surface_get_arrays(0)
-		var n: int = (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() / 3
-		tri_count += n
-		print("[Forest] proxy %s: %d triangles" % [kind, n])
-		assert(n < 100, "far proxy mesh should be very cheap (~30-60 tris)")
-	print("[Forest] FAR_* nodes=%d instances=%d" % [far_nodes, far_instances])
-	assert(far_nodes > 0, "no far-tier batches were built")
-	assert(far_instances == forest.tree_count, "every tree should be pooled into exactly one far-tier batch")
-	print("FOREST FAR TIER TEST: PASS")
-	quit(0)
+		var n := String(child.name)
+		if n.contains("_LP_") or n.contains("_IMP_"):
+			lp_instances += (child as MultiMeshInstance3D).multimesh.instance_count
+			if child.visibility_range_begin > NaturePack.DENSE_AT:
+				print("FAIL low-poly tile %s starts at %.0f m (past the near tiers' hand-over)" % [n, child.visibility_range_begin])
+				ok = false
+			if child.visibility_range_end < PerformanceSettings.tree_distance():
+				print("FAIL low-poly tile %s ends at %.0f m (< tree distance)" % [n, child.visibility_range_end])
+				ok = false
+		elif n.begins_with("FAR_"):
+			impostor_nodes += 1
+		elif n.contains("_L0_") or n.contains("_L2_") or n.contains("_L3_"):
+			var id := n.substr(0, n.find("_L"))
+			if tree_ids.has(id):
+				tree_detail_nodes += 1
+				if n.contains("_L0_"):
+					tree_high_nodes += 1
+	print("[Forest] trees=%d low-poly instances=%d impostor nodes=%d tree LOD nodes=%d" % [forest.tree_count, lp_instances, impostor_nodes, tree_detail_nodes])
+	if lp_instances != forest.tree_count:
+		print("FAIL every tree should be in exactly one far batch")
+		ok = false
+	if impostor_nodes > 0:
+		print("FAIL old pooled FAR_ proxies are back")
+		ok = false
+	if tree_detail_nodes == 0:
+		print("FAIL trees have no medium-detail near tier")
+		ok = false
+	if tree_high_nodes > 0:
+		print("FAIL trees still have a high-poly tier")
+		ok = false
+	print("FOREST LOW-POLY TEST: " + ("PASS" if ok else "FAIL"))
+	quit(0 if ok else 1)

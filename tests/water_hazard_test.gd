@@ -39,8 +39,8 @@ func _init() -> void:
 			printerr("hazard %s has no inside point" % hz.hazard_name)
 			failures += 1
 		var bed := layout.height_at(ip.x, ip.y)
-		if bed >= hz.water_level:
-			printerr("hazard %s bed (%.2f) is not below water level (%.2f)" % [hz.hazard_name, bed, hz.water_level])
+		if bed >= hz.water_level_at(ip):
+			printerr("hazard %s bed (%.2f) is not below water level (%.2f)" % [hz.hazard_name, bed, hz.water_level_at(ip)])
 			failures += 1
 		if layout.surface_at(ip) != CourseLayout.SURFACE_WATER:
 			printerr("hazard %s centre is not a water lie" % hz.hazard_name)
@@ -68,21 +68,18 @@ func _init() -> void:
 	root.add_child(ball)
 	await process_frame
 	var ip0: Vector2 = hz0.inside_point()
-	var flagged := false
-	for speed in [48.0, 52.0, 56.0, 44.0, 60.0, 40.0]:
-		_water_hits.clear()
-		ball.place(Vector2(ip0.x, ip0.y + 60.0))
-		var dir := Vector3(ip0.x - ball.global_position.x, 0.0, ip0.y - ball.global_position.z).normalized()
-		ball.launch(speed, 30.0, 6000.0, 0.0, dir)
-		for i in range(60 * 25):
-			ball._physics_process(1.0 / 60.0)
-			if not ball.is_moving:
-				break
-		if ball.in_water and _water_hits.size() == 1 and _water_hits[0][0] == hz0:
-			flagged = true
-			print("ball flagged in %s after %.0f mph lob" % [hz0.hazard_name, speed])
+	# Drop directly onto the hazard: guessed lob speeds can all miss its outline
+	# after legitimate terrain/physics changes, testing aim rather than detection.
+	_water_hits.clear()
+	ball.place(ip0)
+	ball.global_position.y = hz0.water_level_at(ip0) + 2.0
+	ball.launch(1.0, 80.0, 0.0, 0.0, Vector3.FORWARD)
+	ball.velocity = Vector3(0, -1, 0)
+	for i in range(180):
+		ball._physics_process(1.0 / 60.0)
+		if not ball.is_moving:
 			break
-		print("  speed %.0f mph landed at %s lie=%s" % [speed, ball.global_position, CourseLayout.surface_label(ball.current_lie)])
+	var flagged: bool = ball.in_water and _water_hits.size() == 1 and _water_hits[0][0] == hz0
 	if not flagged:
 		printerr("ball landing in hazard was not flagged")
 		failures += 1

@@ -6,7 +6,7 @@ extends Node3D
 ## the woodland edges, and nothing on turf, sand or water.
 ##
 ## Rendering is all instanced: one MultiMesh tile per species/LOD (VegetationBatches),
-## Detailed near trees, lighter 3D crowns to 450 m, then baked cards. Shadows cover
+## Detailed near trees, lighter 3D crowns to 260 m, then baked cards. Shadows cover
 ## the near tiers. The map has its own inexpensive crown silhouettes. Collision is
 ## separate PhysicsServer bodies for solid trunks and permeable crowns (no
 ## nodes), on PropScatter.OBSTACLE_LAYER so the ball can hit them.
@@ -15,15 +15,15 @@ const FOLIAGE_LAYER := 4  # queried by GolfBall as a soft, permeable crown
 
 const TREE_SPACING := 7.5  # metres between trees inside a wood (jittered grid)
 const FILL_SPACING := 9.0  # metres between trees in the fill forest off the paintings
-const FILL_TURF_CLEARANCE := 22.0  # fill forest keeps this far from any mown turf
-const WOODS_TURF_CLEARANCE := 10.0  # traced tree groups keep this far from any mown turf
-const CORRIDOR_MARGIN := 14.0  # rough strip beside every fairway corridor kept free of trunks
+const FILL_TURF_CLEARANCE := 6.0  # fill forest keeps this far from any mown turf
+const WOODS_TURF_CLEARANCE := 4.0  # traced tree groups keep this far from any mown turf
+const CORRIDOR_MARGIN := 5.0  # rough strip beside every fairway corridor kept free of trunks
 const TEE_CLEARANCE := 60.0  # no trees this close to a back tee (crowns are 10-17 m wide)
 const CARRY_LANE_HALF := 18.0  # half width of the tree-free lane along a rough carry
 const EDGE_BAND := 7.0  # metres inside a wood's edge that reads as its flowering fringe
 const SHRUB_SPACING := 3.0  # metres between candidate bushes along a wood's edge
 const EDGE_SHRUB_CHANCE := 0.32  # share of edge candidates that get a bush
-const UNDERSTORY_SHRUB_CHANCE := 0.10  # bushes under the canopy, per tree planted
+const UNDERSTORY_SHRUB_CHANCE := 0.55  # bushes under the canopy, per tree planted
 const SHRUB_TURF_CLEARANCE := 3.0  # bushes may sit this close to mown turf
 const SHRUB_CORRIDOR_MARGIN := 4.0  # and this far outside a fairway corridor
 const SHRUB_TEE_CLEARANCE := 14.0
@@ -36,6 +36,11 @@ const STRAW_CANOPY_FACTOR := 1.25  # straw bed radius as a multiple of the canop
 ## impostor is baked the old low-poly LOD1/LOD2 meshes stand in.
 ## Baked impostor cards (tools/bake_impostors.gd) as the far tier.
 const USE_IMPOSTORS := true
+## Trees: the pack's medium-detail LOD2 mesh from the camera out to DENSE_AT, then the cheap
+## baked impostor cards (rendered from the detailed models) out to the tree distance. No
+## high-poly tier, no sparse low-poly crown (that is only a fallback for a species with no baked
+## impostor). The hand-over is per tree in the shaders. Shrubs keep their own tiers.
+const LOW_POLY_TREES := true
 const MESH_AT := NaturePack.MESH_AT
 const SHRUB_MESH_AT := NaturePack.SHRUB_MESH_AT
 const LOD1_AT := 70.0
@@ -47,9 +52,9 @@ const SHRUB_FAR_AT := 60.0
 ## Near tiles are small: every LOD1 mesh in a tile within range costs its full
 ## 50-240k vertices even when the shader collapses it, so only tiles actually
 ## next to the camera may carry meshes.
-const TILE_NEAR := 24.0
-const TILE_MID := 32.0
-const TILE_DISTANCE := 96.0
+const TILE_NEAR := 16.0
+const TILE_MID := 24.0
+const TILE_DISTANCE := 64.0
 const TILE_FAR := 256.0
 
 ## Species lists are kept short on purpose: every species in a tile is another
@@ -64,6 +69,39 @@ const UNDERSTORY_TREES := ["eastern_red_cedar_A", "river_birch_A"]
 const FRINGE_TREES := ["flowering_dogwood_white_A", "flowering_dogwood_pink_A", "crape_myrtle_A"]
 const SHRUBS := ["azalea_pink_A", "azalea_white_A", "azalea_red_A", "rhododendron_A", "hydrangea_A", "boxwood_A", "boxwood_hedge_A", "wax_myrtle_A", "yaupon_holly_A"]
 const WATERSIDE := ["bald_cypress_A", "weeping_willow_A", "river_birch_A", "loblolly_pine_A", "longleaf_pine_A"]
+## Low woodland-floor cover (ferns/hosta) scattered densely under the canopy, distinct
+## from the taller ornamental SHRUBS above -- this is what actually reads as "carpet".
+const FERNS := ["bracken_fern_A", "bracken_fern_B", "sword_fern_A", "sword_fern_B", "hosta_A", "hosta_B"]
+const FERN_SPACING := 2.2  # metres between candidate cells inside a wood
+const FERN_FILL_CHANCE := 0.8  # share of cells (that pass clearance) that get a plant
+## Real (decimated) bush meshes for the fill forest's floor cover, replacing the
+## earlier billboard-card shader experiment entirely (no shader/quad-card code
+## remains). Source color/opacity maps are rebuilt explicitly by
+## tools/rebuild_woodland_bushes.py; Forsythia uses its separate LS12 pipeline.
+## Broad button bushes form the tall border; low leaf clusters/flowers are accents.
+const FOREST_BUSHES := [
+	preload("res://assets/foliage_bushes/forsythia_02.glb"),
+	preload("res://assets/foliage_bushes/leafcluster_01.glb"),
+	preload("res://assets/foliage_bushes/buttonbush_01.glb"),
+	preload("res://assets/foliage_bushes/buttonbush_02.glb"),
+	preload("res://assets/foliage_bushes/forsythia_01.glb"),
+]
+# Forest flowers and border shrubs stay below head height, with natural size variety.
+# These scales affect forest planting only; facility beds keep their own dimensions.
+const FOREST_SHRUB_MAX_HEIGHT := 1.8
+const FOREST_SHRUB_MAX_WIDTH := 2.8
+const FOREST_BUSH_SCALE_RANGES := [
+	Vector2(0.8, 1.2),
+	Vector2(1.4, 2.0),  # Low leaf clusters already fit the woodland floor.
+	Vector2(0.5, 0.68),
+	Vector2(0.7, 0.95),
+	Vector2(1.15, 1.6),
+]
+const BUSH_SPACING := 3.6  # metres between candidate cells (widened per user: "reduce bush spawn rate")
+const BUSH_FILL_CHANCE := 0.5  # share of candidates that get a bush (lowered from 0.68)
+const BUSH_DISTANCE := 160.0
+## Simplified far-tier copy of each FOREST_BUSHES mesh, built once per run.
+static var _bush_far_cache: Dictionary = {}
 
 var _colliders: Array = []  # [Vector3 base, float trunk_r, float trunk_h, float canopy_r, float canopy_h]
 var _rids: Array[RID] = []  # one static body (trunk + canopy shape) per tree
@@ -93,8 +131,22 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 
 	var place := func(id: String, xz: Vector2, is_tree: bool) -> void:
 		var y := layout.height_at(xz.x, xz.y)
-		var sc := rng.randf_range(0.7, 1.2)
+		var is_fern := FERNS.has(id)
+		# Keep woodland shrubs compact; imported species have different native dimensions.
+		# Ferns already fit the woodland floor and retain their natural variation.
+		var sc: float
+		if is_tree:
+			sc = rng.randf_range(0.7, 1.2)
+		elif is_fern:
+			sc = rng.randf_range(0.65, 1.15)
+		else:
+			sc = rng.randf_range(0.65, 0.95)
+			var dimensions := NaturePack.dims(id)
+			sc = minf(sc, FOREST_SHRUB_MAX_HEIGHT / maxf(dimensions.y, 0.01))
+			sc = minf(sc, FOREST_SHRUB_MAX_WIDTH / maxf(maxf(dimensions.x, dimensions.z), 0.01))
 		var ang := rng.randf_range(0.0, TAU)
+		if layout.in_pad(xz, 1.0):
+			return  # the club's buildings stand here
 		var basis := Basis(Vector3.UP, ang).scaled(Vector3(sc, sc, sc))
 		var bury := 0.35 if is_tree else 0.08
 		var origin := Vector3(xz.x, y - bury, xz.y)
@@ -166,8 +218,7 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 
 	var shrub := func(p: Vector2) -> void:
 		var id: String
-		if rng.randf() < 0.72:
-			# Leave the removed bushes' positions empty and retain the seeded tree layout.
+		if rng.randf() < 0.15:
 			rng.randi_range(0, 2)
 			return
 		else:
@@ -176,9 +227,12 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 
 	# ---- painted woodland footprints
 	var painted: Array = []  # [Rect2 bounds, PackedVector2Array] per hole
+	var woodland: Array = []
 	for hole in layout.holes:
 		if not hole.painted.is_empty():
 			painted.append([_poly_bounds(hole.painted), hole.painted])
+		for poly in hole.woods:
+			woodland.append([_poly_bounds(poly), poly])
 		if not layout.hole_bbox(hole).intersects(b):
 			continue
 		var near_water := false
@@ -215,6 +269,24 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 						if ok_shrub.call(q):
 							shrub.call(q)
 				x += cell
+			# dense fern/hosta carpet across the whole wood floor, independent of where
+			# the trees themselves landed -- this is what actually reads as undergrowth
+			# rather than a bush parked at each trunk.
+			var fern_cell := FERN_SPACING
+			var fx := pb.position.x
+			while fx < pb.end.x:
+				var fz := pb.position.y
+				while fz < pb.end.y:
+					var fp := Vector2(fx + rng.randf_range(0.0, fern_cell), fz + rng.randf_range(0.0, fern_cell))
+					fz += fern_cell
+					if not Geometry2D.is_point_in_polygon(fp, poly):
+						continue
+					if rng.randf() > FERN_FILL_CHANCE:
+						continue
+					if not ok_shrub.call(fp):
+						continue
+					place.call(FERNS[rng.randi_range(0, FERNS.size() - 1)], fp, false)
+				fx += fern_cell
 			# flowering shrubs along the outer edge of the wood, in loose clumps
 			var n := poly.size()
 			for i in range(n):
@@ -257,17 +329,29 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 	for hole in layout.holes:
 		for tree in hole.planted_trees:
 			var p: Vector2 = tree[1]
-			if b.has_point(p) and layout.cached_surface(p) in [PhysicsEnums.SurfaceType.ROUGH, PhysicsEnums.SurfaceType.FAIRWAY]:
+			# Authored trees also keep trunks clear of the final water outline.
+			if layout.hazard_near(p, 3.0):
+				continue
+			# A third value of true lets a tree stand on a creek bank, its crown over the water.
+			var waterside: bool = tree.size() > 2 and bool(tree[2])
+			if b.has_point(p) and (waterside or layout.cached_surface(p) in [PhysicsEnums.SurfaceType.ROUGH, PhysicsEnums.SurfaceType.FAIRWAY, CourseLayout.SURFACE_TREE_PATCH]):
 				place.call(String(tree[0]), p, true)
+		# Authored flowering shrubs (the azalea bank behind 12, ...): placed as written, but
+		# never on mown turf, sand or water.
+		for entry in hole.planted_shrubs:
+			var sp: Vector2 = entry[1]
+			if b.has_point(sp) and layout.cached_surface(sp) in [PhysicsEnums.SurfaceType.ROUGH, CourseLayout.SURFACE_TREE_PATCH] and not layout.hazard_near(sp, 1.5) and not layout.bunker_near(sp, 1.5):
+				place.call(String(entry[0]), sp, false)
 
-	# ---- rough islands inside fairways: a few trees each, ignoring the corridor guard
+	# ---- tree patches inside fairways, ignoring the corridor guard
 	for hole in layout.holes:
 		for isl in hole.rough_islands:
 			if isl.size() > 3 and not bool(isl[3]):
 				continue
 			var ia: Vector2 = isl[0]
 			var ib: Vector2 = isl[1]
-			var r: float = isl[2] - 3.0
+			var r: float = isl[2] + 8.0  # the lobed outline reaches past the nominal radius
+			var fw_area: FairwayArea = layout.fairways[hole.index]
 			var box := Rect2(ia, Vector2.ZERO).expand(ib).grow(r)
 			if not box.intersects(b):
 				continue
@@ -278,7 +362,9 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 				while z < box.end.y:
 					var p := Vector2(x + rng.randf_range(0.0, cell), z + rng.randf_range(0.0, cell))
 					z += cell
-					if CourseArea.dist_to_segment(p, ia, ib) > r or not b.has_point(p) or layout.cached_surface(p) != PhysicsEnums.SurfaceType.ROUGH:
+					if CourseArea.dist_to_segment(p, ia, ib) > r or not b.has_point(p) or layout.cached_surface(p) != CourseLayout.SURFACE_TREE_PATCH:
+						continue
+					if fw_area.tree_patch_distance(p) > -2.5:  # keep trunks off the mown edge
 						continue
 					if layout.hazard_near(p, 3.0) or layout.bunker_near(p, 3.0):
 						continue
@@ -297,7 +383,7 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 				var p := on_axis + Vector2(-axis.y, axis.x) * side * rng.randf_range(full_r - 4.0, full_r - 0.5)
 				if CourseArea.dist_to_segment(p, ia, ib) > full_r - 0.5 or not b.has_point(p):
 					continue
-				if layout.cached_surface(p) != PhysicsEnums.SurfaceType.ROUGH:
+				if layout.cached_surface(p) != CourseLayout.SURFACE_TREE_PATCH:
 					continue
 				if layout.hazard_near(p, 2.0) or layout.bunker_near(p, 2.5):
 					continue
@@ -327,12 +413,52 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 					shrub.call(q)
 		x += cell
 
+	# Use the same footprint and clearances as trees. The open rough stays open;
+	# broad green shrubs overlap in two rows just inside the woodland boundary.
+	var forest_site := func(p: Vector2) -> bool:
+		var in_woods := _inside_regions(p, woodland)
+		if not in_woods and _inside_regions(p, painted):
+			return false
+		return ok.call(p, WOODS_TURF_CLEARANCE if in_woods else FILL_TURF_CLEARANCE)
+	var bush_xforms_by_species := _understory_transforms(layout, b, rng_seed, forest_site)
+	for species_i in range(FOREST_BUSHES.size()):
+		var xforms: Array = bush_xforms_by_species[species_i]
+		planter.shrub_count += xforms.size()
+		if xforms.is_empty():
+			continue
+		var scene: PackedScene = FOREST_BUSHES[species_i]
+		var inst := scene.instantiate()
+		var found: Array = _find_first_mesh_xform(inst)
+		var bush_mesh: Mesh = found[0]
+		var bush_local_xform: Transform3D = found[1]
+		inst.queue_free()
+		if bush_mesh == null:
+			continue
+		_strip_foliage_metallic(bush_mesh)
+		# leaves/flowers/buds thin out with distance (scripts/foliage_lod.gd); bark and
+		# branches keep their own LODs
+		if bush_mesh is ArrayMesh and OS.get_environment("GOLF_PINE_LOD") != "0":
+			bush_mesh = FoliageLod.cached("bush_%d" % species_i, bush_mesh, func(n: String) -> bool: return not (n.to_lower().contains("bark") or n.to_lower().contains("branch")), FoliageLod.BUSH_LEVELS)
+		var world_xforms: Array[Transform3D] = []
+		for t in xforms:
+			world_xforms.append((t as Transform3D) * bush_local_xform)
+		VegetationBatches.add_batches(planter, "bush_%d" % species_i, bush_mesh, world_xforms, null, false, BUSH_DISTANCE, TILE_MID)
+		# Past BUSH_DISTANCE the same tiles hand over to a low-poly mound sized to the bush,
+		# out to the tree distance, so the woodland floor doesn't empty out down the hole.
+		if not _bush_far_cache.has(species_i):
+			_bush_far_cache[species_i] = NaturePack.simplified_mesh(bush_mesh, 0.08)
+		VegetationBatches.add_batches(planter, "bushfar_%d" % species_i, _bush_far_cache[species_i], world_xforms, null, false, PerformanceSettings.tree_distance() + TILE_MID * 0.75, TILE_MID, false, BUSH_DISTANCE)
+
 	# ---- pine-straw beds under everything planted (the flyover's brown needle floor)
 	var stamps: Array = []
 	for c in planter._colliders:
 		var base: Vector3 = c[0]
 		var canopy_r: float = c[3]
 		stamps.append([Vector2(base.x, base.z), maxf(canopy_r * STRAW_CANOPY_FACTOR, 3.5)])
+	for hole in layout.holes:
+		for bed in hole.straw_beds:
+			if b.grow(float(bed[1])).has_point(bed[0]):
+				stamps.append([bed[0], float(bed[1])])
 	if not stamps.is_empty():
 		layout.paint_straw(stamps)
 
@@ -341,8 +467,17 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 		var xforms: Array = per_mesh[id]
 		var far := PerformanceSettings.tree_distance()
 		var is_shrub := SHRUBS.has(id)
+		var low_poly := NaturePack.mesh_low_poly(id) if LOW_POLY_TREES and not is_shrub else null
 		var imp := NaturePack.impostor(id) if USE_IMPOSTORS else []
-		if not imp.is_empty():
+		if low_poly != null:
+			var near_mid := NaturePack.mesh_mid(id, true)
+			if near_mid != null:
+				VegetationBatches.add_batches(planter, id + "_L2", near_mid, xforms, null, true, NaturePack.DENSE_AT + TILE_MID * 0.75, TILE_MID, false, 0.0)
+			if not imp.is_empty():
+				VegetationBatches.add_batches(planter, id + "_IMP", imp[0], xforms, imp[1], false, far + TILE_FAR * 0.75, TILE_FAR, false, maxf(0.0, NaturePack.MID_AT - TILE_FAR * 0.75))
+			else:
+				VegetationBatches.add_batches(planter, id + "_LP", low_poly, xforms, null, true, far + TILE_DISTANCE * 0.75, TILE_DISTANCE, false, maxf(0.0, NaturePack.DENSE_AT - TILE_DISTANCE * 0.75))
+		elif not imp.is_empty():
 			# the shaders do the exact per-instance hand-over at near_at; the tile ranges
 			# just have to overlap it generously (a tile's range is measured from its centre)
 			# three tiers, all hand-overs per instance in the shaders: full/LOD1 mesh
@@ -351,7 +486,7 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 			VegetationBatches.add_batches(planter, id + "_L0", NaturePack.mesh(id), xforms, null, true, near_at + TILE_NEAR * 0.75, TILE_NEAR, false, 0.0)
 			var mid := NaturePack.mesh_mid(id)
 			if mid != null:
-				var mid_end := 60.0 if is_shrub else NaturePack.DENSE_AT
+				var mid_end := NaturePack.SHRUB_MID_AT if is_shrub else NaturePack.DENSE_AT
 				VegetationBatches.add_batches(planter, id + "_L2", mid, xforms, null, true, mid_end + TILE_MID * 0.75, TILE_MID, false, 0.0)
 			if not is_shrub:
 				var distant := NaturePack.mesh_distance(id)
@@ -366,9 +501,15 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 			VegetationBatches.add_batches(planter, id + "_L0", NaturePack.mesh(id), xforms, null, true, near_at + TILE_NEAR * 0.75, TILE_NEAR, false, 0.0)
 			var mid := NaturePack.mesh_mid(id)
 			if mid != null:
-				var mid_far := (LOD2_AT if is_shrub else NaturePack.MID_AT)
+				var mid_far := NaturePack.SHRUB_MID_AT if is_shrub else NaturePack.DENSE_AT
 				VegetationBatches.add_batches(planter, id + "_L2", mid, xforms, null, not is_shrub, mid_far + TILE_MID * 0.75, TILE_MID, false, 0.0)
 
+		if is_shrub:
+			# Far tier: a coloured low-poly mound per shrub out to the tree distance, scaled to
+			# the species' size, handing over per instance at SHRUB_MID_AT.
+			var far_mesh := NaturePack.shrub_far_mesh(id)
+			if far_mesh != null:
+				VegetationBatches.add_batches(planter, id + "_FAR", far_mesh, xforms, null, false, far + TILE_DISTANCE * 0.75, TILE_DISTANCE, false, maxf(0.0, NaturePack.SHRUB_MID_AT - TILE_DISTANCE * 0.75))
 	# ---- far tier: real geometry stopped dead at MID_AT with nothing standing in for
 	# it out to PerformanceSettings.tree_distance() (900 m by default), so the forest
 	# just vanished past 220 m -- pooled across every species into two cheap proxy
@@ -403,6 +544,79 @@ static func build(layout: CourseLayout, rng_seed: int, region: Rect2 = Rect2()) 
 	return planter
 
 
+static func _inside_regions(p: Vector2, regions: Array) -> bool:
+	for entry in regions:
+		if (entry[0] as Rect2).has_point(p) and Geometry2D.is_point_in_polygon(p, entry[1]):
+			return true
+	return false
+
+
+static func _understory_cells(bounds: Rect2, site: Callable) -> Dictionary:
+	var cells := {}
+	for x in range(floori(bounds.position.x / BUSH_SPACING), ceili(bounds.end.x / BUSH_SPACING)):
+		for z in range(floori(bounds.position.y / BUSH_SPACING), ceili(bounds.end.y / BUSH_SPACING)):
+			var key := Vector2i(x, z)
+			var p := (Vector2(key) + Vector2.ONE * 0.5) * BUSH_SPACING
+			if bounds.has_point(p) and site.call(p):
+				cells[key] = p
+	return cells
+
+
+static func _understory_edge(key: Vector2i, cells: Dictionary, bounds: Rect2) -> bool:
+	for offset in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		for step in [1, 2]:
+			var neighbor: Vector2i = key + offset * step
+			var p := (Vector2(neighbor) + Vector2.ONE * 0.5) * BUSH_SPACING
+			# A streaming-region cut is not a real forest boundary.
+			if bounds.has_point(p) and not cells.has(neighbor):
+				return true
+	return false
+
+
+static func _understory_transforms(layout: CourseLayout, bounds: Rect2, seed_value: int, site: Callable) -> Array:
+	var result: Array = []
+	for species in FOREST_BUSHES:
+		result.append([] as Array[Transform3D])
+	var cells := _understory_cells(bounds, site)
+	var authored := {}
+	for hole in layout.holes:
+		for p in hole.planted_bushes:
+			if not bounds.has_point(p) or layout.surface_at(p) != PhysicsEnums.SurfaceType.ROUGH:
+				continue
+			if layout.hazard_near(p, 4.0) or layout.bunker_near(p, 3.0):
+				continue
+			# Replace the cell's generic shrub instead of double-planting it.
+			var key := Vector2i(floori(p.x / BUSH_SPACING), floori(p.y / BUSH_SPACING))
+			cells[key] = p
+			authored[key] = true
+	for key: Vector2i in cells:
+		# Stable per-world-cell randomness keeps shrubs fixed when a region changes.
+		var rng := RandomNumberGenerator.new()
+		rng.seed = seed_value * 139 + key.x * 73856093 + key.y * 19349663
+		var edge := authored.has(key) or _understory_edge(key, cells, bounds)
+		if not edge and rng.randf() > BUSH_FILL_CHANCE:
+			continue
+		var p: Vector2 = cells[key]
+		var jitter := p + Vector2(rng.randf_range(-0.25, 0.25), rng.randf_range(-0.25, 0.25))
+		if not authored.has(key) and bounds.has_point(jitter) and site.call(jitter):
+			p = jitter
+		var species := 2 if rng.randf() < 0.6 else 3
+		if not edge:
+			var accent := rng.randf()
+			if accent < 0.035:
+				species = 0
+			elif accent < 0.16:
+				species = 1
+		var limits: Vector2 = FOREST_BUSH_SCALE_RANGES[species]
+		var size := rng.randf_range(limits.x, limits.y)
+		var basis := Basis(Vector3.UP, rng.randf_range(0, TAU)).scaled(Vector3.ONE * size)
+		var origin := Vector3(p.x, layout.height_at(p.x, p.y) - 0.10, p.y)
+		if layout.in_pad(p, 1.0):
+			continue
+		(result[species] as Array).append(Transform3D(basis, origin))
+	return result
+
+
 static func _canopy_species(rng: RandomNumberGenerator) -> String:
 	# Augusta's woods are tall loblolly pines over a pine-straw floor with hardwoods
 	# mixed in. Leave more space between trunks and keep flowers in edge beds.
@@ -412,6 +626,65 @@ static func _canopy_species(rng: RandomNumberGenerator) -> String:
 	if r < 0.95:
 		return HARDWOODS[rng.randi_range(0, HARDWOODS.size() - 1)]
 	return UNDERSTORY_TREES[rng.randi_range(0, UNDERSTORY_TREES.size() - 1)]
+
+
+## Returns [Mesh, Transform3D]: the mesh resource plus its full transform
+## FOREST_BUSHES[i]'s mesh (foliage made matte, as in the woods) and its transform in the scene;
+## the club's shrub beds plant the same bushes (FacilityBuilder).
+static func bush_mesh(i: int) -> Array:
+	var inst := (FOREST_BUSHES[i] as PackedScene).instantiate()
+	var found: Array = _find_first_mesh_xform(inst)
+	inst.free()
+	if found[0] != null:
+		_strip_foliage_metallic(found[0])
+	return found
+
+
+## relative to the scene root. Imported glTF assets often bake object scale
+## onto an ancestor Node3D rather than into the mesh's own vertex data (the
+## Forsythia bushes do this: a 0.01-scale wrapper node brings ~100-unit raw
+## mesh data down to the correct ~1m size) -- returning the bare Mesh alone
+## silently drops that scale and any offset/rotation baked onto ancestors.
+static func _find_first_mesh_xform(node: Node) -> Array:
+	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
+		var mi := node as MeshInstance3D
+		return [mi.mesh, mi.transform]
+	for c in node.get_children():
+		var found: Array = _find_first_mesh_xform(c)
+		if found[0] != null:
+			var node_xform := Transform3D.IDENTITY
+			if node is Node3D:
+				node_xform = (node as Node3D).transform
+			return [found[0], node_xform * (found[1] as Transform3D)]
+	return [null, Transform3D.IDENTITY]
+
+
+const BUSH_FOLIAGE_COLOR := Color("032b1a")
+## Compensate for the broad-leaf atlas's mean albedo to reach BUSH_FOLIAGE_COLOR.
+## Apply to leaf/flower surfaces, preserving the separate bark/branch colors.
+const BUSH_FOLIAGE_TINT := Color(0.06730, 0.43230, 0.42254)
+
+## Several of the user-supplied bush packs' glTF export wired a glossiness/ORS
+## (occlusion-roughness-specular) map into the material's metallic slot --
+## Blender's exporter or Godot's importer misread it as a metallic map. On a
+## leaf/flower surface that reads as a bright, sky-reflecting mirror instead of
+## matte green foliage (reported by the user as "white clear color" bushes).
+## Foliage should never be metallic, so strip it unconditionally.
+static func _strip_foliage_metallic(mesh: Mesh) -> void:
+	for s in mesh.get_surface_count():
+		var mat := mesh.surface_get_material(s)
+		if mat is BaseMaterial3D:
+			var bm := mat as BaseMaterial3D
+			bm.metallic = 0.0
+			bm.metallic_texture = null
+			# Pale sky reflections can overwhelm dark leaf albedo. Match the
+			# matte, specular-disabled grass cards instead of reflecting the sky.
+			bm.metallic_specular = 0.0
+			bm.roughness = 1.0
+			bm.roughness_texture = null
+			var name_lower := String(mat.resource_name).to_lower()
+			if not (name_lower.contains("bark") or name_lower.contains("branch")):
+				bm.albedo_color = BUSH_FOLIAGE_TINT
 
 
 static func _poly_bounds(poly: PackedVector2Array) -> Rect2:

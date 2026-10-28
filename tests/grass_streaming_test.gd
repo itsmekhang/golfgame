@@ -61,7 +61,7 @@ func run() -> void:
 	grass.rebuild_area(Rect2(100, 200, 160, 160))
 	assert(grass.resident.is_empty() and grass._cache.is_empty(), "Edited grass survived invalidation")
 	grass.set_suspended(true)
-	assert(grass._worker == null and grass.instance_count == 0)
+	assert(grass._jobs.is_empty() and grass.instance_count == 0)
 	grass.free()
 	print("GRASS STREAMING: PASS; dense patch %d clumps; LOD triangles %s; max commit %.2f ms" % [a["count"], triangles, commit_ms])
 	quit()

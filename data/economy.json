@@ -1,0 +1,383 @@
+{
+  "version": 1,
+  "_comment": "All progression / shop / economy tunables. Money is in whole dollars. Score targets are for a nine-hole round and scale with round.holes_per_round.",
+  "starting_cash": 60,
+  "bag_size": 14,
+
+  "round": {
+    "holes_per_round": 18,
+    "base_payout_per_9": 35,
+    "bonus_par_or_better_per_hole": 2,
+    "bonus_birdie_or_better_per_hole": 3,
+    "bonus_per_hole_cap": 20,
+    "bonus_score_tiers": [
+      {"rel_par_max": 12, "bonus": 5},
+      {"rel_par_max": 8, "bonus": 10},
+      {"rel_par_max": 4, "bonus": 15},
+      {"rel_par_max": 0, "bonus": 25}
+    ],
+    "bonus_personal_best": 10,
+    "bonus_first_round": 15,
+    "milestone_bonuses": {"5": 20, "10": 30, "25": 60},
+    "payout_requires_all_holes": true,
+    "mulligan_voids_qualifying": true,
+    "restart_voids_qualifying": true
+  },
+
+  "side_bets": {
+    "_comment": "Each round rolls `count` bets from the pool. Bets pay only on a completed, non-sandbox round. target_per_9 / rel_par_per_9 and rewards (unless reward_scales is false) are written for nine holes and scale with the round length.",
+    "count": 3,
+    "pool": [
+      {"id": "birdies", "text": "Make {n} birdie{s} or better", "target_per_9": 1, "reward": 10},
+      {"id": "no_doubles", "text": "No double bogeys or worse", "reward": 10},
+      {"id": "par3s", "text": "Par or better on every par 3", "reward": 8},
+      {"id": "par5_birdie", "text": "Birdie a par 5", "reward": 12, "reward_scales": false},
+      {"id": "par_streak", "text": "Par or better {n} holes in a row", "target": 3, "reward": 8, "reward_scales": false},
+      {"id": "under_target", "text": "Finish at {n} or better", "rel_par_per_9": 5, "reward": 10},
+      {"id": "shop_clubs", "text": "Hit {n} shot{s} with clubs you bought", "target_per_9": 6, "reward": 6}
+    ]
+  },
+
+  "haggle": {
+    "_comment": "One offer per listing at these stores. Accept odds = offer.accept * seller multiplier (Marketplace) or the shop owner's mood for this restock (Pawn), clamped to [0.02, 0.95]. A refused lowball can make the seller pull the listing. The roll is seeded per listing, so reloading can't retry it.",
+    "stores": ["pawn", "marketplace"],
+    "offers": [
+      {"label": "Ask 10% off", "discount": 0.1, "accept": 0.8},
+      {"label": "Offer 20% off", "discount": 0.2, "accept": 0.5},
+      {"label": "Lowball 35% off", "discount": 0.35, "accept": 0.2, "walk_away_chance": 0.35}
+    ],
+    "seller_accept_mult": {"Motivated Mover": 1.35, "Fair Dealer": 0.55, "Dreamer": 0.3, "Flipper": 0.9, "Clueless Uncle": 1.25},
+    "moods": [
+      {"name": "Grumpy", "mult": 0.65, "weight": 30},
+      {"name": "Neutral", "mult": 1.0, "weight": 45},
+      {"name": "Generous", "mult": 1.35, "weight": 25}
+    ]
+  },
+
+  "resale": {
+    "rate_min": 0.5,
+    "rate_max": 0.65,
+    "_comment": "Offer = fair used value * lerp(rate_min, rate_max, condition). Fair value is model + condition only, never the paid price."
+  },
+
+  "reserve": {
+    "deposit_fraction": 0.1,
+    "min_deposit": 2,
+    "extra_rounds": 2,
+    "refund_on_expiry": false,
+    "max_reserved_per_store": 1
+  },
+
+  "condition": {
+    "grades": [["Poor", 0.0], ["Worn", 0.22], ["Fair", 0.42], ["Good", 0.62], ["Excellent", 0.82], ["Mint", 0.94]],
+    "value_curve": [[0.0, 0.4], [0.5, 0.8], [0.8, 1.0], [1.0, 1.15]]
+  },
+
+  "modifiers": {
+    "_comment": "Hard bounds on how far any club can bend the working shot mechanics.",
+    "distance_mult_min": 0.9,
+    "distance_mult_max": 1.08,
+    "forgiveness_min": 0.75,
+    "forgiveness_max": 1.25,
+    "dispersion_deg_max": 2.5,
+    "putter_dispersion_deg_max": 0.3,
+    "spin_mult_min": 0.85,
+    "spin_mult_max": 1.25,
+    "control_min": 0.85,
+    "control_max": 1.15,
+    "condition_speed_penalty_max": 0.03,
+    "condition_dispersion_deg_max": 1.0,
+    "condition_putter_dispersion_deg_max": 0.25
+  },
+
+  "rarity": {
+    "order": ["common", "uncommon", "rare", "epic", "legendary", "mythic"],
+    "colors": {
+      "common": "8a8f8c", "uncommon": "3f8f5a", "rare": "3a6fb0",
+      "epic": "7b4fb5", "legendary": "d98b2b", "mythic": "c8302f"
+    },
+    "value_hint": {"common": 1.0, "uncommon": 1.0, "rare": 1.0, "epic": 1.0, "legendary": 1.0, "mythic": 1.0}
+  },
+
+  "stores": [
+    {
+      "id": "goodwill",
+      "name": "Goodwill",
+      "accent": "2f6f86",
+      "reveals_names": false,
+      "tagline": "Donated bags, dusty bins, and the occasional miracle.",
+      "unlock": null,
+      "listings": 8,
+      "types": ["driver", "wood", "hybrid", "iron_set", "wedge", "putter"],
+      "rarity_weights": {"common": 72.0, "uncommon": 21.0, "rare": 5.6, "epic": 1.1, "legendary": 0.3},
+      "mythic_chance": 0.0001,
+      "condition": {"mean": 0.36, "spread": 0.22},
+      "pricing": {
+        "mode": "tag",
+        "fair_fraction": [0.45, 1.1],
+        "tag_min": 5,
+        "tag_max": 25,
+        "rarity_blind": true
+      },
+      "provenance": [
+        "Donated in a torn Sunday bag.", "Came in with a box of trophies from an estate.",
+        "Found in the sporting-goods bin behind the golf shoes.", "Someone's dad's. Nobody asked.",
+        "Tagged by a volunteer who plays tennis.", "Still has a range token taped to the grip."
+      ]
+    },
+    {
+      "id": "pawn",
+      "name": "Local Pawn Shop",
+      "accent": "8a5a2b",
+      "reveals_names": true,
+      "tagline": "Recognizable names, prices that depend on the owner's mood.",
+      "unlock": {"from_store": "goodwill", "distinct_models": 2, "score_rel_par_max_per_9": 12, "min_clubs_used": 2},
+      "listings": 7,
+      "types": ["driver", "wood", "hybrid", "iron_set", "wedge", "putter"],
+      "rarity_weights": {"common": 55.0, "uncommon": 30.0, "rare": 11.0, "epic": 3.0, "legendary": 1.0},
+      "mythic_chance": 0.0005,
+      "condition": {"mean": 0.5, "spread": 0.22},
+      "pricing": {
+        "mode": "fair_range",
+        "fair_fraction": [0.65, 1.45],
+        "underprice_chance": 0.15,
+        "underprice_fraction": [0.35, 0.6]
+      },
+      "provenance": [
+        "Pawned before a fishing trip; ticket expired.", "Owner said it was 'basically new'. It was not.",
+        "Came out of a storage unit auction.", "Behind the counter next to the guitars.",
+        "Traded for a power washer.", "Owner swears a pro left it here."
+      ]
+    },
+    {
+      "id": "marketplace",
+      "name": "Facebook Marketplace",
+      "accent": "3b5a9a",
+      "reveals_names": false,
+      "tagline": "Bargains, dreamers, and sellers who don't answer.",
+      "unlock": {"from_store": "pawn", "distinct_models": 3, "score_rel_par_max_per_9": 8, "min_clubs_used": 2},
+      "listings": 9,
+      "types": ["driver", "wood", "hybrid", "iron_set", "wedge", "putter"],
+      "rarity_weights": {"common": 46.0, "uncommon": 32.0, "rare": 15.0, "epic": 5.0, "legendary": 2.0},
+      "mythic_chance": 0.0015,
+      "condition": {"mean": 0.55, "spread": 0.3},
+      "pricing": {
+        "mode": "seller",
+        "sellers": [
+          {"name": "Motivated Mover", "fraction": [0.5, 0.8], "weight": 22, "blurb": "Moving Saturday, everything must go."},
+          {"name": "Fair Dealer", "fraction": [0.9, 1.1], "weight": 30, "blurb": "Priced to what it's worth. No lowballs."},
+          {"name": "Dreamer", "fraction": [1.4, 2.1], "weight": 18, "blurb": "I know what I have."},
+          {"name": "Flipper", "fraction": [1.1, 1.4], "weight": 18, "blurb": "Fresh from an estate sale, cleaned up nice."},
+          {"name": "Clueless Uncle", "fraction": [0.3, 1.5], "weight": 12, "blurb": "Not a golfer, just clearing the garage."}
+        ]
+      },
+      "provenance": [
+        "Listed with one blurry photo.", "Seller only replies after 11pm.", "Pickup only, porch, cash.",
+        "Listing says 'OBO' in all caps.", "Reposted three times this month.", "Includes a free tee."
+      ]
+    },
+    {
+      "id": "pga",
+      "name": "PGA Store — Used Section",
+      "accent": "1f5a40",
+      "reveals_names": true,
+      "tagline": "Certified pre-owned. Clean, graded, and priced like it.",
+      "unlock": {"from_store": "marketplace", "distinct_models": 4, "score_rel_par_max_per_9": 4, "min_clubs_used": 2},
+      "listings": 8,
+      "types": ["driver", "wood", "hybrid", "iron_set", "wedge", "putter"],
+      "rarity_weights": {"common": 30.0, "uncommon": 34.0, "rare": 22.0, "epic": 9.0, "legendary": 4.0},
+      "mythic_chance": 0.003,
+      "condition": {"mean": 0.74, "spread": 0.16},
+      "pricing": {
+        "mode": "fair_range",
+        "fair_fraction": [1.05, 1.35],
+        "underprice_chance": 0.06,
+        "underprice_fraction": [0.7, 0.9]
+      },
+      "provenance": [
+        "Trade-in, inspected and regripped.", "Demo bag from the fitting studio.",
+        "Certified pre-owned with a 30-day tag.", "Returned after one range session.",
+        "Wall rack, second row.", "From the staff-bag clearance."
+      ]
+    }
+  ],
+
+  "illegal": {
+    "_comment": "Admin/sandbox only. Never in loot, shops, resale or collections.",
+    "grenade_ball_speed_mph": 236.0,
+    "grenade_vla_deg": 12.0,
+    "grenade_backspin_rpm": 1400.0,
+    "auto_putt_range_m": 20.0,
+    "auto_putt_max_speed_mps": 9.0
+  },
+
+  "manager": {
+    "_comment": "Golf course manager. Locked until the player has unlocked `unlock.store` AND pays `unlock.deed_price` for the deed, so you earn your way up as a golfer first. Money per business hour; one business hour lasts `real_seconds_per_hour` real seconds and runs in the background while the game is open (a share of it, capped, while it's closed). Facilities are placed and paid for in Course Manager; each `levels` entry is what that level costs to reach and what it does (its model is assets/facilities/<id>_l<level>.gltf). Rooms live inside the clubhouse: each opens at clubhouse level `min_level` and has three `tiers`. A facility or room that names `staff` earns nothing until at least one of that role is hired; `crew` roles (one or a list) are optional and each head adds the role's `bonus_each`. Staff `works` says where they show up (course, a facility id, or room:<id>). A facility with `default_level` comes with the deed at that level (the parking lot); its `spaces` cap golfers at `golfers_per_space_hour` each (`street_spaces` when no lot is placed).",
+    "unlock": { "store": "pga", "deed_price": 2500 },
+    "real_seconds_per_hour": 240,
+    "open_hours_per_day": 12,
+    "days_kept": 7,
+    "tick_seconds": 2.0,
+    "save_every_seconds": 60,
+    "offline": { "rate": 0.25, "cap_hours": 4 },
+    "min_holes": 3,
+    "golfers_per_hole_per_hour": 0.35,
+    "golfers_per_space_hour": 0.35,
+    "street_spaces": 8,
+    "base_appeal": 0.25,
+    "condition_appeal": 0.35,
+    "start_condition": 0.6,
+    "condition_rate": 0.12,
+    "green_fee": { "default": 3, "min": 1, "max": 25, "fair_base": 3 },
+    "facilities": [
+      { "id": "clubhouse", "name": "Clubhouse", "required": true,
+        "blurb": "Check-in, the pro shop and the locker rooms. Your course can't open without one, and each level opens new rooms.",
+        "levels": [
+          { "name": "Serviceable", "cost": 600, "upkeep": 0.6, "appeal": 0.10, "fair_fee": 0.5 },
+          { "name": "Expanded", "cost": 2400, "upkeep": 1.1, "appeal": 0.15, "fair_fee": 1.25 },
+          { "name": "Prestige", "cost": 7500, "upkeep": 2.0, "appeal": 0.22, "fair_fee": 2.5 },
+          { "name": "Grand", "cost": 18000, "upkeep": 3.2, "appeal": 0.30, "fair_fee": 4.0 }
+        ] },
+      { "id": "cart_barn", "name": "Cart barn", "crew": "cart_attendant",
+        "blurb": "Rental carts. A share of your golfers ride instead of walking.",
+        "levels": [
+          { "name": "Basic Shed", "cost": 350, "upkeep": 0.3, "appeal": 0.03, "cart_share": 0.55, "cart_fee": 1.0 },
+          { "name": "Standard Barn", "cost": 1200, "upkeep": 0.5, "appeal": 0.05, "cart_share": 0.65, "cart_fee": 1.25 },
+          { "name": "Expanded Garage", "cost": 3200, "upkeep": 0.8, "appeal": 0.07, "cart_share": 0.75, "cart_fee": 1.5 },
+          { "name": "Prestige Operations", "cost": 7500, "upkeep": 1.3, "appeal": 0.10, "cart_share": 0.85, "cart_fee": 2.0 }
+        ] },
+      { "id": "driving_range", "name": "Driving range", "staff": "range_attendant",
+        "blurb": "Hitting bays and target greens. Sells buckets to its own crowd as well as your golfers.",
+        "levels": [
+          { "name": "Minimalist Tee", "cost": 800, "upkeep": 0.5, "appeal": 0.06, "range_golfers": 2.5, "bucket": 1.5 },
+          { "name": "Modern Covered Bays", "cost": 2600, "upkeep": 0.9, "appeal": 0.09, "range_golfers": 4.5, "bucket": 1.75 },
+          { "name": "High-Tech Range", "cost": 6500, "upkeep": 1.5, "appeal": 0.13, "range_golfers": 7.0, "bucket": 2.25 },
+          { "name": "Ultra-Prestige Complex", "cost": 15000, "upkeep": 2.4, "appeal": 0.18, "range_golfers": 10.0, "bucket": 3.0 }
+        ] },
+      { "id": "short_game", "name": "Short game area",
+        "blurb": "Practice greens with real flags: putting first, then a chipping green, bunkers and hitting mats. Your golfers warm up on it before they tee off, and locals pay to sharpen their short game.",
+        "levels": [
+          { "name": "Practice Green", "cost": 500, "upkeep": 0.3, "appeal": 0.04, "practice_golfers": 1.5, "practice_fee": 1.0 },
+          { "name": "Chipping Area", "cost": 1800, "upkeep": 0.6, "appeal": 0.07, "practice_golfers": 3.0, "practice_fee": 1.25 },
+          { "name": "Short Game Academy", "cost": 4800, "upkeep": 1.0, "appeal": 0.1, "practice_golfers": 5.0, "practice_fee": 1.5 },
+          { "name": "Tour Short Game Complex", "cost": 11000, "upkeep": 1.6, "appeal": 0.14, "fair_fee": 0.5, "practice_golfers": 7.5, "practice_fee": 2.0 }
+        ] },
+      { "id": "parking_lot", "name": "Parking lot", "default_level": 1,
+        "blurb": "Where your golfers leave their cars. The deed comes with a gravel lot; when it's full the course can't take more golfers, so grow it with the course.",
+        "levels": [
+          { "name": "Gravel Lot", "cost": 0, "upkeep": 0.1, "spaces": 24 },
+          { "name": "Paved Lot", "cost": 900, "upkeep": 0.25, "appeal": 0.02, "spaces": 48 },
+          { "name": "Landscaped Lot", "cost": 3000, "upkeep": 0.5, "appeal": 0.04, "spaces": 64 },
+          { "name": "Valet Plaza", "cost": 8500, "upkeep": 1.0, "appeal": 0.07, "fair_fee": 0.5, "spaces": 80 }
+        ] }
+    ],
+    "rooms": [
+      { "id": "pro_shop", "name": "Pro shop", "min_level": 1, "staff": "shop_clerk",
+        "blurb": "Balls, gloves, polos and bags. Every golfer through the door spends a little.",
+        "tiers": [
+          { "name": "Small Kiosk", "cost": 300, "upkeep": 0.3, "appeal": 0.03, "spend": 0.5 },
+          { "name": "Boutique Pro Shop", "cost": 1200, "upkeep": 0.6, "appeal": 0.06, "spend": 1.0 },
+          { "name": "Flagship Golf Superstore", "cost": 4000, "upkeep": 1.1, "appeal": 0.10, "spend": 1.8 }
+        ] },
+      { "id": "locker_rooms", "name": "Locker rooms", "min_level": 1, "crew": "locker_attendant",
+        "blurb": "Somewhere to change and freshen up. Better rooms lift the club and what it can charge.",
+        "tiers": [
+          { "name": "Restrooms", "cost": 150, "upkeep": 0.15, "appeal": 0.02, "fair_fee": 0.2 },
+          { "name": "Member Lockers", "cost": 900, "upkeep": 0.4, "appeal": 0.05, "fair_fee": 0.6 },
+          { "name": "VIP Spa Lockers", "cost": 3200, "upkeep": 0.9, "appeal": 0.08, "fair_fee": 1.2 }
+        ] },
+      { "id": "lobby", "name": "Lobby", "min_level": 1, "crew": "receptionist",
+        "blurb": "The first thing every golfer sees. A warm welcome brings them back.",
+        "tiers": [
+          { "name": "Front Desk", "cost": 200, "upkeep": 0.15, "appeal": 0.02, "fair_fee": 0.2 },
+          { "name": "Members' Lobby", "cost": 800, "upkeep": 0.35, "appeal": 0.04, "fair_fee": 0.5 },
+          { "name": "Guest Reception", "cost": 2600, "upkeep": 0.8, "appeal": 0.07, "fair_fee": 1.0 }
+        ] },
+      { "id": "restaurant", "name": "Restaurant", "min_level": 2, "staff": "chef", "crew": ["waiter", "bartender"],
+        "blurb": "The 19th hole. Golfers eat after their round, and a good kitchen brings people back.",
+        "tiers": [
+          { "name": "Snack Bar", "cost": 600, "upkeep": 0.5, "appeal": 0.04, "spend": 0.8 },
+          { "name": "19th Hole Sports Grill", "cost": 1800, "upkeep": 0.9, "appeal": 0.08, "spend": 1.6 },
+          { "name": "Fine Dining Steakhouse", "cost": 5500, "upkeep": 1.6, "appeal": 0.12, "spend": 2.8 }
+        ] },
+      { "id": "office", "name": "Office", "min_level": 2,
+        "blurb": "Bookings and the tee sheet. A better office fits more tee times into the day.",
+        "tiers": [
+          { "name": "Manager's Desk", "cost": 400, "upkeep": 0.2, "capacity": 0.05 },
+          { "name": "Admin Office", "cost": 1400, "upkeep": 0.4, "capacity": 0.10 },
+          { "name": "Executive Suite", "cost": 4000, "upkeep": 0.8, "capacity": 0.15, "appeal": 0.02 }
+        ] },
+      { "id": "ballroom", "name": "Ballroom", "min_level": 3, "staff": "event_staff",
+        "blurb": "Weddings, galas and outings: bookings every hour whatever the golfers do.",
+        "tiers": [
+          { "name": "Function Room", "cost": 2500, "upkeep": 0.8, "appeal": 0.03, "events": 4.0 },
+          { "name": "Ballroom", "cost": 6500, "upkeep": 1.5, "appeal": 0.05, "events": 9.0 },
+          { "name": "Grand Convention Center", "cost": 14000, "upkeep": 2.6, "appeal": 0.08, "events": 18.0 }
+        ] },
+      { "id": "lounge", "name": "Trophy lounge", "min_level": 3, "crew": "waiter",
+        "blurb": "The club's history on the walls. Prestige golfers will pay for.",
+        "tiers": [
+          { "name": "Display Case", "cost": 900, "upkeep": 0.2, "appeal": 0.03, "fair_fee": 0.4 },
+          { "name": "Trophy Lounge", "cost": 3200, "upkeep": 0.6, "appeal": 0.06, "fair_fee": 1.0 },
+          { "name": "Hall of Fame Gallery", "cost": 8000, "upkeep": 1.2, "appeal": 0.10, "fair_fee": 2.0 }
+        ] },
+      { "id": "spa_fitness", "name": "Spa & fitness", "min_level": 4, "staff": "trainer",
+        "blurb": "Memberships that pay every hour, golf or not.",
+        "tiers": [
+          { "name": "Gym", "cost": 4000, "upkeep": 1.0, "appeal": 0.03, "members": 6.0 },
+          { "name": "Wellness Studio", "cost": 9000, "upkeep": 1.8, "appeal": 0.05, "members": 12.0 },
+          { "name": "Day Spa", "cost": 18000, "upkeep": 3.0, "appeal": 0.08, "members": 22.0 }
+        ] },
+      { "id": "simulator", "name": "Simulator", "min_level": 4, "staff": "golf_pro",
+        "blurb": "Lessons and simulator bays rent by the hour, rain or shine.",
+        "tiers": [
+          { "name": "Simulator Bay", "cost": 4500, "upkeep": 1.0, "appeal": 0.03, "lessons": 7.0 },
+          { "name": "Swing Studio", "cost": 10000, "upkeep": 1.8, "appeal": 0.05, "lessons": 14.0 },
+          { "name": "Golf Academy", "cost": 20000, "upkeep": 3.0, "appeal": 0.08, "lessons": 26.0 }
+        ] },
+      { "id": "valet", "name": "Valet", "min_level": 4, "staff": "valet",
+        "blurb": "Staffed parking and retrieval from the valet podium. Upgrade with a Capri umbrella, then a bag rack. Guests wait when no valet is at the podium; cart attendants handle golf carts.",
+        "tiers": [
+          { "name": "Valet Stand", "cost": 1500, "upkeep": 0.3, "appeal": 0.03, "fair_fee": 0.5 },
+          { "name": "Capri Umbrella", "cost": 4500, "upkeep": 0.8, "appeal": 0.06, "fair_fee": 1.2 },
+          { "name": "Bag Rack", "cost": 10000, "upkeep": 1.6, "appeal": 0.10, "fair_fee": 2.5 }
+        ] }
+    ],
+    "staff": [
+      { "id": "greenskeeper", "name": "Greenskeeper", "wage": 0.6, "max": 8, "holes_each": 4, "works": "course",
+        "blurb": "Each keeps about 4 holes in shape. Course condition drives demand and the fair green fee." },
+      { "id": "marshal", "name": "Marshal", "wage": 0.45, "max": 3, "capacity_each": 0.10, "works": "course",
+        "blurb": "Keeps play moving: each adds 10% more tee times." },
+      { "id": "shop_clerk", "name": "Shop clerk", "wage": 0.35, "max": 3, "bonus_each": 0.15, "works": "room:pro_shop",
+        "blurb": "Runs the pro shop. Each extra clerk sells 15% more." },
+      { "id": "receptionist", "name": "Receptionist", "wage": 0.3, "max": 2, "bonus_each": 0.2, "works": "room:lobby",
+        "blurb": "Greets golfers at the lobby desk. Each adds 20% to what the lobby does for the club." },
+      { "id": "locker_attendant", "name": "Locker attendant", "wage": 0.3, "max": 2, "bonus_each": 0.2, "works": "room:locker_rooms",
+        "blurb": "Fresh towels and tidy lockers. Each adds 20% to what the locker rooms do for the club." },
+      { "id": "chef", "name": "Chef", "wage": 0.5, "max": 3, "bonus_each": 0.15, "works": "room:restaurant",
+        "blurb": "Runs the restaurant kitchen. Each extra chef serves 15% more." },
+      { "id": "waiter", "name": "Server", "wage": 0.3, "max": 4, "bonus_each": 0.1, "works": "room:restaurant",
+        "blurb": "Works the dining room and the trophy lounge. Each serves 10% more." },
+      { "id": "bartender", "name": "Bartender", "wage": 0.35, "max": 2, "bonus_each": 0.12, "works": "room:restaurant",
+        "blurb": "Runs the bar. Each pours 12% more." },
+      { "id": "cart_attendant", "name": "Cart attendant", "wage": 0.3, "max": 3, "bonus_each": 0.1, "works": "cart_barn",
+        "blurb": "Charges, washes and brings the carts round. Each rents out 10% more." },
+      { "id": "range_attendant", "name": "Range attendant", "wage": 0.35, "max": 3, "bonus_each": 0.15, "works": "driving_range",
+        "blurb": "Keeps the range open and the ball machine full. Each extra one adds 15%." },
+      { "id": "event_staff", "name": "Events coordinator", "wage": 0.55, "max": 3, "bonus_each": 0.2, "works": "room:ballroom",
+        "blurb": "Books and runs the ballroom. Each extra one fills it 20% more." },
+      { "id": "trainer", "name": "Trainer", "wage": 0.5, "max": 3, "bonus_each": 0.15, "works": "room:spa_fitness",
+        "blurb": "Runs the gym and spa. Each extra trainer takes on 15% more members." },
+      { "id": "golf_pro", "name": "Golf pro", "wage": 0.7, "max": 3, "bonus_each": 0.2, "works": "room:simulator",
+        "blurb": "Teaches lessons in the simulator studio. Each extra pro books 20% more." },
+      { "id": "valet", "name": "Valet", "wage": 0.35, "max": 2, "bonus_each": 0.15, "works": "room:valet",
+        "blurb": "Parks and retrieves personal cars, unloading bags into the designated rack for cart attendants. Up to two valets; each adds 15% to valet service." }
+    ]
+  },
+
+  "completion_reward": {
+    "id": "gold_cabinet",
+    "name": "Gold Trophy Cabinet",
+    "description": "All seven collectible putters owned at once. The cabinet turns gold and a plaque is engraved with your best round."
+  }
+}

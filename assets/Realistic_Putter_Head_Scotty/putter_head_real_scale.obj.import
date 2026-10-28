@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bo56kt661x6d6"
+path="res://.godot/imported/putter_head_real_scale.obj-07e07ba9fb39d1f0650e9ba0b68716ce.mesh"
+
+[deps]
+
+files=["res://.godot/imported/putter_head_real_scale.obj-07e07ba9fb39d1f0650e9ba0b68716ce.mesh"]
+
+source_file="res://assets/Realistic_Putter_Head_Scotty/putter_head_real_scale.obj"
+dest_files=["res://.godot/imported/putter_head_real_scale.obj-07e07ba9fb39d1f0650e9ba0b68716ce.mesh", "res://.godot/imported/putter_head_real_scale.obj-07e07ba9fb39d1f0650e9ba0b68716ce.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

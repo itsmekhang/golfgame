@@ -11,3 +11,10 @@ assets/high fidelity assets/
 *.TMP
 desktop.ini
 Thumbs.db
+
+# Reproducible Python bytecode from asset tools
+__pycache__/
+*.py[cod]
+
+# golf bag clean-up work files (tools/blender/clean_bags.py)
+tools/blender/_bag_work/

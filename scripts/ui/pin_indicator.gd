@@ -1,29 +1,20 @@
 class_name PinIndicator
 extends Control
-## Horizon-inspired waypoint: an upright flag emblem with live yardage.
+## Horizon-inspired waypoint: an upright flag emblem with live yardage, in the shared HUD
+## palette (UITheme: green glass disc, gold accent, Bahnschrift numerals).
 ## Canvas drawing is cached until the displayed distance changes.
 
 const DESIGN_SIZE := Vector2(116, 118)
 const SYMBOL_CENTER := Vector2(58, 36)
-const ACCENT := Color("f34fb0")
+const ACCENT := UITheme.GOLD
 
-var _font := SystemFont.new()
-var _distance_plate := StyleBoxFlat.new()
+var _font: Font = UITheme.font(700, 92)
 var _distance := "0"
 
 func _init() -> void:
 	custom_minimum_size = DESIGN_SIZE
 	size = DESIGN_SIZE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_font.font_names = PackedStringArray(["Bahnschrift", "Arial"])
-	_font.font_weight = 600
-	_distance_plate.bg_color = Color(0.04, 0.055, 0.075, 0.84)
-	_distance_plate.set_corner_radius_all(7)
-	_distance_plate.set_border_width_all(1)
-	_distance_plate.border_color = Color(1.0, 1.0, 1.0, 0.3)
-	_distance_plate.shadow_color = Color(0, 0, 0, 0.2)
-	_distance_plate.shadow_size = 3
-	_distance_plate.shadow_offset = Vector2(0, 2)
 
 func set_distance(yards: float) -> void:
 	var label := "%.1f" % maxf(yards, 0.0) if yards < 10.0 else "%.0f" % yards
@@ -49,7 +40,7 @@ func _draw() -> void:
 	var disc := _ellipse(SYMBOL_CENTER, Vector2(31, 31))
 	var shades := PackedColorArray()
 	for point in disc:
-		shades.append(Color("3b294e").lerp(Color("172631"), (point.y - 5) / 62.0))
+		shades.append(Color("1d3a30").lerp(Color("0b1713"), (point.y - 5) / 62.0))
 	draw_polygon(disc, shades)
 	draw_arc(SYMBOL_CENTER, 31, 0, TAU, 96, Color(1, 1, 1, 0.88), 1.4, true)
 	draw_arc(SYMBOL_CENTER, 34, deg_to_rad(22), deg_to_rad(145), 40, ACCENT, 2.6, true)
@@ -83,9 +74,10 @@ func _draw() -> void:
 	draw_line(upper[-1], lower[-1], Color("d7e0e7"), 1.0, true)
 
 	draw_line(Vector2(58, 72), Vector2(58, 78), Color(1, 1, 1, 0.65), 1.0, true)
-	draw_style_box(_distance_plate, Rect2(8, 80, 100, 30))
 	var number_width := _font.get_string_size(_distance, HORIZONTAL_ALIGNMENT_LEFT, -1, 22).x
-	var unit_width := _font.get_string_size("yd", HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+	var unit_width := _font.get_string_size("yd", HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 	var text_x := (DESIGN_SIZE.x - number_width - unit_width - 5) * 0.5
+	draw_string_outline(_font, Vector2(text_x, 102), _distance, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, 2, Color(0.01, 0.025, 0.018, 0.85))
+	draw_string_outline(_font, Vector2(text_x + number_width + 5, 101), "yd", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, 2, Color.WHITE)
 	draw_string(_font, Vector2(text_x, 102), _distance, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
-	draw_string(_font, Vector2(text_x + number_width + 5, 101), "yd", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("d7e0e7"))
+	draw_string(_font, Vector2(text_x + number_width + 5, 101), "yd", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.BLACK)

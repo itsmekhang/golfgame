@@ -5,7 +5,7 @@ extends Excavation
 ## builder colours it sand.
 
 var depth: float = 0.55  # floor below the rim at the middle
-var lip: float = 0.12  # raised turf lip outside the edge
+var lip: float = 0.03  # a whisker of turf lip at the edge (no berm: per user, bunkers read as volcanoes)
 var rim_level: float = 0.0
 var rim_lift: float = 0.0
 var kind: String = "greenside"  # or "fairway"
@@ -39,21 +39,23 @@ func finalize(layout: CourseLayout) -> void:
 	rim_level = outline_levels(layout)["mean"] + rim_lift
 
 
-## Sand floor below the rim, blended lip outside.
+## The bunker follows the natural ground: its edge stays at grade (plus a tiny lip, and
+## `rim_lift` where a hole asks for a raised rim), and the sand floor sinks below it, levelled
+## only gently toward the rim's mean height inside. Levelling the whole rim to that mean
+## raised the downhill side into a berm, so bunkers stood up like volcanoes and kicked balls
+## away instead of gathering them.
 func depth_offset(base_h: float, xz: Vector2) -> float:
 	if not bounds.has_point(xz):
 		return 0.0
 	var sd := signed_distance(xz)
 	if sd >= shore_width:
 		return 0.0
-	var target: float
+	var edge := lip + rim_lift
 	if sd <= 0.0:
 		var inside := -sd
-		target = rim_level + lip - 0.2 * smoothstep(0.0, 0.8, inside) - depth * smoothstep(0.5, 3.5, inside)
-	else:
-		var t := 1.0 - smoothstep(0.0, shore_width, sd)
-		target = lerpf(base_h, rim_level + lip, t)
-	return target - base_h
+		var level := clampf((rim_level - rim_lift - base_h) * 0.3, -depth * 0.6, depth * 0.6) * smoothstep(0.5, 3.0, inside)
+		return edge + level - 0.2 * smoothstep(0.0, 0.8, inside) - depth * smoothstep(0.5, 3.5, inside)
+	return edge * (1.0 - smoothstep(0.0, shore_width, sd))
 
 
 func to_dict() -> Dictionary:

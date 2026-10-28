@@ -26,7 +26,8 @@ static func build(layout: CourseLayout, terrain: Node3D) -> MeshInstance3D:
 	ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/course_backdrop.gdshader")
-	mat.set_shader_parameter("rough_texture", load("res://assets/textures/tiles/rough_tile.png"))
+	mat.set_shader_parameter("rough_texture", load(TerrainBuilder.ROUGH_TEXTURE))
+	mat.set_shader_parameter("rough_tint", TerrainBuilder.ROUGH_TINT)
 	mat.set_shader_parameter("feature_mask", layout.mask_texture)
 	mat.set_shader_parameter("mask_origin", layout.bounds.position)
 	mat.set_shader_parameter("mask_size", Vector2(layout.mask_image.get_width(), layout.mask_image.get_height()) * CourseLayout.MASK_CELL)
@@ -48,6 +49,7 @@ static func build(layout: CourseLayout, terrain: Node3D) -> MeshInstance3D:
 	for material in [mat, join_mat]:
 		material.set_shader_parameter("straw_mask", straw)
 		material.set_shader_parameter("straw_texture", load(TerrainBuilder.STRAW_TEXTURE))
+		material.set_shader_parameter("straw_color", TerrainBuilder.STRAW_TINT)
 		material.set_shader_parameter("straw_origin", outer.position)
 		material.set_shader_parameter("straw_size", outer.size)
 	return root
@@ -92,7 +94,8 @@ static func build_apron(layout: CourseLayout, bounds: Rect2, edge_step: float = 
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/course_horizon.gdshader")
-	mat.set_shader_parameter("rough_texture", load("res://assets/textures/tiles/rough_tile.png"))
+	mat.set_shader_parameter("rough_texture", load(TerrainBuilder.ROUGH_TEXTURE))
+	mat.set_shader_parameter("rough_tint", TerrainBuilder.ROUGH_TINT)
 	node.material_override = mat
 	return node
 

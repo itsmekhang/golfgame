@@ -1,0 +1,57 @@
+{
+  "revision": 3,
+  "vertices": 14744,
+  "triangles": 29484,
+  "nonmanifold_edges": 0,
+  "connected_components": 3,
+  "body_dimensions_mm_xyz": [
+    106.00000433623791,
+    36.999999294494046,
+    77.00000330805779
+  ],
+  "face_height_mm": 21.211570128798485,
+  "units": "metres",
+  "head_only": true,
+  "profile": "3_wood",
+  "shaft_origin_metres": [
+    -0.04459000006318092,
+    0.05999999865889549,
+    -0.004999999888241291
+  ],
+  "shaft_axis": [
+    -0.48480960726737976,
+    0.874619722366333,
+    0.0
+  ],
+  "bore_diameter_mm": 9.4,
+  "original_shaft_tip_diameter_mm": 9.2,
+  "lie_degrees": 61,
+  "face_loft_degrees": 17.51152625748132,
+  "materials": 4,
+  "includes_ferrule": true,
+  "closed_assembly_parts": [
+    {
+      "name": "Tapered hosel",
+      "vertices": 712,
+      "triangles": 1420,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Fairway wood body",
+      "vertices": 12872,
+      "triangles": 25744,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Black shaft ferrule",
+      "vertices": 1160,
+      "triangles": 2320,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    }
+  ],
+  "texture_images": 0,
+  "source_geometry": "assets/Fairway_Wood_Head/source/reference_head.glb (traced from a user-supplied reference model, see README)"
+}

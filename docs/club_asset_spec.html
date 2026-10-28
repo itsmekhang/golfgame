@@ -1,0 +1,752 @@
+<title>The Pro Shop Spec Book</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root{
+  --paper:#f4f2e6; --paper-dark:#e6e0cd; --card:#fbf9f0;
+  --ink:#182f28; --muted:#5d6d63; --line:rgba(24,47,40,.16);
+  --green:#2e6950; --green-ink:#1f4a38; --gold:#a3762f; --gold-soft:#f0dfb8;
+  --warn:#a4382a; --warn-soft:#f5ddd6;
+  --r-common:#7d827f; --r-uncommon:#2f7a4d; --r-rare:#2f5fa8; --r-epic:#7248a3;
+  --r-legendary:#a3691f; --r-mythic:#b32b2a;
+  --shadow: 0 1px 2px rgba(24,47,40,.06), 0 8px 20px -12px rgba(24,47,40,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141d19; --paper-dark:#1c2721; --card:#1a251f;
+    --ink:#eceee6; --muted:#9db2a5; --line:rgba(236,238,230,.14);
+    --green:#7fcaa2; --green-ink:#a6dcc0; --gold:#e0b268; --gold-soft:#3a2f1c;
+    --warn:#e2897c; --warn-soft:#3a201c;
+    --r-common:#a7ada9; --r-uncommon:#5fbd88; --r-rare:#7ea3e0; --r-epic:#b393dd;
+    --r-legendary:#e0a94f; --r-mythic:#e2726f;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#141d19; --paper-dark:#1c2721; --card:#1a251f;
+  --ink:#eceee6; --muted:#9db2a5; --line:rgba(236,238,230,.14);
+  --green:#7fcaa2; --green-ink:#a6dcc0; --gold:#e0b268; --gold-soft:#3a2f1c;
+  --warn:#e2897c; --warn-soft:#3a201c;
+  --r-common:#a7ada9; --r-uncommon:#5fbd88; --r-rare:#7ea3e0; --r-epic:#b393dd;
+  --r-legendary:#e0a94f; --r-mythic:#e2726f;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box;}
+html{color-scheme:light dark;}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:'Public Sans',system-ui,-apple-system,sans-serif;
+  font-size:16px; line-height:1.55;
+  padding-inline:0; margin:0;
+}
+h1,h2,h3,.display{
+  font-family:'Fraunces',Georgia,serif; font-weight:650;
+  letter-spacing:-.01em; text-wrap:balance; color:var(--ink);
+}
+code,.mono,.hex,.num{font-family:'JetBrains Mono',ui-monospace,monospace;}
+a{color:var(--green-ink);}
+a:hover{color:var(--gold);}
+.wrap{max-width:1180px; margin-inline:auto; padding-inline:max(16px,4vw);}
+
+/* ---------- top matter ---------- */
+.masthead{
+  border-bottom:1px solid var(--line);
+  padding-block:36px 28px;
+  background:
+    linear-gradient(180deg, var(--paper-dark) 0%, var(--paper) 100%);
+}
+.eyebrow{
+  font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--muted); margin:0 0 10px;
+}
+.masthead h1{font-size:clamp(2rem,4vw,2.9rem); margin:0 0 10px; line-height:1.05;}
+.masthead p.lede{max-width:62ch; color:var(--muted); font-size:1.05rem; margin:0;}
+.meta-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px;}
+.meta-chip{
+  border:1px solid var(--line); border-radius:999px; padding:5px 12px;
+  font-size:.78rem; color:var(--muted); background:var(--card);
+}
+
+/* ---------- layout: index rail + content ---------- */
+.layout{display:grid; grid-template-columns:210px 1fr; gap:36px; align-items:start; padding-block:32px 80px;}
+@media (max-width:900px){ .layout{grid-template-columns:1fr;} .rail{position:static !important; order:2;} }
+.rail{
+  position:sticky; top:20px; display:flex; flex-direction:column; gap:2px;
+  border-right:1px solid var(--line); padding-right:20px;
+}
+@media (max-width:900px){
+  .rail{border-right:none; border-bottom:1px solid var(--line); padding:0 0 16px;
+    flex-direction:row; overflow-x:auto; gap:8px;}
+  .rail a{white-space:nowrap;}
+}
+.rail a{
+  font-size:.86rem; color:var(--muted); text-decoration:none; padding:6px 8px;
+  border-radius:6px; border-left:2px solid transparent;
+}
+.rail a:hover{color:var(--ink); background:var(--paper-dark);}
+@media (min-width:901px){ .rail a{border-left:2px solid var(--line);} }
+
+section{padding-block:38px; border-bottom:1px solid var(--line);}
+section:last-child{border-bottom:none;}
+.section-num{font-family:'JetBrains Mono',monospace; color:var(--gold); font-size:.85rem;}
+section h2{font-size:1.7rem; margin:2px 0 6px;}
+section > p.intro{color:var(--muted); max-width:70ch; margin:0 0 22px;}
+
+/* ---------- shared-mesh callout ---------- */
+.mesh-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-bottom:8px;}
+.mesh-card{
+  background:var(--card); border:1px solid var(--line); border-radius:10px;
+  padding:16px; box-shadow:var(--shadow);
+}
+.mesh-card svg{display:block; width:100%; height:84px; margin-bottom:8px;}
+.mesh-card h3{font-size:1.05rem; margin:0 0 4px;}
+.mesh-card .tag{font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em;}
+.mesh-card .specs{list-style:none; margin:10px 0 0; padding:0; font-size:.84rem; color:var(--muted);}
+.mesh-card .specs li{display:flex; justify-content:space-between; gap:8px; padding:3px 0; border-top:1px dashed var(--line);}
+.mesh-card .specs b{color:var(--ink); font-weight:500;}
+
+/* ---------- rarity pill ---------- */
+.pill{
+  display:inline-flex; align-items:center; gap:5px; font-size:.72rem; font-weight:600;
+  padding:2px 9px; border-radius:999px; color:#fff; letter-spacing:.01em; white-space:nowrap;
+}
+.pill.common{background:var(--r-common);} .pill.uncommon{background:var(--r-uncommon);}
+.pill.rare{background:var(--r-rare);} .pill.epic{background:var(--r-epic);}
+.pill.legendary{background:var(--r-legendary);} .pill.mythic{background:var(--r-mythic);}
+.pill.loaner{background:var(--muted);}
+
+/* ---------- reskin table ---------- */
+.table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--card); box-shadow:var(--shadow);}
+table{width:100%; border-collapse:collapse; font-size:.88rem; min-width:760px;}
+thead th{
+  text-align:left; font-family:'JetBrains Mono',monospace; font-size:.7rem; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--muted); padding:10px 12px; border-bottom:1px solid var(--line);
+}
+tbody td{padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:top;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--paper-dark);}
+.swatches{display:flex; align-items:center; gap:6px;}
+.sw{width:16px; height:16px; border-radius:4px; border:1px solid var(--line); flex:none;}
+.sw.accent{width:10px; height:10px; border-radius:999px; margin-left:-4px; margin-top:6px;}
+.name-cell b{display:block; font-size:.92rem;}
+.name-cell .id{color:var(--muted); font-size:.72rem;}
+.price{font-family:'JetBrains Mono',monospace; color:var(--gold);}
+.tell{color:var(--muted); font-style:italic;}
+.refs a{display:inline-block; font-size:.8rem; margin-right:8px; white-space:nowrap;}
+
+/* ---------- putter cards ---------- */
+.putter-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:18px;}
+.putter-card{
+  background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px;
+  box-shadow:var(--shadow); display:flex; flex-direction:column; gap:10px;
+}
+.putter-head{display:flex; gap:14px; align-items:flex-start;}
+.putter-head svg{width:96px; height:80px; flex:none;}
+.putter-head h3{font-size:1.2rem; margin:0 0 3px;}
+.putter-sub{font-size:.78rem; color:var(--muted); margin:0;}
+.putter-card .feel{font-size:.85rem; color:var(--green-ink); font-style:italic;}
+.putter-card .desc{font-size:.92rem; color:var(--ink);}
+.putter-card .tell-line{font-size:.85rem; color:var(--muted);}
+.putter-card .spec-line{font-size:.8rem; color:var(--muted); border-top:1px dashed var(--line); padding-top:8px;}
+.putter-card .spec-line b{color:var(--ink); font-weight:500;}
+.ref-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:2px;}
+.ref-chip{
+  font-size:.76rem; border:1px solid var(--line); border-radius:999px; padding:3px 10px;
+  color:var(--green-ink); text-decoration:none; background:var(--paper);
+}
+.ref-chip:hover{border-color:var(--green-ink);}
+
+/* ---------- admin / illegal ---------- */
+.warn-card{
+  border:1.5px dashed var(--warn); border-radius:14px; padding:22px;
+  background:
+    repeating-linear-gradient(135deg, var(--warn-soft) 0 14px, transparent 14px 28px);
+  box-shadow:var(--shadow);
+}
+.warn-card h3{color:var(--warn); margin:0 0 6px;}
+.warn-tag{
+  font-family:'JetBrains Mono',monospace; font-size:.7rem; letter-spacing:.08em; color:var(--warn);
+  border:1px solid var(--warn); border-radius:4px; padding:2px 6px; margin-bottom:8px; display:inline-block;
+}
+
+/* ---------- misc ---------- */
+.note{
+  background:var(--gold-soft); border:1px solid var(--line); border-radius:10px;
+  padding:14px 16px; font-size:.9rem; color:var(--ink); margin-block:18px;
+}
+.note b{color:var(--gold);}
+.legend{display:flex; flex-wrap:wrap; gap:8px 14px; margin:14px 0 0; font-size:.8rem; color:var(--muted);}
+.legend span{display:inline-flex; align-items:center; gap:6px;}
+.condition-strip{display:flex; height:14px; border-radius:4px; overflow:hidden; border:1px solid var(--line); margin:12px 0 6px;}
+.condition-strip div{flex:1;}
+.condition-labels{display:flex; justify-content:space-between; font-size:.72rem; color:var(--muted); font-family:'JetBrains Mono',monospace;}
+footer{padding:28px max(16px,4vw) 60px; color:var(--muted); font-size:.82rem; max-width:1180px; margin-inline:auto;}
+</style>
+
+<div class="masthead">
+  <div class="wrap">
+    <p class="eyebrow">OpenFairway Golf &mdash; Equipment Art Bible</p>
+    <h1>The Pro Shop Spec Book</h1>
+    <p class="lede">Every club model in the game's economy, organized for a 3D artist: what geometry to build once, and how to reskin it into forty-five distinct pieces of secondhand equipment &mdash; plus seven putters that get to be their own objects.</p>
+    <div class="meta-row">
+      <span class="meta-chip">45 catalog entries</span>
+      <span class="meta-chip">5 shared club-head meshes</span>
+      <span class="meta-chip">9 unique putter meshes</span>
+      <span class="meta-chip">Godot 4 &middot; glTF pipeline</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap layout">
+  <nav class="rail">
+    <a href="#pipeline">Pipeline</a>
+    <a href="#meshes">Shared meshes</a>
+    <a href="#drivers">Drivers</a>
+    <a href="#woods">Fairway woods</a>
+    <a href="#hybrids">Hybrids</a>
+    <a href="#irons">Iron sets</a>
+    <a href="#wedges">Wedges</a>
+    <a href="#putters">Putter collection</a>
+    <a href="#admin">Admin sandbox</a>
+  </nav>
+
+  <main>
+
+  <section id="pipeline">
+    <p class="section-num">00</p>
+    <h2>How the pieces fit together</h2>
+    <p class="intro">One rule drives the whole pack: <b>geometry is shared, texture is the story.</b> A club's rarity, price, and history are told entirely through its skin.</p>
+
+    <ul style="margin:0 0 18px; padding-left:20px; color:var(--muted); font-size:.94rem;">
+      <li><b style="color:var(--ink);">Five head meshes total</b> &mdash; driver, fairway wood, hybrid, iron, wedge &mdash; each built once. Every model of that type, from a $8 grocery-store wedge to a $170 tour grind, sits on the exact same head, shaft, and grip geometry. Only the material changes.</li>
+      <li><b style="color:var(--ink);">One shaft+grip rig</b> shared by all five non-putter heads: straight steel shaft, standard-taper black grip. Length/lie can be a uniform scale on the shaft bone if you rig it, but static geometry is fine for a bag/inspection view.</li>
+      <li><b style="color:var(--ink);">Iron sets and wedges are catalog singles</b>, not six separate meshes. The game treats "4-9 irons" as one inventory item, and each wedge (PW/GW/SW/LW) as its own item on the shared wedge mesh &mdash; so one iron-head mesh and one wedge-head mesh cover the whole set.</li>
+      <li><b style="color:var(--ink);">Putters break the rule on purpose.</b> All nine putter-slot items &mdash; the clubhouse loaner, the seven collectible putters, and the admin-only Auto-Putt &mdash; get their own original head geometry. This is the one place to actually design, not reskin.</li>
+    </ul>
+
+    <div class="note"><b>Target budget:</b> this game runs on the Quaternius stylized low-poly nature kit, so club heads should stay in that visual register &mdash; clean stylized forms, no photoreal micro-detail. Aim for <b>600&ndash;1,200 tris</b> per non-putter head (whole club incl. shaft/grip under ~1,800), <b>1,000&ndash;2,000 tris</b> for putter heads, one <b>1024&times;1024</b> albedo/ORM texture set per model (a 512 atlas is fine for the loaners), baked normals from a mid-poly sculpt if you want the milling/forging detail to read up close.</div>
+
+    <h3 style="font-size:1.05rem; margin:22px 0 8px;">The condition system (applies to every club)</h3>
+    <p style="color:var(--muted); font-size:.92rem; max-width:70ch;">Every instance carries a <code>condition</code> float from 0&ndash;1, independent of rarity or price &mdash; a common club can be mint, a legendary one can be trashed. Build wear as a second, condition-driven layer on top of the base skin: a grime/scuff mask blended in by condition, plus paint-chip and rust decals placed at fixed UV spots so they can be masked in and out.</p>
+    <div class="condition-strip">
+      <div style="background:#6b6f6c"></div><div style="background:#8a8478"></div><div style="background:#a89a70"></div>
+      <div style="background:#b9c090"></div><div style="background:#c9d8a8"></div><div style="background:#dcefc0"></div>
+    </div>
+    <div class="condition-labels"><span>Poor 0.0</span><span>Worn 0.22</span><span>Fair 0.42</span><span>Good 0.62</span><span>Excellent 0.82</span><span>Mint 0.94+</span></div>
+    <div class="legend" style="margin-top:14px;">
+      <span>Rarity key:</span>
+      <span class="pill common">Common</span><span class="pill uncommon">Uncommon</span><span class="pill rare">Rare</span>
+      <span class="pill epic">Epic</span><span class="pill legendary">Legendary</span><span class="pill mythic">Mythic</span>
+    </div>
+  </section>
+
+  <section id="meshes">
+    <p class="section-num">01</p>
+    <h2>The five shared club-head meshes</h2>
+    <p class="intro">Build each of these once, fully UV'd for a tileable-then-masked material. Every reskin below just swaps the material on this same mesh.</p>
+
+    <div class="mesh-grid">
+      <div class="mesh-card">
+        <svg viewBox="0 0 100 84"><ellipse cx="34" cy="52" rx="26" ry="17" fill="none" stroke="var(--ink)" stroke-width="2.2"/><path d="M20 40 Q34 30 52 40" fill="none" stroke="var(--ink)" stroke-width="1.2" opacity=".5"/><line x1="55" y1="42" x2="92" y2="8" stroke="var(--ink)" stroke-width="2"/><line x1="80" y1="20" x2="92" y2="8" stroke="var(--ink)" stroke-width="5" stroke-linecap="round" opacity=".55"/></svg>
+        <span class="tag">Wood family &middot; 01</span>
+        <h3>Driver head</h3>
+        <p style="font-size:.86rem; color:var(--muted); margin:0;">Large hollow shell, 460cc-class silhouette: broad shallow face, rounded high-toe crown, flat-ish sole with a slight bulge, short bent-neck hosel. Modern oversized-wood proportions &mdash; think any post-2005 titanium driver, not a classic pear shape.</p>
+        <ul class="specs">
+          <li>Tris <b>700&ndash;900</b></li><li>Texture <b>1024&sup2;</b></li>
+          <li>UVs <b>crown / face / sole / skirt</b>, 4 islands</li>
+        </ul>
+      </div>
+      <div class="mesh-card">
+        <svg viewBox="0 0 100 84"><ellipse cx="32" cy="56" rx="20" ry="12" fill="none" stroke="var(--ink)" stroke-width="2.2"/><line x1="48" y1="50" x2="90" y2="10" stroke="var(--ink)" stroke-width="2"/><line x1="76" y1="24" x2="90" y2="10" stroke="var(--ink)" stroke-width="5" stroke-linecap="round" opacity=".55"/></svg>
+        <span class="tag">Wood family &middot; 02</span>
+        <h3>Fairway wood head</h3>
+        <p style="font-size:.86rem; color:var(--muted); margin:0;">Same family as the driver, scaled down: classic teardrop/pear head, shallower face, a small separate-looking sole plate rectangle for the metal-plate detail. Works for every "3W"/"5W" model since real fairway woods share this shape at any era.</p>
+        <ul class="specs">
+          <li>Tris <b>500&ndash;700</b></li><li>Texture <b>1024&sup2;</b></li>
+          <li>UVs <b>crown / face / sole plate</b>, 3 islands</li>
+        </ul>
+      </div>
+      <div class="mesh-card">
+        <svg viewBox="0 0 100 84"><path d="M14 58 L46 46 L58 52 L60 66 L40 72 L16 66 Z" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><line x1="58" y1="50" x2="90" y2="10" stroke="var(--ink)" stroke-width="2"/><line x1="76" y1="24" x2="90" y2="10" stroke="var(--ink)" stroke-width="5" stroke-linecap="round" opacity=".55"/></svg>
+        <span class="tag">Crossover &middot; 03</span>
+        <h3>Hybrid head</h3>
+        <p style="font-size:.86rem; color:var(--muted); margin:0;">Compact rounded wedge between an iron and a wood: shallow rounded sole like a mini fairway wood, but a taller, more upright face like an iron. Small enough to read as a "rescue" club, not a shrunk driver.</p>
+        <ul class="specs">
+          <li>Tris <b>450&ndash;650</b></li><li>Texture <b>1024&sup2;</b></li>
+          <li>UVs <b>crown / face / sole</b>, 3 islands</li>
+        </ul>
+      </div>
+      <div class="mesh-card">
+        <svg viewBox="0 0 100 84"><path d="M18 44 L58 36 L66 46 L66 72 L26 76 L16 62 Z" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><line x1="66" y1="48" x2="90" y2="10" stroke="var(--ink)" stroke-width="2"/><line x1="78" y1="22" x2="90" y2="10" stroke="var(--ink)" stroke-width="5" stroke-linecap="round" opacity=".55"/></svg>
+        <span class="tag">Iron family &middot; 04</span>
+        <h3>Iron head</h3>
+        <p style="font-size:.86rem; color:var(--muted); margin:0;">One representative head (roughly a 7-iron profile) stands in for the whole 4&ndash;9 set: thin blade-length body, flat sole, top-line bevel, a milled-looking cavity or flat back depending on skin. Thin enough to read as forged when the material calls for it.</p>
+        <ul class="specs">
+          <li>Tris <b>500&ndash;700</b></li><li>Texture <b>1024&sup2;</b></li>
+          <li>UVs <b>face / back-cavity / sole</b>, 3 islands</li>
+        </ul>
+      </div>
+      <div class="mesh-card">
+        <svg viewBox="0 0 100 84"><path d="M16 40 L60 32 L70 42 L70 74 L28 78 L14 60 Z" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/><rect x="20" y="66" width="42" height="9" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.4" opacity=".6"/><line x1="70" y1="44" x2="90" y2="10" stroke="var(--ink)" stroke-width="2"/><line x1="80" y1="22" x2="90" y2="10" stroke="var(--ink)" stroke-width="5" stroke-linecap="round" opacity=".55"/></svg>
+        <span class="tag">Iron family &middot; 05</span>
+        <h3>Wedge head</h3>
+        <p style="font-size:.86rem; color:var(--muted); margin:0;">The iron head, thickened: wider sole with a visible bounce radius, slightly more upright/square face, a touch more offset. One mesh covers PW, GW, SW and LW &mdash; loft is a stat, not a shape change.</p>
+        <ul class="specs">
+          <li>Tris <b>550&ndash;750</b></li><li>Texture <b>1024&sup2;</b></li>
+          <li>UVs <b>face / back / sole bounce</b>, 3 islands</li>
+        </ul>
+      </div>
+      <div class="mesh-card" style="border-color:var(--gold);">
+        <svg viewBox="0 0 100 84"><rect x="14" y="52" width="52" height="16" rx="3" fill="none" stroke="var(--gold)" stroke-width="2.2"/><line x1="66" y1="56" x2="90" y2="14" stroke="var(--gold)" stroke-width="2"/><line x1="78" y1="26" x2="90" y2="14" stroke="var(--gold)" stroke-width="5" stroke-linecap="round" opacity=".55"/></svg>
+        <span class="tag" style="color:var(--gold);">The exception</span>
+        <h3>Putter heads &mdash; 9&times; unique</h3>
+        <p style="font-size:.86rem; color:var(--muted); margin:0;">Not a shared mesh. See <a href="#putters">Section 06</a> for full geometry, material, and reference notes on all nine.</p>
+        <ul class="specs">
+          <li>Tris <b>1,000&ndash;2,200 ea.</b></li><li>Texture <b>1024&sup2; ea.</b></li>
+          <li>Meshes <b>9</b> total</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="drivers">
+    <p class="section-num">02</p>
+    <h2>Drivers <span style="color:var(--muted); font-weight:400; font-size:1rem;">&middot; driver head mesh</span></h2>
+    <p class="intro">One head shape, six finishes plus the clubhouse loaner. Real reference is grouped by era &mdash; two of these are meant to look like a specific decade of driver, not a specific brand.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Model</th><th>Rarity</th><th>Price</th><th>Finish</th><th>Look for</th><th>Real-world reference</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="name-cell"><b>Loaner Driver</b><span class="id">loaner_driver</span></td>
+          <td><span class="pill loaner">Loaner</span></td><td class="price">&mdash;</td>
+          <td><div class="swatches"><div class="sw" style="background:#6e7378"></div><div class="sw accent" style="background:#9aa1a6"></div></div></td>
+          <td class="tell">Generic clubhouse-rental grey, scuffed crown, worn grip.</td>
+          <td class="refs">Any modern game-improvement 460cc driver, unbranded.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Thrift Titan 460</b><span class="id">thrift_titan_460</span></td>
+          <td><span class="pill common">Common</span></td><td class="price">$24</td>
+          <td><div class="swatches"><div class="sw" style="background:#3f4a52"></div><div class="sw accent" style="background:#d0d5d8"></div></div></td>
+          <td class="tell">Dark grey/silver, faded logo ghost, sticker residue on the sole.</td>
+          <td class="refs"><a href="https://www.taylormadegolf.com/" target="_blank">General 2010s box driver</a></td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Slice Slayer Offset</b><span class="id">slice_slayer</span></td>
+          <td><span class="pill common">Common</span></td><td class="price">$20</td>
+          <td><div class="swatches"><div class="sw" style="background:#2f3a5a"></div><div class="sw accent" style="background:#c9d3e8"></div></div></td>
+          <td class="tell">Navy/silver, visible offset hosel bend, draw-bias alignment mark.</td>
+          <td class="refs"><a href="https://www.cobragolf.com/" target="_blank">Offset game-improvement drivers</a></td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Persimmon Ghost</b><span class="id">persimmon_ghost</span></td>
+          <td><span class="pill uncommon">Uncommon</span></td><td class="price">$55</td>
+          <td><div class="swatches"><div class="sw" style="background:#6b3f22"></div><div class="sw accent" style="background:#e0c08a"></div></div></td>
+          <td class="tell">Real wood grain finish, brass sole plate, small black face insert, whipped-thread neck wrap.</td>
+          <td class="refs">
+            <a href="https://www.si.com/golf/gear/feature-2020-07-09-persimmon-drivers-still-have-a-place-in-the-game" target="_blank">Persimmon drivers still in the game &ndash; SI</a>
+            <a href="https://hickorygolfstore.com/blogs/news/the-timeless-craft-of-hickory-and-persimmon-golf-clubs-a-deep-dive-into-tradition-and-performance" target="_blank">Hickory &amp; persimmon craft</a>
+          </td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Rocket Boomer LT</b><span class="id">rocket_boomer_lt</span></td>
+          <td><span class="pill rare">Rare</span></td><td class="price">$110</td>
+          <td><div class="swatches"><div class="sw" style="background:#b3352a"></div><div class="sw accent" style="background:#f2e4c0"></div></div></td>
+          <td class="tell">Loud red/cream early-2000s livery, thin-face warning sticker, chunky alignment stripe.</td>
+          <td class="refs">
+            <a href="https://www.golfdigest.com/story/jenkins_gd0102" target="_blank">Callaway ERC II &ndash; Golf Digest</a>
+            <a href="https://www.fdotstokes.com/2022/10/30/is-the-callaway-erc-2-driver-illegal/" target="_blank">The trampoline-face era</a>
+          </td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Hollow Point Tour</b><span class="id">hollow_point_tour</span></td>
+          <td><span class="pill epic">Epic</span></td><td class="price">$240</td>
+          <td><div class="swatches"><div class="sw" style="background:#1d1f22"></div><div class="sw accent" style="background:#e8c25a"></div></div></td>
+          <td class="tell">Matte black, no retail decals, hand-stamped hosel serial, gold weight port.</td>
+          <td class="refs">Unbranded tour-van prototype head &mdash; matte black, serial-stamped, no paint fill.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Meteor XR Prototype</b><span class="id">meteor_xr_proto</span></td>
+          <td><span class="pill legendary">Legendary</span></td><td class="price">$520</td>
+          <td><div class="swatches"><div class="sw" style="background:#2a1f3d"></div><div class="sw accent" style="background:#ff8c3a"></div></div></td>
+          <td class="tell">Raw exposed carbon-weave crown, deep purple sole, orange masking tape with a hand-written loft.</td>
+          <td class="refs">Raw carbon-crown prototype drivers, current-gen visible-weave finish.</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="woods">
+    <p class="section-num">03</p>
+    <h2>Fairway woods <span style="color:var(--muted); font-weight:400; font-size:1rem;">&middot; fairway wood head mesh</span></h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Model</th><th>Rarity</th><th>Price</th><th>Finish</th><th>Look for</th><th>Real-world reference</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="name-cell"><b>Loaner 3 Wood / 5 Wood</b><span class="id">loaner_3w / loaner_5w</span></td>
+          <td><span class="pill loaner">Loaner</span></td><td class="price">&mdash;</td>
+          <td><div class="swatches"><div class="sw" style="background:#6e7378"></div><div class="sw accent" style="background:#9aa1a6"></div></div></td>
+          <td class="tell">Plain grey, no branding, shiny worn grip.</td>
+          <td class="refs">Generic rental fairway wood.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Garage Sale 3 Wood</b><span class="id">garage_3w</span></td>
+          <td><span class="pill common">Common</span></td><td class="price">$14</td>
+          <td><div class="swatches"><div class="sw" style="background:#4a4f54"></div><div class="sw accent" style="background:#c7cbd0"></div></div></td>
+          <td class="tell">Dull grey-blue, grip tape peeking above the collar.</td>
+          <td class="refs">Any late-2000s box-store fairway wood.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Steelhead Classic 3W</b><span class="id">steelhead_classic</span></td>
+          <td><span class="pill uncommon">Uncommon</span></td><td class="price">$38</td>
+          <td><div class="swatches"><div class="sw" style="background:#3c5a6e"></div><div class="sw accent" style="background:#d9e2e8"></div></div></td>
+          <td class="tell">Steel-blue crown, chrome sole plate, wide flat "Hawkeye"-style sole.</td>
+          <td class="refs">
+            <a href="https://www.golfchannel.com/news/article-equipment-insider-sponsored-history-steelhead-fairway-wood" target="_blank">History of the Steelhead &ndash; Golf Channel</a>
+            <a href="https://www.amateurgolf.com/golf-equipment-reviews/drivers-fairways-hybrids/a-golf-industry-legend-callaway-steelhead-fairway-woods-19782" target="_blank">A golf industry legend</a>
+          </td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Tour Spoon 13&deg;</b><span class="id">tour_spoon</span></td>
+          <td><span class="pill rare">Rare</span></td><td class="price">$95</td>
+          <td><div class="swatches"><div class="sw" style="background:#1f2a30"></div><div class="sw accent" style="background:#e0b050"></div></div></td>
+          <td class="tell">Small compact head, matte black, gold weight port visible in the sole.</td>
+          <td class="refs"><a href="https://tfetimes.com/the-history-of-the-3-wood-golfs-original-long-range-utility-club/" target="_blank">History of the 3-wood / "spoon"</a></td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Lowball 5 Wood</b><span class="id">lowball_5w</span></td>
+          <td><span class="pill common">Common</span></td><td class="price">$12</td>
+          <td><div class="swatches"><div class="sw" style="background:#4a4f54"></div><div class="sw accent" style="background:#c7cbd0"></div></div></td>
+          <td class="tell">Chipped paint on the toe, worn crown decal.</td>
+          <td class="refs">Generic dated fairway wood.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Heirloom 5 Wood</b><span class="id">heirloom_5w</span></td>
+          <td><span class="pill epic">Epic</span></td><td class="price">$160</td>
+          <td><div class="swatches"><div class="sw" style="background:#5a2f1a"></div><div class="sw accent" style="background:#e8d3a2"></div></div></td>
+          <td class="tell">Laminated maple grain (lighter/darker strata), small burned maker's mark on the crown.</td>
+          <td class="refs"><a href="https://hickorygolfstore.com/blogs/news/the-timeless-craft-of-hickory-and-persimmon-golf-clubs-a-deep-dive-into-tradition-and-performance" target="_blank">Laminated persimmon &amp; maple woods</a></td>
+        </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="hybrids">
+    <p class="section-num">04</p>
+    <h2>Hybrids <span style="color:var(--muted); font-weight:400; font-size:1rem;">&middot; hybrid head mesh</span></h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Model</th><th>Rarity</th><th>Price</th><th>Finish</th><th>Look for</th><th>Real-world reference</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="name-cell"><b>Rescue Rookie 3H</b><span class="id">rescue_rookie</span></td>
+          <td><span class="pill common">Common</span></td><td class="price">$16</td>
+          <td><div class="swatches"><div class="sw" style="background:#3d4a55"></div><div class="sw accent" style="background:#cfd6db"></div></div></td>
+          <td class="tell">Slate blue, half-peeled loft sticker on the sole.</td>
+          <td class="refs">
+            <a href="https://www.golfsidekick.com/hybrids/what-is-a-rescue-club/" target="_blank">What is a rescue club?</a>
+          </td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Cloudcutter 4H</b><span class="id">cloudcutter_4h</span></td>
+          <td><span class="pill uncommon">Uncommon</span></td><td class="price">$36</td>
+          <td><div class="swatches"><div class="sw" style="background:#355a7a"></div><div class="sw accent" style="background:#dbe6f0"></div></div></td>
+          <td class="tell">Deep-face profile, faint white alignment line on the crown.</td>
+          <td class="refs"><a href="https://bloodline.golf/blogs/top-news/game-changers-in-golf-evolution-of-hybrid-golf-clubs" target="_blank">Evolution of hybrid clubs</a></td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Utility Iron 2U</b><span class="id">utility_2u</span></td>
+          <td><span class="pill rare">Rare</span></td><td class="price">$90</td>
+          <td><div class="swatches"><div class="sw" style="background:#2b2e31"></div><div class="sw accent" style="background:#d8d8d8"></div></div></td>
+          <td class="tell">Slimmer hollow-body driving-iron shape (smaller than the other two), visible hollow-body seam line, no loft number stamped &mdash; just "TOUR."</td>
+          <td class="refs">Modern hollow-body driving/utility irons (e.g. Titleist U-series, TaylorMade UDI-style clubs).</td>
+        </tr>
+      </tbody>
+    </table></div>
+    <p class="note" style="margin-top:16px;"><b>Modeling note:</b> Utility 2U reads best if it's modeled slightly narrower front-to-back than Rescue Rookie / Cloudcutter on the <i>same</i> hybrid mesh &mdash; achievable with a non-uniform scale in the material/transform rather than a second mesh, if you want that one model to feel like a driving iron rather than a rescue club.</p>
+  </section>
+
+  <section id="irons">
+    <p class="section-num">05</p>
+    <h2>Iron sets <span style="color:var(--muted); font-weight:400; font-size:1rem;">&middot; iron head mesh</span></h2>
+    <p class="intro">Each row is a full 4&ndash;9 set represented by one head. Two models (Blade Runner Forged, Tour Forged CB) want a thinner top-line than the game-improvement rows &mdash; a material-only distinction is fine; a slightly re-profiled variant of the same mesh is nicer if you have the budget.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Model</th><th>Rarity</th><th>Price</th><th>Finish</th><th>Look for</th><th>Real-world reference</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="name-cell"><b>Loaner Irons 4&ndash;9</b><span class="id">loaner_irons</span></td>
+          <td><span class="pill loaner">Loaner</span></td><td class="price">&mdash;</td>
+          <td><div class="swatches"><div class="sw" style="background:#7d8388"></div><div class="sw accent" style="background:#b3b9bd"></div></div></td>
+          <td class="tell">Mismatched brushed steel, one head visibly a different casting.</td>
+          <td class="refs">Generic rental cavity-back set.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Thrift Cavity Backs</b><span class="id">thrift_cavity_backs</span></td>
+          <td><span class="pill common">Common</span></td><td class="price">$45</td>
+          <td><div class="swatches"><div class="sw" style="background:#6f7a82"></div><div class="sw accent" style="background:#d2d8dc"></div></div></td>
+          <td class="tell">Chunky cavity back, dull satin, one odd-one-out head in a different finish.</td>
+          <td class="refs">Late-90s/2000s cast cavity-back game-improvement irons.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Mustard Muscle Backs</b><span class="id">mustard_muscle</span></td>
+          <td><span class="pill uncommon">Uncommon</span></td><td class="price">$70</td>
+          <td><div class="swatches"><div class="sw" style="background:#8a6a2a"></div><div class="sw accent" style="background:#e8d09a"></div></div></td>
+          <td class="tell">Forged muscle-back, warm bronze patina, yellowed ferrule ring at the hosel, small forged stamp.</td>
+          <td class="refs">
+            <a href="https://golfwrx.com/602872/greatest-mizuno-blade-irons-of-all-time/" target="_blank">Greatest Mizuno blade irons &ndash; GolfWRX</a>
+          </td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Game Improver XL</b><span class="id">game_improver_xl</span></td>
+          <td><span class="pill uncommon">Uncommon</span></td><td class="price">$80</td>
+          <td><div class="swatches"><div class="sw" style="background:#50606e"></div><div class="sw accent" style="background:#e6ecf0"></div></div></td>
+          <td class="tell">Very wide sole (widen the sole geometry itself here), bright chrome, oversized cavity badge.</td>
+          <td class="refs">Modern super game-improvement irons (wide-sole "SGI" category).</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Blade Runner Forged</b><span class="id">blade_runner_forged</span></td>
+          <td><span class="pill rare">Rare</span></td><td class="price">$190</td>
+          <td><div class="swatches"><div class="sw" style="background:#3a3f45"></div><div class="sw accent" style="background:#eaeaea"></div></div></td>
+          <td class="tell">Thin top-line, satin finish, raw (unpolished) leading edge, minimal branding.</td>
+          <td class="refs">
+            <a href="https://www.golfspan.com/mizuno-irons-by-year" target="_blank">Forged blade irons through the years</a>
+          </td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Tour Forged CB</b><span class="id">tour_forged_cb</span></td>
+          <td><span class="pill epic">Epic</span></td><td class="price">$380</td>
+          <td><div class="swatches"><div class="sw" style="background:#2a2d30"></div><div class="sw accent" style="background:#e8c25a"></div></div></td>
+          <td class="tell">Dark tour-van finish, faint hand-engraving under the grime, gold cavity accent.</td>
+          <td class="refs">Tour combo-set forged cavity backs (players' CB, not retail GI).</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Combo Set Prototype</b><span class="id">combo_proto</span></td>
+          <td><span class="pill legendary">Legendary</span></td><td class="price">$720</td>
+          <td><div class="swatches"><div class="sw" style="background:#1e2430"></div><div class="sw accent" style="background:#ff8c3a"></div></div></td>
+          <td class="tell">Deep midnight-blue, hand-stamped "PROTO" in the cavity, orange masking-tape loft marks.</td>
+          <td class="refs">Modern hollow-long / forged-short combo iron sets.</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="wedges">
+    <p class="section-num">06</p>
+    <h2>Wedges <span style="color:var(--muted); font-weight:400; font-size:1rem;">&middot; wedge head mesh</span></h2>
+    <p class="intro">The strongest real-world reference for this whole category: <a href="https://golf.com/gear/titleist-releases-new-vokey-sm7-wedges-in-raw-finish/" target="_blank">Vokey's "Raw" finish wedges</a>, unplated carbon steel that <a href="https://theleftrough.com/does-rust-add-spin-to-a-wedge/" target="_blank">rusts on purpose</a> &mdash; the exact logic behind Rusty Gap 52 and Raw Face 56 below.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Model</th><th>Rarity</th><th>Price</th><th>Finish</th><th>Look for</th><th>Real-world reference</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="name-cell"><b>Loaner PW / GW / SW / LW</b><span class="id">loaner_pw / gw / sw / lw</span></td>
+          <td><span class="pill loaner">Loaner</span></td><td class="price">&mdash;</td>
+          <td><div class="swatches"><div class="sw" style="background:#7d8388"></div><div class="sw accent" style="background:#b3b9bd"></div></div></td>
+          <td class="tell">Plain satin grey, half-worn grooves.</td>
+          <td class="refs">Generic rental wedge.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Grocery Store PW</b><span class="id">grocery_pw</span></td>
+          <td><span class="pill common">Common</span></td><td class="price">$8</td>
+          <td><div class="swatches"><div class="sw" style="background:#7d8388"></div><div class="sw accent" style="background:#c9cdd0"></div></div></td>
+          <td class="tell">Bright chrome, box-set look, tiny barcode sticker still on the shaft.</td>
+          <td class="refs">Boxed department-store club set wedge.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Bent Neck PW</b><span class="id">bent_neck_pw</span></td>
+          <td><span class="pill uncommon">Uncommon</span></td><td class="price">$30</td>
+          <td><div class="swatches"><div class="sw" style="background:#4d5559"></div><div class="sw accent" style="background:#dedede"></div></div></td>
+          <td class="tell">Gunmetal satin, loft hand-written on the hosel in paint pen.</td>
+          <td class="refs">Custom-fit bent wedge, tour-van style loft marking.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Rusty Gap 52&deg;</b><span class="id">rusty_gap_52</span></td>
+          <td><span class="pill uncommon">Uncommon</span></td><td class="price">$34</td>
+          <td><div class="swatches"><div class="sw" style="background:#7a4a2e"></div><div class="sw accent" style="background:#d9a06a"></div></div></td>
+          <td class="tell">Orange-brown surface rust over the whole head &mdash; the rust <i>is</i> the finish.</td>
+          <td class="refs"><a href="https://theleftrough.com/does-rust-add-spin-to-a-wedge/" target="_blank">Does rust add spin to a wedge?</a></td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Flop Master 60&deg;</b><span class="id">flop_master_60</span></td>
+          <td><span class="pill uncommon">Uncommon</span></td><td class="price">$28</td>
+          <td><div class="swatches"><div class="sw" style="background:#4d5559"></div><div class="sw accent" style="background:#dedede"></div></div></td>
+          <td class="tell">Wide sole/high bounce (widen sole geometry), sharp bright grooves, open-face look.</td>
+          <td class="refs">High-bounce lob wedge, wide-sole "flop" shape.</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Raw Face 56&deg;</b><span class="id">raw_face_56</span></td>
+          <td><span class="pill rare">Rare</span></td><td class="price">$85</td>
+          <td><div class="swatches"><div class="sw" style="background:#5c5c5c"></div><div class="sw accent" style="background:#b58f5a"></div></div></td>
+          <td class="tell">Unplated grey steel body, visibly milled face pattern, faint rust starting only on the face.</td>
+          <td class="refs">
+            <a href="https://golf.com/gear/titleist-releases-new-vokey-sm7-wedges-in-raw-finish/" target="_blank">Vokey SM7 Raw finish &ndash; GOLF.com</a>
+          </td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Tour Grind 58&deg;</b><span class="id">tour_grind_58</span></td>
+          <td><span class="pill epic">Epic</span></td><td class="price">$170</td>
+          <td><div class="swatches"><div class="sw" style="background:#2a2d30"></div><div class="sw accent" style="background:#e8c25a"></div></div></td>
+          <td class="tell">Dark tour finish, visible hand-ground heel relief, tiny stamped grind code.</td>
+          <td class="refs">Tour-van custom-ground wedge sole (grinder marks at the heel).</td>
+        </tr>
+        <tr>
+          <td class="name-cell"><b>Sand Shovel SW</b><span class="id">sand_shovel</span></td>
+          <td><span class="pill common">Common</span></td><td class="price">$10</td>
+          <td><div class="swatches"><div class="sw" style="background:#7d8388"></div><div class="sw accent" style="background:#c9cdd0"></div></div></td>
+          <td class="tell">Comically wide sole geometry (sole visibly wider than the face), plain chrome.</td>
+          <td class="refs">Vintage extra-wide-sole sand wedge.</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="putters">
+    <p class="section-num">07</p>
+    <h2>The putter collection <span style="color:var(--gold); font-weight:500; font-size:1rem;">&middot; nine unique meshes, design freely</span></h2>
+    <p class="intro">Every putter below is its own head mesh. The loaner is deliberately plain; the seven collectibles are the game's prestige objects and should look it in a cabinet.</p>
+
+    <div class="putter-grid">
+
+      <div class="putter-card" style="border-style:dashed; opacity:.9;">
+        <div class="putter-head">
+          <svg viewBox="0 0 100 84"><rect x="10" y="46" width="54" height="12" rx="2" fill="none" stroke="var(--muted)" stroke-width="2"/><line x1="46" y1="46" x2="88" y2="10" stroke="var(--muted)" stroke-width="2"/><line x1="72" y1="24" x2="88" y2="10" stroke="var(--muted)" stroke-width="5" stroke-linecap="round" opacity=".5"/></svg>
+          <div><h3>Loaner Putter</h3><p class="putter-sub">loaner_putter &middot; <span class="pill loaner">Loaner</span></p></div>
+        </div>
+        <p class="feel">"Dead and honest."</p>
+        <p class="desc">Plain straight blade, no offset, no alignment marks. Flat satin grey, bent shaft label peeling at the neck. Deliberately the least interesting object in the game.</p>
+        <p class="spec-line"><b>Ref:</b> any anonymous entry-level blade putter &mdash; no specific model, keep it generic.</p>
+      </div>
+
+      <div class="putter-card">
+        <div class="putter-head">
+          <svg viewBox="0 0 100 84"><rect x="10" y="46" width="52" height="12" rx="2" fill="none" stroke="#7a4a2e" stroke-width="2.4"/><line x1="34" y1="46" x2="34" y2="36" stroke="#7a4a2e" stroke-width="2"/><line x1="34" y1="36" x2="82" y2="10" stroke="#7a4a2e" stroke-width="2"/><line x1="66" y1="22" x2="82" y2="10" stroke="#7a4a2e" stroke-width="5" stroke-linecap="round" opacity=".5"/></svg>
+          <div><h3>Rustbelt Blade</h3><p class="putter-sub">rustbelt_blade &middot; <span class="pill common">Common</span></p></div>
+        </div>
+        <p class="feel">"Clicky and honest. You hear every putt."</p>
+        <p class="desc">A no-frills straight blade with a centre neck bend, like a working-class Wilson 8802. Pitted orange-brown surface rust following the exact contour of the sweet spot &mdash; the wear pattern is the tell, not random speckle.</p>
+        <p class="spec-line"><b>Material:</b> aged/rusted mild steel. <b>Dims:</b> ~90mm face length, thin ~8mm blade depth.</p>
+        <div class="ref-row">
+          <a class="ref-chip" href="https://thebrassie.com/8802-putter/" target="_blank">Wilson 8802 blade &ndash; The Brassie</a>
+          <a class="ref-chip" href="https://www.hookedongolfblog.com/2014/11/18/wilson-8802-putter-review" target="_blank">8802 review</a>
+        </div>
+      </div>
+
+      <div class="putter-card">
+        <div class="putter-head">
+          <svg viewBox="0 0 100 84"><path d="M10 44 L64 44 L68 52 L68 60 L48 60 L48 66 L10 66 Z" fill="none" stroke="#9a7a2e" stroke-width="2.4" stroke-linejoin="round"/><line x1="58" y1="40" x2="86" y2="10" stroke="#9a7a2e" stroke-width="2"/><line x1="72" y1="22" x2="86" y2="10" stroke="#9a7a2e" stroke-width="5" stroke-linecap="round" opacity=".5"/></svg>
+          <div><h3>Brass Relic</h3><p class="putter-sub">brass_relic &middot; <span class="pill uncommon">Uncommon</span></p></div>
+        </div>
+        <p class="feel">"Heavy and soft. Rolls the ball early."</p>
+        <p class="desc">A rounded flanged-blade head with a small tail extension behind a shaft set closer to centre &mdash; the classic mid-century "flange blade" shape. Solid cast brass, evenly darkened patina all over, deep green oxidation pooled in the flange corners and the cavity.</p>
+        <p class="spec-line"><b>Material:</b> solid brass, uneven all-over patina + verdigris in recesses. <b>Dims:</b> ~95mm face length, rounded toe and heel.</p>
+        <div class="ref-row">
+          <a class="ref-chip" href="https://retroandraregolf.com/the-history-of-the-bullseye-putter/" target="_blank">History of the Bulls Eye putter</a>
+          <a class="ref-chip" href="https://thebrassie.com/bulls-eye-putter/" target="_blank">Bulls Eye putter &ndash; The Brassie</a>
+        </div>
+      </div>
+
+      <div class="putter-card">
+        <div class="putter-head">
+          <svg viewBox="0 0 100 84"><ellipse cx="34" cy="54" rx="26" ry="13" fill="none" stroke="#1a1c22" stroke-width="2.4"/><line x1="12" y1="46" x2="56" y2="46" stroke="#f2f2f2" stroke-width="1.6"/><line x1="12" y1="62" x2="56" y2="62" stroke="#f2f2f2" stroke-width="1.6"/><line x1="52" y1="44" x2="84" y2="10" stroke="#1a1c22" stroke-width="2"/><line x1="68" y1="22" x2="84" y2="10" stroke="#1a1c22" stroke-width="5" stroke-linecap="round" opacity=".5"/></svg>
+          <div><h3>Midnight Mallet</h3><p class="putter-sub">midnight_mallet &middot; <span class="pill rare">Rare</span></p></div>
+        </div>
+        <p class="feel">"Muted thud. Hard to twist, easy to trust."</p>
+        <p class="desc">A rounded, high-MOI mallet body &mdash; oval from above, deep from face to back for perimeter weighting. Matte black finish with two crisp parallel white alignment lines running the full length of the top, plus a short centre tick. No wings; keep the outline smooth and rounded, not angular.</p>
+        <p class="spec-line"><b>Material:</b> matte black anodized/PVD, gloss-white inlay lines. <b>Dims:</b> ~120mm long, ~70mm wide, deep profile.</p>
+        <div class="ref-row">
+          <a class="ref-chip" href="https://www.taylormadegolf.com/Spider-Mallet-2.0/DW-WZ194.html" target="_blank">Spider Mallet 2.0 &ndash; TaylorMade</a>
+          <a class="ref-chip" href="https://www.clickgolf.co.uk/blog/the-evolution-of-taylormade-spider-putters.html" target="_blank">Evolution of the Spider</a>
+        </div>
+      </div>
+
+      <div class="putter-card">
+        <div class="putter-head">
+          <svg viewBox="0 0 100 84"><path d="M8 48 L14 48 L14 42 L58 42 L58 48 L64 48 L66 66 L8 66 Z" fill="none" stroke="#b0603a" stroke-width="2.4" stroke-linejoin="round"/><line x1="54" y1="40" x2="84" y2="10" stroke="#b0603a" stroke-width="2"/><line x1="70" y1="22" x2="84" y2="10" stroke="#b0603a" stroke-width="5" stroke-linecap="round" opacity=".5"/></svg>
+          <div><h3>Copper Classic</h3><p class="putter-sub">copper_classic &middot; <span class="pill epic">Epic</span></p></div>
+        </div>
+        <p class="feel">"Warm click, glassy release."</p>
+        <p class="desc">A precise heel-toe weighted blade &mdash; a hollowed centre section with distinct weight blocks left at the heel and toe, plumber's-neck hosel. This is the "classic Anser silhouette" done in solid warm copper: bright polished copper crown, satin copper face, no plating anywhere so it never shows wear-through.</p>
+        <p class="spec-line"><b>Material:</b> solid copper, polished top / satin face. <b>Dims:</b> ~100mm face length, visible milled heel and toe weight pads.</p>
+        <div class="ref-row">
+          <a class="ref-chip" href="https://mygolfspy.com/news-opinion/historys-mysteries-the-ping-anser/" target="_blank">History of the PING Anser</a>
+          <a class="ref-chip" href="https://masterofthegreens.com/ping-anser-putter-is-it-the-most-iconic/" target="_blank">The Anser, most iconic putter?</a>
+        </div>
+      </div>
+
+      <div class="putter-card">
+        <div class="putter-head">
+          <svg viewBox="0 0 100 84"><path d="M14 50 L54 50 L58 40 L64 40 L60 56 L64 64 L58 64 L54 58 L14 58 Z" fill="none" stroke="#6e7378" stroke-width="2.2" stroke-linejoin="round"/><line x1="34" y1="40" x2="34" y2="50" stroke="#3a8ad8" stroke-width="3"/><line x1="52" y1="38" x2="82" y2="10" stroke="#6e7378" stroke-width="2"/><line x1="68" y1="22" x2="82" y2="10" stroke="#6e7378" stroke-width="5" stroke-linecap="round" opacity=".5"/></svg>
+          <div><h3>Tourline Prototype</h3><p class="putter-sub">tourline_prototype &middot; <span class="pill epic">Epic</span></p></div>
+        </div>
+        <p class="feel">"Firm and stable, oddly quiet."</p>
+        <p class="desc">A raw-milled winged mallet: two small angular wing pontoons splayed off the back corners of a squared body, unfinished bead-blasted steel with no paint fill except one bold blue sightline down the centre. No brand mark, no model name &mdash; if anything, a small handwritten number on the sole.</p>
+        <p class="spec-line"><b>Material:</b> raw bead-blasted steel, single blue paint-fill line. <b>Dims:</b> ~115mm wide across the wings.</p>
+        <div class="ref-row">
+          <a class="ref-chip" href="https://www.taylormadegolf.com/Spider-Tour-Putter/DW-TC927.html" target="_blank">Spider Tour (winged prototype lineage)</a>
+        </div>
+      </div>
+
+      <div class="putter-card">
+        <div class="putter-head">
+          <svg viewBox="0 0 100 84"><rect x="10" y="46" width="56" height="13" rx="2" fill="none" stroke="#101214" stroke-width="2.4"/><line x1="10" y1="53" x2="66" y2="53" stroke="#d8302a" stroke-width="2"/><circle cx="52" cy="53" r="2.4" fill="#d8302a"/><line x1="48" y1="44" x2="86" y2="10" stroke="#101214" stroke-width="2"/><line x1="72" y1="22" x2="86" y2="10" stroke="#101214" stroke-width="5" stroke-linecap="round" opacity=".5"/></svg>
+          <div><h3>Blackout Tour Issue</h3><p class="putter-sub">blackout_tour_issue &middot; <span class="pill legendary">Legendary</span></p></div>
+        </div>
+        <p class="feel">"Dense and dead-center. Nothing rattles."</p>
+        <p class="desc">A precision tour blade, longer and heavier-looking than the loaner: deep milled face pattern, a full-length red sightline, a small removable weight port near the toe (a tour weight-kit detail). All-matte black finish, deliberately unmarked except a circular stamp hidden under where the grip sits.</p>
+        <p class="spec-line"><b>Material:</b> matte black PVD/DLC, red paint-fill sightline, one visible weight-port screw.</p>
+        <div class="ref-row">
+          <a class="ref-chip" href="https://drivingrangeheroes.com/the-mighty-scotty-cameron-circle-t/" target="_blank">What "Circle T" means</a>
+          <a class="ref-chip" href="https://tourputtergallery.com/product-category/scotty-cameron/tour-putters/" target="_blank">Tour-issue putter gallery</a>
+        </div>
+      </div>
+
+      <div class="putter-card" style="border:2px solid var(--r-mythic); background:linear-gradient(180deg, var(--card), var(--gold-soft));">
+        <div class="putter-head">
+          <svg viewBox="0 0 100 84"><rect x="10" y="46" width="56" height="13" rx="2" fill="none" stroke="#c9cdd2" stroke-width="2.6"/><circle cx="26" cy="52.5" r="2.6" fill="#d8302a"/><circle cx="38" cy="52.5" r="2.6" fill="#d8302a"/><circle cx="50" cy="52.5" r="2.6" fill="#d8302a"/><line x1="48" y1="44" x2="86" y2="10" stroke="#c9cdd2" stroke-width="2"/><line x1="72" y1="22" x2="86" y2="10" stroke="#c9cdd2" stroke-width="5" stroke-linecap="round" opacity=".5"/></svg>
+          <div><h3>Scotty Cameron &mdash; The Grail</h3><p class="putter-sub">scotty_grail &middot; <span class="pill mythic">Mythic</span></p></div>
+        </div>
+        <p class="feel">"That sound. Soft, solid, unmistakable."</p>
+        <p class="desc">The Newport silhouette: a compact, slightly flanged blade with a plumber's neck. Bright chrome/steel finish, deeply milled face, and the signature detail &mdash; three small cherry-red dots inlaid in a row on the cavity. Include a matching fitted headcover as a display prop; this is the one entry that should look expensive from across the room.</p>
+        <p class="spec-line"><b>Material:</b> polished 303 stainless look, milled face, three red-lacquer dot inlays. <b>Dims:</b> ~90mm face length, Newport proportions.</p>
+        <div class="ref-row">
+          <a class="ref-chip" href="https://golf.com/gear/putters/tiger-woods-scotty-cameron-newport-2-red-dots/" target="_blank">The real red dots &ndash; GOLF.com</a>
+          <a class="ref-chip" href="https://drivingrangeheroes.com/the-mighty-scotty-cameron-circle-t/" target="_blank">Circle T explained</a>
+          <a class="ref-chip" href="https://tourputtergallery.com/product-category/scotty-cameron/tour-putters/" target="_blank">Tour putter gallery</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="admin">
+    <p class="section-num">08</p>
+    <h2>Admin sandbox <span style="color:var(--warn); font-weight:500; font-size:1rem;">&middot; never shown to normal players</span></h2>
+    <p class="intro">Developer-only novelty equipment. One reuses a shared mesh with a loud skin; the other is a from-scratch object, since nothing in golf looks like it.</p>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px;">
+      <div class="warn-card">
+        <span class="warn-tag">Driver mesh &middot; skin only</span>
+        <h3>Grenade Prototype Driver</h3>
+        <p class="putter-sub" style="margin-bottom:10px;">grenade_driver &middot; <span class="pill mythic">Mythic (illegal)</span></p>
+        <p class="desc">Same driver head mesh as every other driver &mdash; the joke is entirely in the texture. Olive-drab crown with a laser-etched cross-hatch grenade-body pattern, a yellow-ringed "pin" decal near the hosel standing in for a safety pin, and a stencilled ordnance-style serial number on the sole. This is a direct nod to a real novelty club.</p>
+        <div class="ref-row">
+          <a class="ref-chip" href="https://www.bombtechgolf.com/blogs/news/new-bombtech-golf-driver-review" target="_blank">BombTech Grenade driver review</a>
+          <a class="ref-chip" href="https://thesandtrap.com/b/clubs/bombtech_grenade_driver_review" target="_blank">Independent Grenade review</a>
+        </div>
+      </div>
+      <div class="warn-card">
+        <span class="warn-tag">Unique mesh &middot; no real-world twin</span>
+        <h3>Auto-Putt 9000</h3>
+        <p class="putter-sub" style="margin-bottom:10px;">auto_putt_9000 &middot; <span class="pill mythic">Mythic (illegal)</span></p>
+        <p class="desc">The one item with nothing to reference in golf &mdash; go full gadget instead. A rounded, low mallet-sized chassis in gunmetal with a small teal-glass sensor dome on top (the "eye" that reads the green), a thin LED strip along the top-line that lights up teal when it locks a line, and a stubby, slightly oversized neck to hint at hidden servo motors. No alignment lines &mdash; it doesn't need your help lining up.</p>
+        <div class="ref-row">
+          <span class="ref-chip" style="opacity:.7;">No golf reference &mdash; borrow from consumer robotics/gadget design language</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  Compiled for the OpenFairway Golf equipment pipeline. Rarity colors and prices are pulled directly from <code>data/economy.json</code> / <code>data/club_catalog.json</code> so this stays in sync with the live game data. External links are reference material for silhouette and finish only &mdash; no brand names, logos, or trademarks should appear in the shipped assets.
+</footer>

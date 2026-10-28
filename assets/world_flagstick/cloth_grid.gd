@@ -15,14 +15,15 @@ static func point(column: int, row: int) -> Vector3:
 	return Vector3(HOIST_X + WIDTH * u, BOTTOM + HEIGHT * v,
 		0.008 * sin(u * TAU * 1.5 + v * 0.6) * u)
 
-static func make_mesh() -> ArrayMesh:
+## `scale`: the flag at that size (hoist foot at the pole's foot), for a smaller pin.
+static func make_mesh(scale: float = 1.0) -> ArrayMesh:
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var uv := PackedVector2Array()
 	var indices := PackedInt32Array()
 	for row in range(ROWS + 1):
 		for column in range(COLUMNS + 1):
-			vertices.append(point(column, row))
+			vertices.append(point(column, row) * scale)
 			normals.append(Vector3.BACK)
 			uv.append(Vector2(float(column) / COLUMNS, float(row) / ROWS))
 	for row in range(ROWS):

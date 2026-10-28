@@ -16,9 +16,10 @@ const COL_GREEN_B := Color(0.47, 0.56, 0.23)
 const COL_FIRST_CUT := Color(0.30, 0.425, 0.13)
 const COL_ROUGH := Color(0.07, 0.20, 0.065)
 const COL_ROUGH_DRY := Color(0.09, 0.23, 0.075)
-const COL_BUNKER := Color(0.94, 0.94, 0.90)
-const COL_TEE_A := Color(0.35, 0.48, 0.15)
-const COL_TEE_B := Color(0.34, 0.47, 0.145)
+# White sand, but not paper-white: below ~0.9 the bowl's slopes and the lip still read in sun.
+const COL_BUNKER := Color(0.85, 0.85, 0.81)
+const COL_TEE_A := COL_GREEN_A
+const COL_TEE_B := COL_GREEN_B
 const COL_WATERBED := Color(0.19, 0.24, 0.17)
 const COL_PATH := Color(0.55, 0.55, 0.52)
 const COL_TREES := Color(0.22, 0.38, 0.14)
@@ -31,8 +32,29 @@ const TURF_AO := "res://assets/textures/tiles/fairway_pbr_ao.png"
 const GREEN_CHECK := 2.0
 const SAND_TEXTURE := "res://assets/textures/tiles/sand_tile.png"
 const SAND_MEAN := 0.781  # its mean luminance, so sand_color/sand_color2 keep their brightness
-const STRAW_TEXTURE := "res://assets/textures/tiles/pine_straw_tile.png"  # tools/make_pine_straw.py
-const STRAW_MEAN := 0.356
+const STRAW_TEXTURE := "res://assets/textures/tiles/woodland_ground/grass_005_albedo.png"
+const STRAW_MEAN := 1.0
+const STRAW_TINT := Color(0.59, 0.53, 0.39)  # subtle warm brick tone under trees
+## Supplied Grass Textures pack: 009 rough, 002 first cut, 001 fringe/tees;
+## 005 supplies leaf litter under trees. See tools/import_woodland_ground.py.
+const ROUGH_VARIANT_DIR := "res://assets/textures/tiles/woodland_ground/"
+## 009 alone read as bare sand/dirt once tiled across the whole rough at its
+## natural (pale) brightness -- reported by the user as "the rough texture is
+## fucked up" -- but the user then asked for 009 specifically, tinted to a
+## precise dark green (#032b1a) rather than swapped for a different variant.
+const ROUGH_VARIANTS := ["009"]
+const ROUGH_MEAN := 1.0  # preserve source color; no luminance normalization
+const ROUGH_TEXTURE := ROUGH_VARIANT_DIR + "grass_009_albedo.png"
+## User-specified target colour for the rough.
+const ROUGH_COLOR := Color("053b24")
+## Compensate for Grass009's mean albedo (0.567, 0.571, 0.540, measured
+## directly from the PNG) so its base color matches ROUGH_COLOR.
+const ROUGH_TINT := Color(0.03458, 0.40537, 0.26161)
+const FIRST_CUT_TINT := Color(0.42, 0.53, 0.28)
+## Fringe keeps the fairway texture in a slightly lighter shade.
+const FRINGE_LIGHTEN := 0.06
+const FRINGE_TEXTURE := ROUGH_VARIANT_DIR + "grass_001_albedo.png"
+const FIRST_CUT_TEXTURE := ROUGH_VARIANT_DIR + "grass_002_albedo.png"
 
 
 static func terrain_material(layout: CourseLayout) -> ShaderMaterial:
@@ -54,17 +76,49 @@ static func terrain_material(layout: CourseLayout) -> ShaderMaterial:
 	mat.set_shader_parameter("sdf_size", layout.sdf_texture_size())
 	mat.set_shader_parameter("green_color_a", COL_GREEN_A)
 	mat.set_shader_parameter("green_color_b", COL_GREEN_B)
+	mat.set_shader_parameter("stripe_width", STRIPE_WIDTH)
 	mat.set_shader_parameter("fringe_color", COL_FIRST_CUT)
 	mat.set_shader_parameter("sand_color", COL_BUNKER)
-	mat.set_shader_parameter("sand_color2", Color(0.87, 0.885, 0.855))
+	mat.set_shader_parameter("sand_color2", Color(0.79, 0.80, 0.77))
+	mat.set_shader_parameter("sand_grain_normal", _noise_texture(0.12, 11, true, 2.0))
 	mat.set_shader_parameter("waterbed_color", COL_WATERBED)
 	mat.set_shader_parameter("first_cut_width", CourseLayout.FIRST_CUT_WIDTH)
 	mat.set_shader_parameter("fringe_width", CourseLayout.FRINGE_WIDTH)
-	if ResourceLoader.exists("res://assets/textures/tiles/rough_tile.png"):
-		mat.set_shader_parameter("rough_texture", load("res://assets/textures/tiles/rough_tile.png"))
-		mat.set_shader_parameter("rough_mean", 0.2)
+	for water: WaterHazard in layout.water_hazards:
+		if water.hazard_name == "White Pond":
+			var bank_bounds := water.bounds.merge(layout.greens[10].bounds).grow(3.0)
+			mat.set_shader_parameter("greenside_bank_enabled", true)
+			mat.set_shader_parameter("greenside_bank_rect", Vector4(bank_bounds.position.x,bank_bounds.position.y,bank_bounds.end.x,bank_bounds.end.y))
+	var rough_albedo_arr := _build_rough_array("albedo")
+	if rough_albedo_arr != null:
+		mat.set_shader_parameter("rough_texture_array", rough_albedo_arr)
+		mat.set_shader_parameter("rough_normal_array", _build_rough_array("normal"))
+		mat.set_shader_parameter("rough_roughness_array", _build_rough_array("roughness"))
+		mat.set_shader_parameter("rough_ao_array", _build_rough_array("ao"))
+		mat.set_shader_parameter("rough_layer_count", ROUGH_VARIANTS.size())
+		mat.set_shader_parameter("rough_mean", ROUGH_MEAN)
+		mat.set_shader_parameter("rough_scale", 1.0)
+		mat.set_shader_parameter("rough_tint", ROUGH_TINT)
+		mat.set_shader_parameter("rough_variant_noise", _noise_texture(0.025, 13))
+	mat.set_shader_parameter("fringe_texture", load(FRINGE_TEXTURE))
+	mat.set_shader_parameter("first_cut_texture", load(FIRST_CUT_TEXTURE))
+	mat.set_shader_parameter("first_cut_tint", FIRST_CUT_TINT)
+	mat.set_shader_parameter("fringe_turf_color", COL_FAIRWAY_B.lightened(FRINGE_LIGHTEN))
 	if ResourceLoader.exists("res://assets/textures/tiles/green_tile.png"):
-		mat.set_shader_parameter("green_texture", load("res://assets/textures/tiles/green_tile.png"))
+		var green_texture: Texture2D = load("res://assets/textures/tiles/green_tile.png")
+		mat.set_shader_parameter("green_texture", green_texture)
+		# Match the green's average in linear light without changing its texture.
+		var green_image := green_texture.get_image()
+		if green_image.is_compressed():
+			green_image.decompress()
+		var average := Vector3.ZERO
+		var count := 0
+		for y in range(0, green_image.get_height(), maxi(1, green_image.get_height() / 64)):
+			for x in range(0, green_image.get_width(), maxi(1, green_image.get_width() / 64)):
+				var color := green_image.get_pixel(x, y).srgb_to_linear()
+				average += Vector3(color.r, color.g, color.b)
+				count += 1
+		mat.set_shader_parameter("green_texture_average", average / count)
 		mat.set_shader_parameter("green_mean", 0.72)
 	if ResourceLoader.exists(TURF_TEXTURE):
 		mat.set_shader_parameter("turf_texture", load(TURF_TEXTURE))
@@ -93,7 +147,8 @@ static func terrain_material(layout: CourseLayout) -> ShaderMaterial:
 	if ResourceLoader.exists(STRAW_TEXTURE):
 		mat.set_shader_parameter("straw_texture", load(STRAW_TEXTURE))
 		mat.set_shader_parameter("straw_mean", STRAW_MEAN)
-		mat.set_shader_parameter("straw_scale", 0.5)
+		mat.set_shader_parameter("straw_scale", 0.8)
+		mat.set_shader_parameter("straw_color", STRAW_TINT)
 	return mat
 
 
@@ -158,9 +213,18 @@ static func _needs_fine_mesh(layout: CourseLayout, rect: Rect2) -> bool:
 static func build_tile(layout: CourseLayout, tx: int, tz: int, mat: Material) -> MeshInstance3D:
 	var b := layout.bounds
 	var tile_rect := Rect2(b.position.x + tx * TILE, b.position.y + tz * TILE, TILE, TILE)
+	var tile: MeshInstance3D
 	if _needs_fine_mesh(layout, tile_rect):
-		return _build_tile_fine(layout, tx, tz, mat, tile_rect)
-	return _build_tile_cached(layout, tx, tz, mat)
+		tile = _build_tile_fine(layout, tx, tz, mat, tile_rect)
+	else:
+		tile = _build_tile_cached(layout, tx, tz, mat)
+	if tile != null:
+		for hole in layout.holes:
+			var cup := Vector2(hole.cup.x, hole.cup.z)
+			if tile_rect.grow(GolfBall.CUP_RADIUS).has_point(cup):
+				tile.mesh = TerrainCupCutout.cut(tile.mesh, cup, GolfBall.CUP_RADIUS)
+		TurfShells.add_to_tile(tile, mat)
+	return tile
 
 
 static func _build_tile_cached(layout: CourseLayout, tx: int, tz: int, mat: Material) -> MeshInstance3D:
@@ -192,7 +256,7 @@ static func _build_tile_cached(layout: CourseLayout, tx: int, tz: int, mat: Mate
 			var s := layout.cache_surface[i]
 			var col := _color_for(layout, x, z, s, layout.cache_along[i])
 			# alpha = rough weight so the shader can swap in the rough texture
-			var turf_d := layout.cache_turf[i]
+			var turf_d := layout.cache_turf[i] if layout.cache_tree_island[i] >= 0.0 else 1.0e9
 			col.a = clampf((turf_d - CourseLayout.FIRST_CUT_WIDTH) / 4.0, 0.0, 1.0) if s == PhysicsEnums.SurfaceType.ROUGH else 0.0
 			var hl := layout.cache_height[iz * nx + maxi(ix - 1, 0)]
 			var hr := layout.cache_height[iz * nx + mini(ix + 1, nx - 1)]
@@ -200,7 +264,7 @@ static func _build_tile_cached(layout: CourseLayout, tx: int, tz: int, mat: Mate
 			var hu := layout.cache_height[mini(iz + 1, nz - 1) * nx + ix]
 			st.set_normal(Vector3(hl - hr, 2.0 * res, hd - hu).normalized())
 			st.set_color(col.srgb_to_linear())
-			st.set_uv(Vector2(x, z) * 0.05)
+			st.set_uv(Vector2(layout.cache_along[i], 0.0))  # terrain shader: mowing stripes
 			st.add_vertex(Vector3(x, layout.cache_height[i], z))
 	for iz in range(z1 - z0):
 		for ix in range(x1 - x0):
@@ -258,7 +322,7 @@ static func _build_tile_fine(layout: CourseLayout, tx: int, tz: int, mat: Materi
 			var idx := iz * n + ix
 			var s: int = surfaces[idx]
 			var col := _color_for(layout, x, z, s, alongs[idx])
-			var turf_d := layout.cached_turf(Vector2(x, z))
+			var turf_d := layout.cached_turf(Vector2(x, z)) if layout.cached_tree_island(Vector2(x, z)) >= 0.0 else 1.0e9
 			col.a = clampf((turf_d - CourseLayout.FIRST_CUT_WIDTH) / 4.0, 0.0, 1.0) if s == PhysicsEnums.SurfaceType.ROUGH else 0.0
 			var hl := heights[iz * n + maxi(ix - 1, 0)]
 			var hr := heights[iz * n + mini(ix + 1, n - 1)]
@@ -266,7 +330,7 @@ static func _build_tile_fine(layout: CourseLayout, tx: int, tz: int, mat: Materi
 			var hu := heights[mini(iz + 1, n - 1) * n + ix]
 			st.set_normal(Vector3(hl - hr, 2.0 * res, hd - hu).normalized())
 			st.set_color(col.srgb_to_linear())
-			st.set_uv(Vector2(x, z) * 0.05)
+			st.set_uv(Vector2(alongs[idx], 0.0))  # terrain shader: mowing stripes
 			st.add_vertex(Vector3(x, heights[idx], z))
 	for iz in range(n - 1):
 		for ix in range(n - 1):
@@ -311,6 +375,37 @@ static func rebuild_tiles(layout: CourseLayout, root: Node3D, rect: Rect2) -> vo
 				root.add_child(tile)
 
 
+## Builds one Texture2DArray layer per ROUGH_VARIANTS entry for the given map
+## suffix (albedo/normal/roughness/ao). Returns null if any file is missing so
+## the caller can skip the whole array uniform rather than bind a partial one.
+static var _rough_array_cache: Dictionary = {}
+
+
+static func _build_rough_array(map_suffix: String) -> Texture2DArray:
+	if _rough_array_cache.has(map_suffix):
+		return _rough_array_cache[map_suffix]
+	var images: Array[Image] = []
+	for v in ROUGH_VARIANTS:
+		var path := "%sgrass_%s_%s.png" % [ROUGH_VARIANT_DIR, v, map_suffix]
+		if not ResourceLoader.exists(path):
+			return null
+		var tex: Texture2D = load(path)
+		if tex == null:
+			return null
+		var image := tex.get_image()
+		if image.is_compressed():
+			image.decompress()
+		image.convert(Image.FORMAT_RGBA8)
+		if not image.has_mipmaps():
+			image.generate_mipmaps()
+		images.append(image)
+	var arr := Texture2DArray.new()
+	if arr.create_from_images(images) != OK:
+		return null
+	_rough_array_cache[map_suffix] = arr
+	return arr
+
+
 static func _noise_texture(frequency: float, seed_v: int, as_normal: bool = false, bump: float = 8.0) -> NoiseTexture2D:
 	var n := FastNoiseLite.new()
 	n.seed = seed_v
@@ -332,6 +427,10 @@ static func _noise_texture(frequency: float, seed_v: int, as_normal: bool = fals
 static func _color_for(layout: CourseLayout, x: float, z: float, s: int, along: float) -> Color:
 	var xz := Vector2(x, z)
 	match s:
+		CourseLayout.SURFACE_TREE_PATCH:
+			# Tree islands are plain rough under their trees (no first cut).
+			var tn := (layout.detail_noise.get_noise_2d(x * 0.5, z * 0.5) + 1.0) * 0.5
+			return COL_ROUGH.lerp(COL_ROUGH_DRY, tn)
 		PhysicsEnums.SurfaceType.FAIRWAY:
 			var stripe := int(floor(along / STRIPE_WIDTH)) % 2 == 0
 			return COL_FAIRWAY_A if stripe else COL_FAIRWAY_B
@@ -352,7 +451,7 @@ static func _color_for(layout: CourseLayout, x: float, z: float, s: int, along: 
 			return COL_FIRST_CUT.lerp(COL_ROUGH, smoothstep(CourseLayout.FIRST_CUT_WIDTH, CourseLayout.FIRST_CUT_WIDTH + 4.0, turf))
 		_:
 			var t := (layout.detail_noise.get_noise_2d(x * 0.5, z * 0.5) + 1.0) * 0.5
-			var edge := smoothstep(CourseLayout.FIRST_CUT_WIDTH, CourseLayout.FIRST_CUT_WIDTH + 4.0, layout.cached_turf(xz))
+			var edge := 1.0 if layout.cached_tree_island(xz) < 0.0 else smoothstep(CourseLayout.FIRST_CUT_WIDTH, CourseLayout.FIRST_CUT_WIDTH + 4.0, layout.cached_turf(xz))
 			var rough := COL_ROUGH.lerp(COL_ROUGH_DRY, t)
 			return COL_FIRST_CUT.lerp(rough, edge)
 

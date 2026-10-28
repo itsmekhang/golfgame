@@ -1,0 +1,46 @@
+{
+  "validator": "Export geometry, coordinate-frame and original-shaft measurements",
+  "units": "metres",
+  "import_scale": 1,
+  "mesh_nodes": 1,
+  "triangles": 71624,
+  "materials": 10,
+  "images_embedded": true,
+  "texture_image_count": 3,
+  "all_primitives_have_uv_normals_and_tangents": true,
+  "contains_camera_or_animation": false,
+  "overall_bounds_metres": {
+    "min": [
+      -0.0659974068403244,
+      0.0,
+      -0.03760800510644913
+    ],
+    "max": [
+      0.06507841497659683,
+      0.08849629014730453,
+      0.07500000298023224
+    ]
+  },
+  "sole_ground_error_metres": 0.0,
+  "body_dimensions_mm_xyz": [
+    126.07841566205025,
+    58.99999861139804,
+    112.60826885700226
+  ],
+  "shaft_socket_position_error_m": 0.0,
+  "shaft_socket_direction_error": 7.641357081717313e-08,
+  "original_driver_tip_diameter_mm": 9.199999809265137,
+  "bore_vertex_diameter_mm": 9.400227010049935,
+  "bore_wall_vertices_measured": 546,
+  "shaft_lie_degrees": 60.99999945442355,
+  "face_center_loft_degrees_measured": 10.49988930206394,
+  "bulge_radius_mm_measured": 309.8999133706455,
+  "roll_radius_mm_measured": 279.8699965285519,
+  "face_quadratic_fit_max_error_m": 3.995524372715081e-06,
+  "attachment_origin_is_zero": true,
+  "attachment_positive_y_is_shaft_axis": true,
+  "attachment_triangle_count_matches": true,
+  "attachment_geometry_max_error_m": 8.33000246558413e-09,
+  "open_or_nonmanifold_edges_in_source": 0,
+  "all_checks_passed": true
+}

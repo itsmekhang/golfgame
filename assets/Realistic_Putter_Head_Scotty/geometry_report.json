@@ -1,0 +1,27 @@
+{
+  "body_dimensions_mm_xyz": [
+    114.0,
+    28.0,
+    40.0
+  ],
+  "units": "metres",
+  "triangle_count": 5812,
+  "mesh_vertex_count": 2910,
+  "nonmanifold_edges": 0,
+  "connected_components_including_recessed_sightline": 2,
+  "shaft_origin_metres": [
+    -0.04100000113248825,
+    0.07000000029802322,
+    -0.01600000075995922
+  ],
+  "shaft_axis": [
+    -0.32556816935539246,
+    0.9455185532569885,
+    0.0
+  ],
+  "socket_bore_diameter_mm": 9.4,
+  "original_shaft_tip_diameter_mm": 9.2,
+  "face_loft_degrees": 3.5,
+  "lie_degrees": 71,
+  "head_only": true
+}

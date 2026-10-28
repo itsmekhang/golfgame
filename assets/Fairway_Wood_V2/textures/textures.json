@@ -1,0 +1,59 @@
+{
+  "box_mm": [
+    -66.0,
+    52.0,
+    -8.0,
+    100.0
+  ],
+  "mark": {
+    "centre": [
+      -41.0,
+      22.0
+    ],
+    "length": 14.0,
+    "width": 6.6,
+    "turn": 90.0
+  },
+  "loaner_3w": {
+    "crown": "loaner_3w_crown.png",
+    "crown_rough": "loaner_3w_crown_rough.png",
+    "sole": "loaner_3w_sole.png",
+    "sole_rough": "loaner_3w_sole_rough.png"
+  },
+  "loaner_5w": {
+    "crown": "loaner_5w_crown.png",
+    "crown_rough": "loaner_5w_crown_rough.png",
+    "sole": "loaner_5w_sole.png",
+    "sole_rough": "loaner_5w_sole_rough.png"
+  },
+  "garage_3w": {
+    "crown": "garage_3w_crown.png",
+    "crown_rough": "garage_3w_crown_rough.png",
+    "sole": "garage_3w_sole.png",
+    "sole_rough": "garage_3w_sole_rough.png"
+  },
+  "lowball_5w": {
+    "crown": "lowball_5w_crown.png",
+    "crown_rough": "lowball_5w_crown_rough.png",
+    "sole": "lowball_5w_sole.png",
+    "sole_rough": "lowball_5w_sole_rough.png"
+  },
+  "tour_spoon": {
+    "crown": "tour_spoon_crown.png",
+    "crown_rough": "tour_spoon_crown_rough.png",
+    "sole": "tour_spoon_sole.png",
+    "sole_rough": "tour_spoon_sole_rough.png"
+  },
+  "steelhead_classic": {
+    "crown": "steelhead_classic_crown.png",
+    "crown_rough": "steelhead_classic_crown_rough.png",
+    "sole": "steelhead_classic_sole.png",
+    "sole_rough": "steelhead_classic_sole_rough.png"
+  },
+  "heirloom_5w": {
+    "crown": "heirloom_5w_crown.png",
+    "crown_rough": "heirloom_5w_crown_rough.png",
+    "sole": "heirloom_5w_sole.png",
+    "sole_rough": "heirloom_5w_sole_rough.png"
+  }
+}

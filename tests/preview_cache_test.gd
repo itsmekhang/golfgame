@@ -5,8 +5,11 @@ class PreviewProbe:
 	var predictions := 0
 	func _ready() -> void:
 		set_process(false)
-	func _predict_trajectory(_club: Clubs.Club, _hit: Vector2, _aim: Vector3) -> Dictionary:
+	func _begin_trajectory(_club: Clubs.Club, _hit: Vector2, _aim: Vector3) -> void:
 		predictions += 1
+	func _advance_trajectory() -> bool:
+		return true
+	func _trajectory_result() -> Dictionary:
 		return {}
 	func _draw_shot_tracker(_result: Dictionary) -> void:
 		pass
@@ -17,6 +20,7 @@ func _init() -> void:
 func run() -> void:
 	var course := PreviewProbe.new()
 	root.add_child(course)
+	course._transitioning = false
 	course.layout = CourseLayout.new()
 	course.ball = GolfBall.new()
 	course.shadow_ball = GolfBall.new()

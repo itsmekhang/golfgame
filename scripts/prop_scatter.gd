@@ -1,8 +1,8 @@
 class_name PropScatter
 extends RefCounted
 ## Scatters the Golf Nature Pack's understory (grasses, ferns, flowers, ground cover,
-## rocks, fallen wood) across the rough with MultiMeshInstance3D batches, and dresses
-## water hazards' shorelines. Trees are ForestPlanter's job.
+## fallen wood) across the rough with MultiMeshInstance3D batches, and adds
+## floating lily pads to ponds. Banks stay clear. Trees are ForestPlanter's job.
 
 const OBSTACLE_LAYER := 2
 
@@ -36,10 +36,14 @@ static func specs() -> Array[PropSpec]:
 		PropSpec.new(["pine_straw", "leaf_litter", "ivy_patch", "moss_patch"], 14, 6.0, Vector2(0.9, 1.5)),
 		PropSpec.new(["mushroom_cluster"], 3, 5.0, Vector2(0.7, 1.1)),
 		PropSpec.new(["pink_muhly_A", "pampas_grass_A", "blue_flag_iris_A"], 3, 3.0, Vector2(0.7, 1.1)),
-		PropSpec.new(["granite_boulder_A", "limestone_boulder_A", "mossy_boulder_A", "rock_outcrop_A"], 1, 8.0, Vector2(0.6, 1.2), 1.1, 1.8),
-		PropSpec.new(["flat_slab_A", "river_stones_A", "pebble_cluster_A"], 3, 3.0, Vector2(0.6, 1.2)),
 		PropSpec.new(["stump_low", "stump_tall", "fallen_log", "fallen_log_mossy", "driftwood", "dead_branch"], 2, 7.0, Vector2(0.8, 1.2), 0.8, 0.8),
 	]
+
+
+## Flowering plants and ferns big enough to read from down the fairway: drawn out to the tree
+## distance like the trees and shrubs instead of vanishing at prop_distance(). They're sparse
+## (a few per hectare), so the extra range is cheap; ground cover stays at prop_distance().
+const FAR_PROP_IDS := ["pink_muhly_A", "pampas_grass_A", "blue_flag_iris_A", "sword_fern_A", "bracken_fern_A", "hosta_A", "daisy_patch", "buttercup_patch", "wildflower_mix"]
 
 
 ## Returns a Node3D containing all scattered props and an obstacle StaticBody3D.
@@ -82,7 +86,7 @@ static func scatter(layout: CourseLayout, rng_seed: int = 7, _random_trees: bool
 			var damp := clampf((turf_d - spec.min_dist_to_fairway) / CourseLayout.FORAGE_BORDER_WIDTH, 0.0, 1.0)
 			if rng.randf() > damp:
 				continue
-			if layout.hazard_near(xz, 4.0) or layout.bunker_near(xz, 3.0):
+			if layout.hazard_near(xz, 4.0) or layout.bunker_near(xz, 3.0) or layout.in_pad(xz, 1.0):
 				continue
 			# Exact analytic height, not the coarse cache: on slopes the bilinear cache can
 			# undershoot enough that a prop visibly floats.
@@ -109,54 +113,66 @@ static func scatter(layout: CourseLayout, rng_seed: int = 7, _random_trees: bool
 			if mesh == null:
 				continue
 			var large := spec.collider_radius > 0.0
+			var far_reaching: bool = large or FAR_PROP_IDS.has(mesh_name)
 			VegetationBatches.add_batches(root, mesh_name, mesh, xforms, null, large,
-				PerformanceSettings.tree_distance() if large else PerformanceSettings.prop_distance(), 128.0 if large else 32.0, not large)
+				PerformanceSettings.tree_distance() if far_reaching else PerformanceSettings.prop_distance(), 128.0 if large else (64.0 if far_reaching else 32.0), not large)
 
 	return root
 
 
-## Decorative props: stones, reeds, cattails and lily pads along every water hazard's
-## shoreline (one MultiMesh per model). `region`: when non-empty, skip hazards outside it.
+## Keep floating lily pads in ponds and build the authored stone bridges; do not spawn
+## nature along water banks.
+## `region`: when non-empty, skip hazards outside it.
 static func decorate(layout: CourseLayout, rng_seed: int = 11, region: Rect2 = Rect2()) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Decor"
 	var rng := RandomNumberGenerator.new()
 	rng.seed = rng_seed
-	var rock_names := ["river_stones_A", "pebble_cluster_A", "flat_slab_A"]
-	var reed_names := ["reeds_A", "cattails_A", "rushes_A", "blue_flag_iris_A"]
 	var per_mesh: Dictionary = {}
 	for hz in layout.water_hazards:
 		if region.size != Vector2.ZERO and not hz.bounds.intersects(region):
 			continue
 		var n: int = hz.polygon.size()
-		for i in range(n):
-			var a: Vector2 = hz.polygon[i]
-			var b: Vector2 = hz.polygon[(i + 1) % n]
-			var edge_len := a.distance_to(b)
-			var steps := maxi(1, int(edge_len / 3.0))
-			for k in range(steps):
-				var p := a.lerp(b, (k + rng.randf()) / steps)
-				var outward: Vector2 = (p - hz.center).normalized()
-				var q := p + outward * rng.randf_range(0.5, 2.5)
-				var use_rock := rng.randf() < 0.4
-				var names: Array = rock_names if use_rock else reed_names
-				var name: String = names[rng.randi_range(0, names.size() - 1)]
-				var sc := rng.randf_range(0.7, 1.4) if use_rock else rng.randf_range(0.8, 1.3)
-				var xf := Transform3D(Basis(Vector3.UP, rng.randf_range(0, TAU)).scaled(Vector3(sc, sc, sc)), Vector3(q.x, layout.cached_height(q.x, q.y) - 0.05, q.y))
-				if not per_mesh.has(name):
-					per_mesh[name] = []
-				per_mesh[name].append(xf)
 		# a few lily pads floating just inside the bank of ponds
 		if not hz.is_creek:
 			for i in range(0, n, 3):
 				var p: Vector2 = hz.polygon[i].lerp(hz.center, rng.randf_range(0.08, 0.2))
+				if not hz.contains(p):
+					continue
 				var xf := Transform3D(Basis(Vector3.UP, rng.randf_range(0, TAU)), Vector3(p.x, hz.water_level + 0.02, p.y))
 				if not per_mesh.has("lily_pads"):
 					per_mesh["lily_pads"] = []
 				per_mesh["lily_pads"].append(xf)
+	# Stone footbridges authored on the holes (the Hogan and Nelson bridges on 12).
+	for hole in layout.holes:
+		for br in hole.bridges:
+			var ba: Vector2 = br[0]
+			var bb: Vector2 = br[1]
+			if region.size != Vector2.ZERO and not Rect2(ba, Vector2.ZERO).expand(bb).grow(4.0).intersects(region):
+				continue
+			root.add_child(StoneBridge.build(layout, ba, bb, float(br[2]), int(br[3])))
 	for name in per_mesh:
 		var mesh := NaturePack.mesh(name)
 		if mesh == null:
 			continue
 		VegetationBatches.add_batches(root, name, mesh, per_mesh[name], null, false, PerformanceSettings.prop_distance(), 32.0, true)
 	return root
+
+
+## Space decoration along the bank, independent of how densely it is traced.
+## One prop per polygon vertex buried smooth narrow creeks under a wall of rocks.
+static func _shoreline_samples(polygon: PackedVector2Array, spacing: float, phase: float) -> Array:
+	var samples := []
+	var next := phase
+	for i in range(polygon.size()):
+		var a := polygon[i]
+		var b := polygon[(i + 1) % polygon.size()]
+		var edge := b-a
+		var length := edge.length()
+		if length < 0.0001: continue
+		var outward := Vector2(edge.y,-edge.x) / length
+		while next < length:
+			samples.append([a.lerp(b,next/length),outward])
+			next += spacing
+		next -= length
+	return samples

@@ -13,13 +13,16 @@ uniform float sway_phase_len = 8.0;
 uniform vec3 transmission : source_color = vec3(0.08, 0.12, 0.035);
 uniform float max_dist = 0.0;
 uniform float min_dist = 0.0;
+// Wind only near the camera: past sway_far a plant holds still and its vertices skip the
+// sway maths entirely (per-instance branch, so whole far trees take the cheap path).
+uniform float sway_far = 55.0;
 
 void vertex() {
 	float cam_dist = distance(CAMERA_POSITION_WORLD, MODEL_MATRIX[3].xyz);
 	if ((max_dist > 0.0 && cam_dist > max_dist) || cam_dist < min_dist) {
 		VERTEX = vec3(0.0);
-	} else if (sway_strength > 0.0) {
-		float strength = clamp(UV2.x, 0.0, 1.0) * sway_strength;
+	} else if (sway_strength > 0.0 && cam_dist < sway_far) {
+		float strength = clamp(UV2.x, 0.0, 1.0) * sway_strength * (1.0 - smoothstep(sway_far * 0.6, sway_far, cam_dist));
 		VERTEX.x += sin(VERTEX.x * sway_phase_len * 1.123 + TIME * sway_speed) * strength;
 		VERTEX.y += sin(VERTEX.y * sway_phase_len + TIME * sway_speed * 1.12412) * strength;
 		VERTEX.z += sin(VERTEX.z * sway_phase_len * 0.9123 + TIME * sway_speed * 1.3123) * strength;

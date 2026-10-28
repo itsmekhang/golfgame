@@ -1,0 +1,399 @@
+{
+  "validator": "Khronos glTF Validator",
+  "assets": 46,
+  "inventory_items": 45,
+  "shared_head_geometry_counts": {
+    "driver": 1,
+    "fairway": 1,
+    "hybrid": 1,
+    "iron": 1,
+    "wedge": 1,
+    "putter": 9
+  },
+  "issues": [],
+  "reports": [
+    {
+      "id": "loaner_driver",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 598980,
+      "messages": []
+    },
+    {
+      "id": "thrift_titan_460",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 599660,
+      "messages": []
+    },
+    {
+      "id": "slice_slayer",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 588992,
+      "messages": []
+    },
+    {
+      "id": "persimmon_ghost",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 861536,
+      "messages": []
+    },
+    {
+      "id": "rocket_boomer_lt",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 565964,
+      "messages": []
+    },
+    {
+      "id": "hollow_point_tour",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 597452,
+      "messages": []
+    },
+    {
+      "id": "meteor_xr_proto",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 866292,
+      "messages": []
+    },
+    {
+      "id": "loaner_3w",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 519064,
+      "messages": []
+    },
+    {
+      "id": "loaner_5w",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 519292,
+      "messages": []
+    },
+    {
+      "id": "garage_3w",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 593948,
+      "messages": []
+    },
+    {
+      "id": "steelhead_classic",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 597584,
+      "messages": []
+    },
+    {
+      "id": "tour_spoon",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 591800,
+      "messages": []
+    },
+    {
+      "id": "lowball_5w",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 598476,
+      "messages": []
+    },
+    {
+      "id": "heirloom_5w",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 888820,
+      "messages": []
+    },
+    {
+      "id": "rescue_rookie",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 534912,
+      "messages": []
+    },
+    {
+      "id": "cloudcutter_4h",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 506684,
+      "messages": []
+    },
+    {
+      "id": "utility_2u",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 592200,
+      "messages": []
+    },
+    {
+      "id": "loaner_irons",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 576804,
+      "messages": []
+    },
+    {
+      "id": "thrift_cavity_backs",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 574836,
+      "messages": []
+    },
+    {
+      "id": "mustard_muscle",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 927036,
+      "messages": []
+    },
+    {
+      "id": "game_improver_xl",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 580824,
+      "messages": []
+    },
+    {
+      "id": "blade_runner_forged",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 597032,
+      "messages": []
+    },
+    {
+      "id": "tour_forged_cb",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 546800,
+      "messages": []
+    },
+    {
+      "id": "combo_proto",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 589072,
+      "messages": []
+    },
+    {
+      "id": "loaner_pw",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 569108,
+      "messages": []
+    },
+    {
+      "id": "loaner_gw",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 568604,
+      "messages": []
+    },
+    {
+      "id": "loaner_sw",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 571692,
+      "messages": []
+    },
+    {
+      "id": "loaner_lw",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 566980,
+      "messages": []
+    },
+    {
+      "id": "grocery_pw",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 586892,
+      "messages": []
+    },
+    {
+      "id": "bent_neck_pw",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 583440,
+      "messages": []
+    },
+    {
+      "id": "rusty_gap_52",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 1704300,
+      "messages": []
+    },
+    {
+      "id": "flop_master_60",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 596856,
+      "messages": []
+    },
+    {
+      "id": "raw_face_56",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 804672,
+      "messages": []
+    },
+    {
+      "id": "tour_grind_58",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 596648,
+      "messages": []
+    },
+    {
+      "id": "sand_shovel",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 597556,
+      "messages": []
+    },
+    {
+      "id": "loaner_putter",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 536604,
+      "messages": []
+    },
+    {
+      "id": "rustbelt_blade",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 1860000,
+      "messages": []
+    },
+    {
+      "id": "brass_relic",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 1636248,
+      "messages": []
+    },
+    {
+      "id": "midnight_mallet",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 11,
+      "bytes": 841020,
+      "messages": []
+    },
+    {
+      "id": "copper_classic",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 901788,
+      "messages": []
+    },
+    {
+      "id": "tourline_prototype",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 7,
+      "bytes": 806664,
+      "messages": []
+    },
+    {
+      "id": "blackout_tour_issue",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 15,
+      "bytes": 938944,
+      "messages": []
+    },
+    {
+      "id": "scotty_grail",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 17,
+      "bytes": 933160,
+      "messages": []
+    },
+    {
+      "id": "grenade_driver",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 5,
+      "bytes": 612516,
+      "messages": []
+    },
+    {
+      "id": "auto_putt_9000",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 11,
+      "bytes": 623256,
+      "messages": []
+    },
+    {
+      "id": "grail_headcover",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 0,
+      "bytes": 25840,
+      "messages": []
+    }
+  ],
+  "image_validation": {
+    "external_pngs_decoded": 184,
+    "embedded_pngs_decoded": 226,
+    "errors": 0
+  },
+  "godot_validation": {
+    "version": "4.4.1.stable.official",
+    "mode": "headless",
+    "items_instantiated": 45,
+    "coverage_and_condition_checks_passed": true,
+    "separate_instance_materials_checked": true,
+    "inspection_scene_startup": "passed",
+    "diagnostic": "The batch check emitted one Parameter material is null message from Godot's dummy rendering backend. It did not occur during inspection-scene startup.",
+    "graphical_ui_validation": "Not performed; this environment could not start a local display. The GLB preview images were rendered using Blender Cycles."
+  }
+}

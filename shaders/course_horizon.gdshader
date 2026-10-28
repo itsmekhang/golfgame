@@ -1,12 +1,13 @@
 shader_type spatial;
 render_mode cull_back;
 uniform sampler2D rough_texture : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform vec3 rough_tint : source_color = vec3(0.05388, 0.46005, 0.30597);
 varying vec3 world_position;
 void vertex() {
 	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 void fragment() {
-	ALBEDO = texture(rough_texture, UV).rgb * COLOR.rgb;
+	ALBEDO = texture(rough_texture, UV).rgb * COLOR.rgb * rough_tint;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.08;
 	// Extra haze hides the remote apron before the camera's far clipping plane.

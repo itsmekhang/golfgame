@@ -1,0 +1,65 @@
+{
+  "box_mm": [
+    -76.0,
+    60.0,
+    -8.0,
+    116.0
+  ],
+  "mark": {
+    "centre": [
+      -50.0,
+      30.0
+    ],
+    "length": 17.0,
+    "width": 8.0,
+    "turn": 90.0
+  },
+  "loaner_driver": {
+    "crown": "loaner_driver_crown.png",
+    "crown_rough": "loaner_driver_crown_rough.png",
+    "sole": "loaner_driver_sole.png",
+    "sole_rough": "loaner_driver_sole_rough.png"
+  },
+  "thrift_titan_460": {
+    "crown": "thrift_titan_460_crown.png",
+    "crown_rough": "thrift_titan_460_crown_rough.png",
+    "sole": "thrift_titan_460_sole.png",
+    "sole_rough": "thrift_titan_460_sole_rough.png"
+  },
+  "slice_slayer": {
+    "crown": "slice_slayer_crown.png",
+    "crown_rough": "slice_slayer_crown_rough.png",
+    "sole": "slice_slayer_sole.png",
+    "sole_rough": "slice_slayer_sole_rough.png"
+  },
+  "rocket_boomer_lt": {
+    "crown": "rocket_boomer_lt_crown.png",
+    "crown_rough": "rocket_boomer_lt_crown_rough.png",
+    "sole": "rocket_boomer_lt_sole.png",
+    "sole_rough": "rocket_boomer_lt_sole_rough.png"
+  },
+  "hollow_point_tour": {
+    "crown": "hollow_point_tour_crown.png",
+    "crown_rough": "hollow_point_tour_crown_rough.png",
+    "sole": "hollow_point_tour_sole.png",
+    "sole_rough": "hollow_point_tour_sole_rough.png"
+  },
+  "meteor_xr_proto": {
+    "crown": "meteor_xr_proto_crown.png",
+    "crown_rough": "meteor_xr_proto_crown_rough.png",
+    "sole": "meteor_xr_proto_sole.png",
+    "sole_rough": "meteor_xr_proto_sole_rough.png"
+  },
+  "grenade_driver": {
+    "crown": "grenade_driver_crown.png",
+    "crown_rough": "grenade_driver_crown_rough.png",
+    "sole": "grenade_driver_sole.png",
+    "sole_rough": "grenade_driver_sole_rough.png"
+  },
+  "persimmon_ghost": {
+    "crown": "persimmon_ghost_crown.png",
+    "crown_rough": "persimmon_ghost_crown_rough.png",
+    "sole": "persimmon_ghost_sole.png",
+    "sole_rough": "persimmon_ghost_sole_rough.png"
+  }
+}

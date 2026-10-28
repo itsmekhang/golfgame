@@ -1,0 +1,172 @@
+{
+  "vertices": 18793,
+  "triangles": 37522,
+  "nonmanifold_edges": 0,
+  "connected_components": 19,
+  "body_dimensions_mm_xyz": [
+    114.00000005960464,
+    28.00000086426735,
+    91.95983409881592
+  ],
+  "nominal_body_dimensions_mm_width_depth_height": [
+    114,
+    92,
+    28
+  ],
+  "units": "metres",
+  "head_only": true,
+  "shaft_origin_metres": [
+    -0.04100000113248825,
+    0.07000000029802322,
+    -0.01600000075995922
+  ],
+  "shaft_axis": [
+    -0.32556816935539246,
+    0.9455185532569885,
+    0.0
+  ],
+  "bore_diameter_mm": 9.4,
+  "original_shaft_tip_diameter_mm": 9.2,
+  "lie_degrees": 71,
+  "face_loft_degrees": 3.5,
+  "materials": 5,
+  "closed_assembly_parts": [
+    {
+      "name": "White crown and central chassis",
+      "vertices": 1237,
+      "triangles": 2470,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Heel turquoise wing",
+      "vertices": 2297,
+      "triangles": 4594,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Heel concentric rear weight screw",
+      "vertices": 2493,
+      "triangles": 4982,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Toe turquoise wing",
+      "vertices": 2298,
+      "triangles": 4596,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Toe concentric rear weight screw",
+      "vertices": 2493,
+      "triangles": 4982,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Dark face perimeter",
+      "vertices": 482,
+      "triangles": 960,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "White insert surround",
+      "vertices": 939,
+      "triangles": 1878,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Grooved turquoise striking insert",
+      "vertices": 770,
+      "triangles": 1536,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Alignment dot 1 rim",
+      "vertices": 288,
+      "triangles": 572,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Alignment dot 1",
+      "vertices": 288,
+      "triangles": 572,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Alignment dot 2 rim",
+      "vertices": 288,
+      "triangles": 572,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Alignment dot 2",
+      "vertices": 288,
+      "triangles": 572,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Alignment dot 3 rim",
+      "vertices": 288,
+      "triangles": 572,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Alignment dot 3",
+      "vertices": 288,
+      "triangles": 572,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Inset graphite sole badge",
+      "vertices": 432,
+      "triangles": 860,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Turquoise sole inlay 1",
+      "vertices": 288,
+      "triangles": 572,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Turquoise sole inlay 2",
+      "vertices": 288,
+      "triangles": 572,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Pearl white shaft seat",
+      "vertices": 512,
+      "triangles": 1020,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Bent stainless neck",
+      "vertices": 2536,
+      "triangles": 5068,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    }
+  ],
+  "horizontal_face_grooves": 8,
+  "alignment_dots": 3,
+  "open_rear_forks": 2,
+  "texture_images": 0
+}

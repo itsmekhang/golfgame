@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bn5ajr5cl3uge"
+path="res://.godot/imported/fairway_wood_real_scale.obj-b8a223538d41c5fb2b23c1ddda50f58c.mesh"
+
+[deps]
+
+files=["res://.godot/imported/fairway_wood_real_scale.obj-b8a223538d41c5fb2b23c1ddda50f58c.mesh"]
+
+source_file="res://assets/Fairway_Wood_Head/fairway_wood_real_scale.obj"
+dest_files=["res://.godot/imported/fairway_wood_real_scale.obj-b8a223538d41c5fb2b23c1ddda50f58c.mesh", "res://.godot/imported/fairway_wood_real_scale.obj-b8a223538d41c5fb2b23c1ddda50f58c.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

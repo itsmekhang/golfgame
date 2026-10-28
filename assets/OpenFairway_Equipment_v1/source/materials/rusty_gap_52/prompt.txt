@@ -1,0 +1,8 @@
+Generated with the built-in image_gen tool on 2026-09-13.
+
+Use case: photorealistic-natural
+Asset type: seamless physically based material base-color tile for a rusty raw-steel golf wedge in a 3D game.
+Primary request: a square, straight-on, extremely realistic close-up of genuinely rusted unpainted carbon steel. The tile represents a 7 cm square. Fine irregular reddish-brown and umber oxidation covers about 75 percent, with scattered organically worn dull gray steel showing through. Rust is layered, finely granular and pitted at submillimeter scale, natural restrained terracotta and deep earthy brown, with tiny spots of darker oxidation and fine hairline abrasion in the exposed steel. Rich realistic material detail, no large fuzzy clouds or camouflage pattern.
+Composition: surface fills every pixel, orthographic flat scan with seamless edges; uniform detail and brightness across the entire image.
+Lighting: neutral even diffuse cross-polarized lighting, albedo/base-color only, no directional shadows, specular glints or lighting gradients.
+Constraints: just the material swatch, not a club or object. No text, logos, numbers, borders, designed graphics, decorative patterns, paint, gold, wood grain, moss, thick flaking sheets, holes through the surface, or dramatic black patches. No perspective. 1024 by 1024 square image.

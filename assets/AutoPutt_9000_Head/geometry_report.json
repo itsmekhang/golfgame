@@ -1,0 +1,145 @@
+{
+  "vertices": 14606,
+  "triangles": 29160,
+  "nonmanifold_edges": 0,
+  "connected_components": 18,
+  "body_dimensions_mm_xyz": [
+    114.00000005960464,
+    28.00000086426735,
+    93.97553093731403
+  ],
+  "nominal_body_dimensions_mm_width_depth_height": [
+    114,
+    94,
+    28
+  ],
+  "units": "metres",
+  "head_only": true,
+  "shaft_origin_metres": [
+    -0.04100000113248825,
+    0.07000000029802322,
+    -0.01600000075995922
+  ],
+  "shaft_axis": [
+    -0.32556816935539246,
+    0.9455185532569885,
+    0.0
+  ],
+  "bore_diameter_mm": 9.4,
+  "original_shaft_tip_diameter_mm": 9.2,
+  "lie_degrees": 71,
+  "face_loft_degrees": 3.5,
+  "materials": 5,
+  "closed_assembly_parts": [
+    {
+      "name": "Circular rear chassis",
+      "vertices": 4774,
+      "triangles": 9548,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Red full-width face bar",
+      "vertices": 1439,
+      "triangles": 2874,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "White T alignment",
+      "vertices": 112,
+      "triangles": 220,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Fine milled brass face insert",
+      "vertices": 456,
+      "triangles": 908,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Brass face retaining screw",
+      "vertices": 462,
+      "triangles": 920,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Brass face retaining screw.001",
+      "vertices": 462,
+      "triangles": 920,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Underside tuning screw 1",
+      "vertices": 456,
+      "triangles": 908,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Underside tuning screw 2",
+      "vertices": 456,
+      "triangles": 908,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Underside tuning screw 3",
+      "vertices": 462,
+      "triangles": 920,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Underside tuning screw 4",
+      "vertices": 462,
+      "triangles": 920,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Underside tuning screw 5",
+      "vertices": 462,
+      "triangles": 920,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Underside tuning screw 6",
+      "vertices": 462,
+      "triangles": 920,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "AutoPutt 9000 rear marking",
+      "vertices": 1686,
+      "triangles": 3372,
+      "nonmanifold_edges": 0,
+      "connected_components": 4
+    },
+    {
+      "name": "Black hosel foot",
+      "vertices": 448,
+      "triangles": 892,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    },
+    {
+      "name": "Swept stainless shaft connection",
+      "vertices": 2007,
+      "triangles": 4010,
+      "nonmanifold_edges": 0,
+      "connected_components": 1
+    }
+  ],
+  "horizontal_face_grooves": 24,
+  "nominal_rear_opening_diameter_mm": 38,
+  "underside_fasteners": 6,
+  "face_fasteners": 2,
+  "texture_images": 0
+}

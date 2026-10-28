@@ -35,6 +35,7 @@ var _rng := RandomNumberGenerator.new()
 const CLUB_CATEGORY := {
 	"DR": "driver",
 	"3W": "woods", "5W": "woods",
+	"HY": "hybrid",
 	"4I": "irons", "5I": "irons", "6I": "irons", "7I": "irons", "8I": "irons", "9I": "irons",
 	"PW": "pitching_wedge",
 	"GW": "sand_wedge", "SW": "sand_wedge", "LW": "sand_wedge",
@@ -43,7 +44,7 @@ const CLUB_CATEGORY := {
 
 func _ready() -> void:
 	_rng.randomize()
-	for cat in ["woods", "irons", "pitching_wedge", "sand_wedge", "general"]:
+	for cat in ["woods", "hybrid", "irons", "pitching_wedge", "sand_wedge", "general"]:
 		_by_club[cat] = _load_dir("res://audio/impacts/%s" % cat)
 	# Putter uses two fixed, layered clips rather than a random pick from the folder -- a putt
 	# is the same quiet, consistent stroke every time, so it gets a consistent sound: the base
@@ -154,6 +155,16 @@ func _play_stinger(streams: Array, volume_db: float = 0.0, delay: float = 0.0) -
 ## rip. Below this the club just gets its clean strike sound with no swing layer under it.
 const WHOOSH_MIN_CARRY_YD := 170.0
 
+## The swing-whoosh source clips are full, untrimmed downswing recordings, not onset-cut like
+## the strike sounds -- where the audible swish actually peaks inside each clip varies from
+## file to file. Starting the whoosh and the strike layers at the same instant (the old
+## behaviour) let some picks land with the strike's sharp transient audible before the whoosh
+## ever built up, i.e. impact before the swing that caused it. Giving the strike/lie/mishit
+## layers this fixed head start after the whoosh begins guarantees the whoosh is always the
+## first sound to start, matching a real downswing-then-contact swing regardless of which
+## whoosh clip got picked.
+const WHOOSH_LEAD_TIME := 0.12
+
 
 ## Called once per swing (course.gd's _fire_shot), right as the ball is struck.
 ##  - club: the Clubs.Club in use.
@@ -180,36 +191,41 @@ func play_shot(club: Clubs.Club, lie: int, hit: Vector2, pos: Vector3, est_carry
 		_play_at(_bunker_escape, pos)
 		return
 
-	var category: String = CLUB_CATEGORY.get(club.short, "general")
+	# The Utility 2U is an iron head carried in the hybrid bag slot.
+	var category: String = "irons" if club.model_id == "utility_2u" else CLUB_CATEGORY.get(club.short, "general")
 	var is_iron_or_wedge := category == "irons" or category == "pitching_wedge" or category == "sand_wedge"
 
-	# The downswing whoosh has no separate timing of its own in this game (contact is
-	# instantaneous when the shot fires) so it's layered under the strike sound rather than
-	# sequenced before it -- quieter than the strike so it reads as texture, not a second hit.
 	# The lie shapes the base texture: rough gets its own grass-brushing swish; an iron or
 	# wedge played off the fairway gets one of the split fairway-hit cues (see _ready). The air
 	# whoosh is a separate, distance-gated layer on top of that -- a long enough swing (a real
 	# drive off the tee, say) gets both the lie texture AND the whoosh together, not one or the
-	# other.
-	if lie == PhysicsEnums.SurfaceType.ROUGH:
-		_play_at(_rough_swing, pos, -6.0)
-	elif is_iron_or_wedge and (lie == PhysicsEnums.SurfaceType.FAIRWAY or lie == PhysicsEnums.SurfaceType.FAIRWAY_SOFT):
-		_play_at(_fairway_hits, pos, -8.0)
-	if est_carry_yd > WHOOSH_MIN_CARRY_YD:
+	# other. The whoosh (when there is one) always starts first; everything that represents the
+	# strike itself -- the lie texture, a fat/topped mishit, or the clean club-strike pool -- is
+	# deferred behind WHOOSH_LEAD_TIME so it can never be heard before the swing that led to it.
+	var has_whoosh := est_carry_yd > WHOOSH_MIN_CARRY_YD
+	if has_whoosh:
 		var swing_pool: Array = _swing_driver if club.short == "DR" else _swing_general
 		_play_at(swing_pool, pos, -6.0)
 
-	# Extreme low/high strikes already cost speed/spin in _shot_params; give them a matching
-	# wrong-sounding contact instead of the same clean strike sound every time.
-	if hit.y <= -0.65:
-		_play_at(_fat_shots, pos)
-		return
-	elif hit.y >= 0.75:
-		_play_at(_topped, pos)
-		return
+	var play_strike_layers := func() -> void:
+		if CourseLayout.engine_surface(lie) == PhysicsEnums.SurfaceType.ROUGH:
+			_play_at(_rough_swing, pos, -6.0)
+		elif is_iron_or_wedge and (lie == PhysicsEnums.SurfaceType.FAIRWAY or lie == PhysicsEnums.SurfaceType.FAIRWAY_SOFT):
+			_play_at(_fairway_hits, pos, -8.0)
+		# Extreme low/high strikes already cost speed/spin in _shot_params; give them a
+		# matching wrong-sounding contact instead of the same clean strike sound every time.
+		if hit.y <= -0.65:
+			_play_at(_fat_shots, pos)
+		elif hit.y >= 0.75:
+			_play_at(_topped, pos)
+		else:
+			var pool: Array = _by_club.get(category, _by_club.get("general", []))
+			_play_at(pool, pos)
 
-	var pool: Array = _by_club.get(category, _by_club.get("general", []))
-	_play_at(pool, pos)
+	if has_whoosh:
+		get_tree().create_timer(WHOOSH_LEAD_TIME).timeout.connect(play_strike_layers)
+	else:
+		play_strike_layers.call()
 
 
 ## The ball's first ground contact after flight -- course.gd's _on_first_impact -- covering
@@ -218,6 +234,22 @@ func play_shot(club: Clubs.Club, lie: int, hit: Vector2, pos: Vector3, est_carry
 ## it gets a boost rather than the default 0 dB every other cue uses.
 func play_bounce(pos: Vector3) -> void:
 	_play_at(_bounce, pos, 8.0)
+
+
+## Grenade Prototype Driver: pitched-down driver contact and debris bounces.
+
+
+func play_grenade(pos: Vector3) -> void:
+	var p := _pool[_pool_next]
+	_pool_next = (_pool_next + 1) % _pool.size()
+	p.global_position = pos
+	p.stream = _pick(_by_club.get("driver", []))
+	if p.stream != null:
+		p.pitch_scale = 0.55
+		p.volume_db = 4.0
+		p.play()
+	for i in range(3):
+		get_tree().create_timer(0.25 + 0.18 * i).timeout.connect(func(): _play_at(_bounce, pos, 2.0))
 
 
 ## Ball dropping into the cup -- course.gd's _on_ball_holed, right as the hole finishes.

@@ -1,0 +1,37 @@
+{
+  "original_wood_shaft_origin_match_error_m": 0.0,
+  "original_wood_shaft_axis_match_error": 0.00010110282707886111,
+  "original_wood_shaft_tip_diameter_mm": 9.20000127650733,
+  "original_wood_lie_degrees": 60.999999051630496,
+  "ground_origin_overall_mesh_bounds_metres": {
+    "min": [
+      -0.12837830185890198,
+      8.908351446734741e-06,
+      -0.06050633266568184
+    ],
+    "max": [
+      -0.007633117958903313,
+      0.07407540082931519,
+      0.016493670642375946
+    ]
+  },
+  "sole_touches_ground": false,
+  "shaft_socket_marker_metres": [
+    -0.04459000006318092,
+    0.05999999865889549,
+    -0.004999999888241291
+  ],
+  "shaft_socket_marker_error_m": 0.0,
+  "shaft_socket_marker_axis_error": 2.9802322387695312e-08,
+  "measured_face_loft_degrees": 17.429796249499443,
+  "striking_face_area_mm2": 25.977795716780605,
+  "mesh_nodes": 1,
+  "material_count": 3,
+  "contains_images": false,
+  "contains_cameras_or_animations": false,
+  "socket_origin_is_zero_in_attachment_glb": true,
+  "attachment_geometry_match_max_error_m": 1.7572159193561605e-08,
+  "attachment_vertex_count_matches": true,
+  "shaft_lie_degrees": 61.0,
+  "import_scale": 1.0
+}

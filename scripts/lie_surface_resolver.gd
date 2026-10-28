@@ -27,6 +27,6 @@ func resolve(point: Vector3) -> Dictionary:
 		if z.contains_point(point):
 			return {"surface": z.surface_type, "engine": z.surface_type, "source": "zone_override"}
 	if layout != null:
-		var s := layout.surface_at(Vector2(point.x, point.z))
+		var s := layout.lie_surface_at(Vector2(point.x, point.z))
 		return {"surface": s, "engine": CourseLayout.engine_surface(s), "source": "layout_lookup"}
 	return {"surface": default_surface, "engine": default_surface, "source": "default"}

@@ -1,7 +1,7 @@
 class_name GrassStreamer
 extends Node3D
-## Dense 8 m patches, one placement worker, one packed GPU upload per patch.
-## Nearby patches retain all cards; distance tiers reduce geometry and density.
+## Dense 8 m batches, background placement workers, one packed GPU upload per batch.
+## Per-clump shader fades hide the boundaries between distance tiers and batches.
 
 var layout: CourseLayout
 var params: Dictionary
@@ -15,14 +15,19 @@ var instance_count := 0
 var max_tile_build_usec := 0 # main-thread commit time only
 var focus_position := Vector2.ZERO
 var view_position := Vector3.ZERO
-var _worker: Thread
-var _job_key := Vector2i.ZERO
+## Placement jobs in flight: [{"thread": Thread, "key": Vector2i}]. Several run at once so
+## the patches around a freshly landed ball fill in within a few frames, not one by one.
+var _jobs: Array = []
 var _wanted: Dictionary = {}
 var _cache: Dictionary = {} # bounded recently evicted CPU buffers, including empty patches
 var _data: Dictionary = {}
 var _suspended := false
 var _lod_accum := 0.0
 const CACHE_TILES := 64
+const COMMITS_PER_FRAME := 6  # finished patches uploaded per frame (one buffer upload each)
+
+static func _max_jobs() -> int:
+	return clampi(OS.get_processor_count() - 2, 2, 8)
 
 func configure(course_layout: CourseLayout, seed_value: int) -> void:
 	name = "RoughGrass"
@@ -30,6 +35,8 @@ func configure(course_layout: CourseLayout, seed_value: int) -> void:
 	params = {"seed": seed_value, "band": 22.0, "density": 100.0, "far": 12.0,
 		"scale": 1.0, "mode": "kolosok", "max_per_tile": PerformanceSettings.grass_per_tile()}
 	material = RoughGrass._material("kolosok")
+	material.set_shader_parameter("streamed_grass", true)
+	material.set_shader_parameter("grass_fade_end", PerformanceSettings.grass_distance())
 	RoughGrass.last_material = material
 	for variant in range(RoughGrass.KOLOSOK_VARIANTS):
 		for lod in range(3):
@@ -39,6 +46,7 @@ func configure(course_layout: CourseLayout, seed_value: int) -> void:
 func _process(delta: float) -> void:
 	if not active or _suspended or not PerformanceSettings.grass_enabled():
 		return
+	material.set_shader_parameter("grass_focus", focus_position)
 	if not is_finite(last_focus.x) or focus_position.distance_squared_to(last_focus) > 16.0:
 		_refresh(focus_position)
 	_lod_accum += delta
@@ -46,30 +54,45 @@ func _process(delta: float) -> void:
 		_lod_accum = 0.0
 		for key in resident:
 			_update_lod(key)
-	if _worker != null:
-		if _worker.is_alive():
-			return
-		var data: Dictionary = _worker.wait_to_finish()
-		_worker = null
-		if _wanted.has(_job_key):
-			_commit(_job_key, data)
+	var commits := 0
+	for i in range(_jobs.size() - 1, -1, -1):
+		var job: Dictionary = _jobs[i]
+		var thread: Thread = job["thread"]
+		if thread.is_alive() or commits >= COMMITS_PER_FRAME:
+			continue
+		var data: Dictionary = thread.wait_to_finish()
+		_jobs.remove_at(i)
+		var job_key: Vector2i = job["key"]
+		if _wanted.has(job_key):
+			_commit(job_key, data)
+			commits += 1
 		else:
-			_cache_put(_job_key, data)
-	if pending.is_empty():
-		return
-	var key: Vector2i = pending.pop_front()
-	if _cache.has(key):
-		var data: Dictionary = _cache[key]
-		_cache.erase(key)
-		_commit(key, data)
-		return
-	_job_key = key
-	_worker = Thread.new()
-	var error := _worker.start(RoughGrass.sample_tile_buffer.bind(layout, key, params.duplicate()))
-	if error != OK:
-		_worker = null
-		pending.push_front(key)
-		push_error("Grass placement worker could not start: %s" % error)
+			_cache_put(job_key, data)
+	while not pending.is_empty() and (_jobs.size() < _max_jobs() or _cache.has(pending[0])):
+		var key: Vector2i = pending.pop_front()
+		if _cache.has(key):
+			if commits >= COMMITS_PER_FRAME:
+				pending.push_front(key)
+				break
+			var cached: Dictionary = _cache[key]
+			_cache.erase(key)
+			_commit(key, cached)
+			commits += 1
+			continue
+		var worker := Thread.new()
+		var error := worker.start(RoughGrass.sample_tile_buffer.bind(layout, key, params.duplicate()))
+		if error != OK:
+			pending.push_front(key)
+			push_error("Grass placement worker could not start: %s" % error)
+			break
+		_jobs.append({"thread": worker, "key": key})
+
+
+func _job_running(key: Vector2i) -> bool:
+	for job in _jobs:
+		if job["key"] == key:
+			return true
+	return false
 
 func _commit(key: Vector2i, data: Dictionary) -> void:
 	var start := Time.get_ticks_usec()
@@ -90,14 +113,16 @@ func _update_lod(key: Vector2i) -> void:
 	if tile == null:
 		return
 	var centre := tile.position + tile.multimesh.custom_aabb.get_center()
-	var distance := centre.distance_to(view_position)
-	var lod := 0 if distance < 20.0 else (1 if distance < 34.0 else 2)
+	# Use the nearest possible root, plus camera-motion slack. Per-root fading in
+	# the shader has finished before an entire card tier or instance is culled.
+	var distance := maxf(0.0, centre.distance_to(view_position) - tile.multimesh.custom_aabb.size.length() * 0.5 - 4.0)
+	var lod := 0 if distance < 24.0 else (1 if distance < 38.0 else 2)
 	var variant := absi(key.x * 7 + key.y * 13) % RoughGrass.KOLOSOK_VARIANTS
 	if tile.get_meta("lod", -1) != lod:
 		tile.multimesh.mesh = RoughGrass._kolosok_mesh(variant, lod)
-		var fraction: float = [1.0, 0.60, 0.30][lod]
-		tile.multimesh.visible_instance_count = maxi(1, int(tile.multimesh.instance_count * fraction))
 		tile.set_meta("lod", lod)
+	var fraction := 1.0 - 0.4 * smoothstep(16.0, 24.0, distance) - 0.3 * smoothstep(28.0, 38.0, distance)
+	tile.multimesh.visible_instance_count = mini(tile.multimesh.instance_count, ceili(tile.multimesh.instance_count * (fraction + 0.05)))
 	# Ground distance keeps patches visible from the overhead/scout camera too.
 	tile.visible = _center(key).distance_to(focus_position) <= PerformanceSettings.grass_distance() + RoughGrass.TILE
 
@@ -118,7 +143,7 @@ func _refresh(focus: Vector2) -> void:
 			_remove(key, true)
 	pending.clear()
 	for key in keys:
-		if not resident.has(key) and not (_worker != null and key == _job_key):
+		if not resident.has(key) and not _job_running(key):
 			pending.append(key)
 
 func _center(key: Vector2i) -> Vector2:
@@ -143,9 +168,9 @@ func _remove(key: Vector2i, remember: bool = false) -> void:
 
 ## Join before any terrain/straw mutation or freeing the layout.
 func finish_pending() -> void:
-	if _worker != null:
-		_worker.wait_to_finish()
-		_worker = null
+	for job in _jobs:
+		(job["thread"] as Thread).wait_to_finish()
+	_jobs.clear()
 	last_focus = Vector2(INF, INF)
 
 func set_suspended(value: bool) -> void:

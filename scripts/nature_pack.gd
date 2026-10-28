@@ -60,8 +60,11 @@ static func has_far_tiers(id: String) -> bool:
 
 ## Near meshes, dense branch meshes, then sparse 3D crowns. Cross cards start at MID_AT.
 const MESH_AT := 26.0
-const DENSE_AT := 90.0
-const SHRUB_MESH_AT := 18.0
+const DENSE_AT := 240.0  # trees: medium-detail mesh out to here, impostor cards beyond
+## Shrubs: the high-poly mesh up close, the pack's LOD2 to SHRUB_MID_AT, then a simplified
+## copy of that LOD2 (shrub_far_mesh) out to the tree distance, so bushes line the whole hole.
+const SHRUB_MESH_AT := 35.0
+const SHRUB_MID_AT := 70.0
 static var _heavy_mats: Dictionary = {}  # max_dist -> [leaves, solid]
 
 
@@ -169,13 +172,14 @@ static func mesh(id: String, _lod: int = 0) -> Mesh:
 ## used it (currently it doesn't -- see the comment above). Only the A size variant
 ## is planted now, so this only lists _A ids to match.
 const FULL_DETAIL_IDS := ["white_oak_A", "red_maple_A", "sweetgum_A", "tulip_poplar_A", "southern_magnolia_A", "live_oak_A"]
-## Keep the original tree geometry across most of a hole before switching
-## to the simplified distant crowns.
-const MID_AT := 450.0
+## Keep 3D crowns through the nearby playing corridor, then use the baked
+## silhouettes for distant woodland without submitting millions of leaf vertices.
+const MID_AT := DENSE_AT  # impostor cards take over from the medium-detail trees here
 
 
-## The pack's LOD2 mesh between the near cut and DENSE_AT (90 m).
-static func mesh_mid(id: String) -> Mesh:
+## The pack's LOD2 mesh between the near cut and DENSE_AT. `from_camera` draws it all
+## the way in to the camera instead (no high-poly tier in front of it).
+static func mesh_mid(id: String, from_camera: bool = false) -> Mesh:
 	var entry: Dictionary = catalog().get(id, {})
 	if entry.is_empty() or not (entry["category"] in HEAVY_CATEGORIES):
 		return null
@@ -183,8 +187,45 @@ static func mesh_mid(id: String) -> Mesh:
 	if lods.size() < 2:
 		return null
 	var near := SHRUB_MESH_AT if entry["category"] == "shrubs" else MESH_AT
-	var far := 60.0 if entry["category"] == "shrubs" else minf(DENSE_AT, PerformanceSettings.tree_distance())
-	return _load_mesh(DIR + lods[1]["path"], id, "mid#" + id, far, near)
+	var far := SHRUB_MID_AT if entry["category"] == "shrubs" else minf(DENSE_AT, PerformanceSettings.tree_distance())
+	var key := ("midnear#" if from_camera else "mid#") + id
+	var m := _load_mesh(DIR + lods[1]["path"], id, key, far, 0.0 if from_camera else near)
+	if entry["category"] == "trees":
+		m = _twig_trimmed(m, key)
+	return m
+
+
+const TwigTrim = preload("res://scripts/tree_twig_trim.gd")
+
+## A light mesh for the club's planted beds and planters (Course Manager facilities): the
+## lightest LOD file for shrubs, the base file for ferns and groundcover, with no distance
+## fade (the facility hides its whole planting batch with a visibility range instead).
+static func mesh_planting(id: String) -> Mesh:
+	var entry: Dictionary = catalog().get(id, {})
+	if entry.is_empty():
+		return null
+	var lods: Array = entry.get("lods", [])
+	var path: String = lods[-1]["path"] if not lods.is_empty() else entry["path"]
+	return _load_mesh(DIR + path, id, "planting#" + id)
+
+
+## Trees only: the pack's medium mesh with the bare twig tips that poke out past the leaves
+## clipped (scripts/tree_twig_trim.gd). Done once per species and cached.
+static func _twig_trimmed(m: Mesh, key: String) -> Mesh:
+	var tk := "trim#" + key
+	if _mesh_cache.has(tk):
+		return _mesh_cache[tk]
+	var out: Mesh = m
+	if m is ArrayMesh:
+		# Pines keep leaf-bearing twigs (no floating needle clumps) and their branches at half
+		# detail or better at any range; broadleaf trees keep the full spike trim (see trim()).
+		out = TwigTrim.trim(m, func(surface_name: String) -> bool: return _is_foliage(surface_name), TwigTrim.MARGIN, key.contains("pine"), 1 if key.contains("pine") else -1)
+		# Pines' needle cards had no usable distance LOD (they drew in full to the impostor
+		# hand-over): thin whole cards with distance instead (scripts/foliage_lod.gd).
+		if key.contains("pine") and OS.get_environment("GOLF_PINE_LOD") != "0":
+			out = FoliageLod.with_card_lods(out, func(surface_name: String) -> bool: return _is_foliage(surface_name))
+	_mesh_cache[tk] = out
+	return out
 
 
 ## Sparse 3D leaf clusters preserve the source crown and branches across the hole.
@@ -197,6 +238,42 @@ static func mesh_distance(id: String) -> Mesh:
 		return null
 	var mesh: ArrayMesh = (load(path) as ArrayMesh).duplicate()
 	var mats := _heavy_materials(minf(MID_AT, PerformanceSettings.tree_distance()), DENSE_AT)
+	for i in range(mesh.get_surface_count()):
+		mesh.surface_set_material(i, mats[0] if _is_foliage(mesh.surface_get_name(i)) else mats[1])
+	_mesh_cache[key] = mesh
+	return mesh
+
+
+## The same sparse low-poly crown as mesh_distance(), drawn from DENSE_AT (where the detailed
+## near meshes hand over, per tree) out to the tree distance -- used when
+## ForestPlanter.LOW_POLY_TREES replaces the impostor-card far tier.
+static func mesh_low_poly(id: String) -> Mesh:
+	var key := "lowpoly#" + id
+	if _mesh_cache.has(key):
+		return _mesh_cache[key]
+	var path := "res://nature_pack/models/trees/distance/" + id + ".res"
+	if not ResourceLoader.exists(path):
+		return null
+	var mesh: ArrayMesh = (load(path) as ArrayMesh).duplicate()
+	var mats := _heavy_materials(PerformanceSettings.tree_distance(), DENSE_AT)
+	for i in range(mesh.get_surface_count()):
+		mesh.surface_set_material(i, mats[0] if _is_foliage(mesh.surface_get_name(i)) else mats[1])
+	_mesh_cache[key] = mesh
+	return mesh
+
+
+## The same sparse low-poly crown as mesh_distance(), for the course's map views (Course Studio,
+## Course Manager: PaintedView), drawn out to `reach` from the camera; null for a species without
+## one.
+static func mesh_map(id: String, reach: float) -> Mesh:
+	var key := "map#%s#%d" % [id, int(reach)]
+	if _mesh_cache.has(key):
+		return _mesh_cache[key]
+	var path := "res://nature_pack/models/trees/distance/" + id + ".res"
+	if not ResourceLoader.exists(path):
+		return null
+	var mesh: ArrayMesh = (load(path) as ArrayMesh).duplicate()
+	var mats := _heavy_materials(reach, 0.0)
 	for i in range(mesh.get_surface_count()):
 		mesh.surface_set_material(i, mats[0] if _is_foliage(mesh.surface_get_name(i)) else mats[1])
 	_mesh_cache[key] = mesh
@@ -375,6 +452,59 @@ static func far_proxy_mesh(kind: String) -> Mesh:
 	mesh.surface_set_material(0, hm[1])  # vertex-colour "solid" material, distance-gated
 	_far_proxy_cache[key] = mesh
 	return mesh
+
+
+## ---- far-tier shrubs and bushes: simplified copies of their own meshes ------------------
+## The far tier is the plant's own geometry run through mesh simplification (the same
+## meshoptimizer pass Godot uses for import LODs), so from down the fairway a bush keeps its
+## real shape, colours and materials -- only with a fraction of the triangles.
+
+## `src` simplified to roughly `ratio` of its triangles (the simplifier stops earlier if
+## going further would visibly break the shape). Surfaces and their materials are kept.
+static func simplified_mesh(src: Mesh, ratio: float) -> ArrayMesh:
+	var im := ImporterMesh.new()
+	for s in range(src.get_surface_count()):
+		var st := SurfaceTool.new()
+		st.create_from(src, s)
+		st.index()
+		var sname := (src as ArrayMesh).surface_get_name(s) if src is ArrayMesh else ""
+		im.add_surface(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays(), [], {}, src.surface_get_material(s), sname)
+	im.generate_lods(25.0, 60.0, [])
+	var out := ArrayMesh.new()
+	for s in range(im.get_surface_count()):
+		var arrays := im.get_surface_arrays(s)
+		var full: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+		var best := full
+		for l in range(im.get_surface_lod_count(s)):
+			best = im.get_surface_lod_indices(s, l)
+			if best.size() <= full.size() * ratio:
+				break
+		arrays[Mesh.ARRAY_INDEX] = best
+		# Drop the CUSTOM0..3 channels some imported bushes carry: no project shader reads
+		# them, and without their exact format flags the surface is rejected outright.
+		for c in [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]:
+			arrays[c] = null
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		out.surface_set_name(s, im.get_surface_name(s))
+		out.surface_set_material(s, im.get_surface_material(s))
+	return out
+
+
+## Far tier for a pack shrub: its LOD2 mesh simplified, handing over per instance at
+## SHRUB_MID_AT and drawn out to the tree distance.
+static func shrub_far_mesh(id: String) -> Mesh:
+	var key := "shrubfar#" + id
+	if _mesh_cache.has(key):
+		return _mesh_cache[key]
+	var mid := mesh_mid(id)
+	if mid == null:
+		return null
+	var out := simplified_mesh(mid, 0.06)
+	var mats := _heavy_materials(PerformanceSettings.tree_distance(), SHRUB_MID_AT)
+	for i in range(out.get_surface_count()):
+		out.surface_set_material(i, mats[0] if _is_foliage(out.surface_get_name(i)) else mats[1])
+	_mesh_cache[key] = out
+	return out
 
 
 ## The version 1 low-poly mesh for `id` at detail `lod` (1 or 2) for the far tiers.

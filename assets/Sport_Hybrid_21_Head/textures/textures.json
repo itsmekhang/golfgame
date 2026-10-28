@@ -1,0 +1,56 @@
+{
+  "hex_crown": {
+    "base": "hex_crown.png",
+    "rough": "hex_crown_rough.png",
+    "tile_mm": [
+      31.176914536239792,
+      31.5
+    ]
+  },
+  "slate_flake": {
+    "base": "slate_flake.png",
+    "rough": "slate_flake_rough.png",
+    "tile_mm": [
+      12.0,
+      12.0
+    ]
+  },
+  "cloud_sole": {
+    "base": "cloud_sole.png",
+    "rough": "cloud_sole_rough.png",
+    "sole_mm": [
+      -35.15,
+      39.1,
+      -10.6,
+      38.78
+    ],
+    "mark": {
+      "centre": [
+        -26.0,
+        -2.0
+      ],
+      "length": 11.0,
+      "width": 6.2,
+      "turn": 90.0
+    }
+  },
+  "rookie_sole": {
+    "base": "rookie_sole.png",
+    "rough": "rookie_sole_rough.png",
+    "sole_mm": [
+      -35.15,
+      39.1,
+      -10.6,
+      38.78
+    ],
+    "mark": {
+      "centre": [
+        -26.0,
+        -2.0
+      ],
+      "length": 11.0,
+      "width": 6.2,
+      "turn": 90.0
+    }
+  }
+}

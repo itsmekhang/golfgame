@@ -12,7 +12,7 @@ func _init() -> void:
 			quit(1)
 			return
 		assert(imp[0].get_faces().size() == 18)
-		assert(imp[1].get_shader_parameter("near_cut") == 450.0)
+		assert(imp[1].get_shader_parameter("near_cut") == NaturePack.MID_AT)
 		assert(imp[1].get_shader_parameter("far_cut") == PerformanceSettings.tree_distance())
 		var mid := NaturePack.mesh_mid(id)
 		assert(mid.surface_get_material(0).get_shader_parameter("max_dist") == minf(NaturePack.DENSE_AT, PerformanceSettings.tree_distance()))
@@ -21,7 +21,7 @@ func _init() -> void:
 		var triangles := distance_mesh.get_faces().size() / 3
 		assert(triangles <= 6500 and triangles < mid.get_faces().size() / 12, "Tree geometry budget exceeded: " + id)
 		assert(distance_mesh.surface_get_material(0).get_shader_parameter("min_dist") == NaturePack.DENSE_AT)
-		assert(distance_mesh.surface_get_material(0).get_shader_parameter("max_dist") == minf(450.0, PerformanceSettings.tree_distance()))
+		assert(distance_mesh.surface_get_material(0).get_shader_parameter("max_dist") == minf(NaturePack.MID_AT, PerformanceSettings.tree_distance()))
 		assert(distance_mesh.get_aabb().size.y > mid.get_aabb().size.y * 0.9, "Tree silhouette lost height")
-	print("TREE DISTANCE: PASS; ", ids.size(), " species; detailed trees to 90m; cheaper 3D trees to 450m; cross cards to ", PerformanceSettings.tree_distance(), "m")
+	print("TREE DISTANCE: PASS; ", ids.size(), " species; distance tiers to ", NaturePack.MID_AT, "m; cross cards to ", PerformanceSettings.tree_distance(), "m (in-game trees use the single low-poly tier, see forest_far_tier_test)")
 	quit()

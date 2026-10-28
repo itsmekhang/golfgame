@@ -15,6 +15,11 @@ var bounds: Rect2 = Rect2()
 var shore_width: float = 3.0  # metres of blending outside the polygon
 var finalized: bool = false
 
+# Consecutive outline segments share small bounds. Rejecting whole groups makes
+# dense creek outlines cheap to sample without simplifying their shape.
+const DISTANCE_GROUP_SIZE := 16
+var _distance_groups: Array[Rect2] = []
+
 
 # ---- polygon factories --------------------------------------------------------
 
@@ -84,6 +89,7 @@ func set_polygon(pts: PackedVector2Array) -> void:
 
 
 func _update_bounds() -> void:
+	_distance_groups.clear()
 	if polygon.is_empty():
 		bounds = Rect2()
 		return
@@ -91,6 +97,11 @@ func _update_bounds() -> void:
 	for p in polygon:
 		bounds = bounds.expand(p)
 	bounds = bounds.grow(shore_width + 0.5)
+	for start in range(0, polygon.size(), DISTANCE_GROUP_SIZE):
+		var group := Rect2(polygon[start], Vector2.ZERO)
+		for i in range(start, mini(start + DISTANCE_GROUP_SIZE, polygon.size())):
+			group = group.expand(polygon[(i + 1) % polygon.size()])
+		_distance_groups.append(group)
 
 
 # ---- geometry -----------------------------------------------------------------
@@ -112,13 +123,20 @@ func contains(xz: Vector2) -> bool:
 func signed_distance(xz: Vector2) -> float:
 	var best := INF
 	var n := polygon.size()
-	for i in range(n):
-		var a := polygon[i]
-		var b := polygon[(i + 1) % n]
-		var d := Geometry2D.get_closest_point_to_segment(xz, a, b).distance_to(xz)
-		if d < best:
-			best = d
-	return -best if Geometry2D.is_point_in_polygon(xz, polygon) else best
+	for group_index in range(_distance_groups.size()):
+		var group := _distance_groups[group_index]
+		var dx := maxf(maxf(group.position.x - xz.x, xz.x - group.end.x), 0.0)
+		var dy := maxf(maxf(group.position.y - xz.y, xz.y - group.end.y), 0.0)
+		if dx * dx + dy * dy > best:
+			continue
+		var start := group_index * DISTANCE_GROUP_SIZE
+		for i in range(start, mini(start + DISTANCE_GROUP_SIZE, n)):
+			var a := polygon[i]
+			var b := polygon[(i + 1) % n]
+			var d := Geometry2D.get_closest_point_to_segment(xz, a, b).distance_squared_to(xz)
+			best = minf(best, d)
+	var distance := sqrt(best)
+	return -distance if Geometry2D.is_point_in_polygon(xz, polygon) else distance
 
 
 ## Height change applied to the base terrain at `xz`. 0 outside the shore. Override.

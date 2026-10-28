@@ -1,0 +1,272 @@
+{
+  "loaner_driver": {
+    "albedo": "loaner_driver/ofg_loaner_driver_albedo.png",
+    "orm": "loaner_driver/ofg_loaner_driver_orm.png",
+    "normal": "loaner_driver/ofg_loaner_driver_normal.png",
+    "wear": "loaner_driver/ofg_loaner_driver_wear.png"
+  },
+  "thrift_titan_460": {
+    "albedo": "thrift_titan_460/ofg_thrift_titan_460_albedo.png",
+    "orm": "thrift_titan_460/ofg_thrift_titan_460_orm.png",
+    "normal": "thrift_titan_460/ofg_thrift_titan_460_normal.png",
+    "wear": "thrift_titan_460/ofg_thrift_titan_460_wear.png"
+  },
+  "slice_slayer": {
+    "albedo": "slice_slayer/ofg_slice_slayer_albedo.png",
+    "orm": "slice_slayer/ofg_slice_slayer_orm.png",
+    "normal": "slice_slayer/ofg_slice_slayer_normal.png",
+    "wear": "slice_slayer/ofg_slice_slayer_wear.png"
+  },
+  "persimmon_ghost": {
+    "albedo": "persimmon_ghost/ofg_persimmon_ghost_albedo.png",
+    "orm": "persimmon_ghost/ofg_persimmon_ghost_orm.png",
+    "normal": "persimmon_ghost/ofg_persimmon_ghost_normal.png",
+    "wear": "persimmon_ghost/ofg_persimmon_ghost_wear.png"
+  },
+  "rocket_boomer_lt": {
+    "albedo": "rocket_boomer_lt/ofg_rocket_boomer_lt_albedo.png",
+    "orm": "rocket_boomer_lt/ofg_rocket_boomer_lt_orm.png",
+    "normal": "rocket_boomer_lt/ofg_rocket_boomer_lt_normal.png",
+    "wear": "rocket_boomer_lt/ofg_rocket_boomer_lt_wear.png"
+  },
+  "hollow_point_tour": {
+    "albedo": "hollow_point_tour/ofg_hollow_point_tour_albedo.png",
+    "orm": "hollow_point_tour/ofg_hollow_point_tour_orm.png",
+    "normal": "hollow_point_tour/ofg_hollow_point_tour_normal.png",
+    "wear": "hollow_point_tour/ofg_hollow_point_tour_wear.png"
+  },
+  "meteor_xr_proto": {
+    "albedo": "meteor_xr_proto/ofg_meteor_xr_proto_albedo.png",
+    "orm": "meteor_xr_proto/ofg_meteor_xr_proto_orm.png",
+    "normal": "meteor_xr_proto/ofg_meteor_xr_proto_normal.png",
+    "wear": "meteor_xr_proto/ofg_meteor_xr_proto_wear.png"
+  },
+  "loaner_3w": {
+    "albedo": "loaner_3w/ofg_loaner_3w_albedo.png",
+    "orm": "loaner_3w/ofg_loaner_3w_orm.png",
+    "normal": "loaner_3w/ofg_loaner_3w_normal.png",
+    "wear": "loaner_3w/ofg_loaner_3w_wear.png"
+  },
+  "loaner_5w": {
+    "albedo": "loaner_5w/ofg_loaner_5w_albedo.png",
+    "orm": "loaner_5w/ofg_loaner_5w_orm.png",
+    "normal": "loaner_5w/ofg_loaner_5w_normal.png",
+    "wear": "loaner_5w/ofg_loaner_5w_wear.png"
+  },
+  "garage_3w": {
+    "albedo": "garage_3w/ofg_garage_3w_albedo.png",
+    "orm": "garage_3w/ofg_garage_3w_orm.png",
+    "normal": "garage_3w/ofg_garage_3w_normal.png",
+    "wear": "garage_3w/ofg_garage_3w_wear.png"
+  },
+  "steelhead_classic": {
+    "albedo": "steelhead_classic/ofg_steelhead_classic_albedo.png",
+    "orm": "steelhead_classic/ofg_steelhead_classic_orm.png",
+    "normal": "steelhead_classic/ofg_steelhead_classic_normal.png",
+    "wear": "steelhead_classic/ofg_steelhead_classic_wear.png"
+  },
+  "tour_spoon": {
+    "albedo": "tour_spoon/ofg_tour_spoon_albedo.png",
+    "orm": "tour_spoon/ofg_tour_spoon_orm.png",
+    "normal": "tour_spoon/ofg_tour_spoon_normal.png",
+    "wear": "tour_spoon/ofg_tour_spoon_wear.png"
+  },
+  "lowball_5w": {
+    "albedo": "lowball_5w/ofg_lowball_5w_albedo.png",
+    "orm": "lowball_5w/ofg_lowball_5w_orm.png",
+    "normal": "lowball_5w/ofg_lowball_5w_normal.png",
+    "wear": "lowball_5w/ofg_lowball_5w_wear.png"
+  },
+  "heirloom_5w": {
+    "albedo": "heirloom_5w/ofg_heirloom_5w_albedo.png",
+    "orm": "heirloom_5w/ofg_heirloom_5w_orm.png",
+    "normal": "heirloom_5w/ofg_heirloom_5w_normal.png",
+    "wear": "heirloom_5w/ofg_heirloom_5w_wear.png"
+  },
+  "rescue_rookie": {
+    "albedo": "rescue_rookie/ofg_rescue_rookie_albedo.png",
+    "orm": "rescue_rookie/ofg_rescue_rookie_orm.png",
+    "normal": "rescue_rookie/ofg_rescue_rookie_normal.png",
+    "wear": "rescue_rookie/ofg_rescue_rookie_wear.png"
+  },
+  "cloudcutter_4h": {
+    "albedo": "cloudcutter_4h/ofg_cloudcutter_4h_albedo.png",
+    "orm": "cloudcutter_4h/ofg_cloudcutter_4h_orm.png",
+    "normal": "cloudcutter_4h/ofg_cloudcutter_4h_normal.png",
+    "wear": "cloudcutter_4h/ofg_cloudcutter_4h_wear.png"
+  },
+  "utility_2u": {
+    "albedo": "utility_2u/ofg_utility_2u_albedo.png",
+    "orm": "utility_2u/ofg_utility_2u_orm.png",
+    "normal": "utility_2u/ofg_utility_2u_normal.png",
+    "wear": "utility_2u/ofg_utility_2u_wear.png"
+  },
+  "loaner_irons": {
+    "albedo": "loaner_irons/ofg_loaner_irons_albedo.png",
+    "orm": "loaner_irons/ofg_loaner_irons_orm.png",
+    "normal": "loaner_irons/ofg_loaner_irons_normal.png",
+    "wear": "loaner_irons/ofg_loaner_irons_wear.png"
+  },
+  "thrift_cavity_backs": {
+    "albedo": "thrift_cavity_backs/ofg_thrift_cavity_backs_albedo.png",
+    "orm": "thrift_cavity_backs/ofg_thrift_cavity_backs_orm.png",
+    "normal": "thrift_cavity_backs/ofg_thrift_cavity_backs_normal.png",
+    "wear": "thrift_cavity_backs/ofg_thrift_cavity_backs_wear.png"
+  },
+  "mustard_muscle": {
+    "albedo": "mustard_muscle/ofg_mustard_muscle_albedo.png",
+    "orm": "mustard_muscle/ofg_mustard_muscle_orm.png",
+    "normal": "mustard_muscle/ofg_mustard_muscle_normal.png",
+    "wear": "mustard_muscle/ofg_mustard_muscle_wear.png"
+  },
+  "game_improver_xl": {
+    "albedo": "game_improver_xl/ofg_game_improver_xl_albedo.png",
+    "orm": "game_improver_xl/ofg_game_improver_xl_orm.png",
+    "normal": "game_improver_xl/ofg_game_improver_xl_normal.png",
+    "wear": "game_improver_xl/ofg_game_improver_xl_wear.png"
+  },
+  "blade_runner_forged": {
+    "albedo": "blade_runner_forged/ofg_blade_runner_forged_albedo.png",
+    "orm": "blade_runner_forged/ofg_blade_runner_forged_orm.png",
+    "normal": "blade_runner_forged/ofg_blade_runner_forged_normal.png",
+    "wear": "blade_runner_forged/ofg_blade_runner_forged_wear.png"
+  },
+  "tour_forged_cb": {
+    "albedo": "tour_forged_cb/ofg_tour_forged_cb_albedo.png",
+    "orm": "tour_forged_cb/ofg_tour_forged_cb_orm.png",
+    "normal": "tour_forged_cb/ofg_tour_forged_cb_normal.png",
+    "wear": "tour_forged_cb/ofg_tour_forged_cb_wear.png"
+  },
+  "combo_proto": {
+    "albedo": "combo_proto/ofg_combo_proto_albedo.png",
+    "orm": "combo_proto/ofg_combo_proto_orm.png",
+    "normal": "combo_proto/ofg_combo_proto_normal.png",
+    "wear": "combo_proto/ofg_combo_proto_wear.png"
+  },
+  "loaner_pw": {
+    "albedo": "loaner_pw/ofg_loaner_pw_albedo.png",
+    "orm": "loaner_pw/ofg_loaner_pw_orm.png",
+    "normal": "loaner_pw/ofg_loaner_pw_normal.png",
+    "wear": "loaner_pw/ofg_loaner_pw_wear.png"
+  },
+  "loaner_gw": {
+    "albedo": "loaner_gw/ofg_loaner_gw_albedo.png",
+    "orm": "loaner_gw/ofg_loaner_gw_orm.png",
+    "normal": "loaner_gw/ofg_loaner_gw_normal.png",
+    "wear": "loaner_gw/ofg_loaner_gw_wear.png"
+  },
+  "loaner_sw": {
+    "albedo": "loaner_sw/ofg_loaner_sw_albedo.png",
+    "orm": "loaner_sw/ofg_loaner_sw_orm.png",
+    "normal": "loaner_sw/ofg_loaner_sw_normal.png",
+    "wear": "loaner_sw/ofg_loaner_sw_wear.png"
+  },
+  "loaner_lw": {
+    "albedo": "loaner_lw/ofg_loaner_lw_albedo.png",
+    "orm": "loaner_lw/ofg_loaner_lw_orm.png",
+    "normal": "loaner_lw/ofg_loaner_lw_normal.png",
+    "wear": "loaner_lw/ofg_loaner_lw_wear.png"
+  },
+  "grocery_pw": {
+    "albedo": "grocery_pw/ofg_grocery_pw_albedo.png",
+    "orm": "grocery_pw/ofg_grocery_pw_orm.png",
+    "normal": "grocery_pw/ofg_grocery_pw_normal.png",
+    "wear": "grocery_pw/ofg_grocery_pw_wear.png"
+  },
+  "bent_neck_pw": {
+    "albedo": "bent_neck_pw/ofg_bent_neck_pw_albedo.png",
+    "orm": "bent_neck_pw/ofg_bent_neck_pw_orm.png",
+    "normal": "bent_neck_pw/ofg_bent_neck_pw_normal.png",
+    "wear": "bent_neck_pw/ofg_bent_neck_pw_wear.png"
+  },
+  "rusty_gap_52": {
+    "albedo": "rusty_gap_52/ofg_rusty_gap_52_albedo.png",
+    "orm": "rusty_gap_52/ofg_rusty_gap_52_orm.png",
+    "normal": "rusty_gap_52/ofg_rusty_gap_52_normal.png",
+    "wear": "rusty_gap_52/ofg_rusty_gap_52_wear.png"
+  },
+  "flop_master_60": {
+    "albedo": "flop_master_60/ofg_flop_master_60_albedo.png",
+    "orm": "flop_master_60/ofg_flop_master_60_orm.png",
+    "normal": "flop_master_60/ofg_flop_master_60_normal.png",
+    "wear": "flop_master_60/ofg_flop_master_60_wear.png"
+  },
+  "raw_face_56": {
+    "albedo": "raw_face_56/ofg_raw_face_56_albedo.png",
+    "orm": "raw_face_56/ofg_raw_face_56_orm.png",
+    "normal": "raw_face_56/ofg_raw_face_56_normal.png",
+    "wear": "raw_face_56/ofg_raw_face_56_wear.png"
+  },
+  "tour_grind_58": {
+    "albedo": "tour_grind_58/ofg_tour_grind_58_albedo.png",
+    "orm": "tour_grind_58/ofg_tour_grind_58_orm.png",
+    "normal": "tour_grind_58/ofg_tour_grind_58_normal.png",
+    "wear": "tour_grind_58/ofg_tour_grind_58_wear.png"
+  },
+  "sand_shovel": {
+    "albedo": "sand_shovel/ofg_sand_shovel_albedo.png",
+    "orm": "sand_shovel/ofg_sand_shovel_orm.png",
+    "normal": "sand_shovel/ofg_sand_shovel_normal.png",
+    "wear": "sand_shovel/ofg_sand_shovel_wear.png"
+  },
+  "loaner_putter": {
+    "albedo": "loaner_putter/ofg_loaner_putter_albedo.png",
+    "orm": "loaner_putter/ofg_loaner_putter_orm.png",
+    "normal": "loaner_putter/ofg_loaner_putter_normal.png",
+    "wear": "loaner_putter/ofg_loaner_putter_wear.png"
+  },
+  "rustbelt_blade": {
+    "albedo": "rustbelt_blade/ofg_rustbelt_blade_albedo.png",
+    "orm": "rustbelt_blade/ofg_rustbelt_blade_orm.png",
+    "normal": "rustbelt_blade/ofg_rustbelt_blade_normal.png",
+    "wear": "rustbelt_blade/ofg_rustbelt_blade_wear.png"
+  },
+  "brass_relic": {
+    "albedo": "brass_relic/ofg_brass_relic_albedo.png",
+    "orm": "brass_relic/ofg_brass_relic_orm.png",
+    "normal": "brass_relic/ofg_brass_relic_normal.png",
+    "wear": "brass_relic/ofg_brass_relic_wear.png"
+  },
+  "midnight_mallet": {
+    "albedo": "midnight_mallet/ofg_midnight_mallet_albedo.png",
+    "orm": "midnight_mallet/ofg_midnight_mallet_orm.png",
+    "normal": "midnight_mallet/ofg_midnight_mallet_normal.png",
+    "wear": "midnight_mallet/ofg_midnight_mallet_wear.png"
+  },
+  "copper_classic": {
+    "albedo": "copper_classic/ofg_copper_classic_albedo.png",
+    "orm": "copper_classic/ofg_copper_classic_orm.png",
+    "normal": "copper_classic/ofg_copper_classic_normal.png",
+    "wear": "copper_classic/ofg_copper_classic_wear.png"
+  },
+  "tourline_prototype": {
+    "albedo": "tourline_prototype/ofg_tourline_prototype_albedo.png",
+    "orm": "tourline_prototype/ofg_tourline_prototype_orm.png",
+    "normal": "tourline_prototype/ofg_tourline_prototype_normal.png",
+    "wear": "tourline_prototype/ofg_tourline_prototype_wear.png"
+  },
+  "blackout_tour_issue": {
+    "albedo": "blackout_tour_issue/ofg_blackout_tour_issue_albedo.png",
+    "orm": "blackout_tour_issue/ofg_blackout_tour_issue_orm.png",
+    "normal": "blackout_tour_issue/ofg_blackout_tour_issue_normal.png",
+    "wear": "blackout_tour_issue/ofg_blackout_tour_issue_wear.png"
+  },
+  "scotty_grail": {
+    "albedo": "scotty_grail/ofg_scotty_grail_albedo.png",
+    "orm": "scotty_grail/ofg_scotty_grail_orm.png",
+    "normal": "scotty_grail/ofg_scotty_grail_normal.png",
+    "wear": "scotty_grail/ofg_scotty_grail_wear.png"
+  },
+  "grenade_driver": {
+    "albedo": "grenade_driver/ofg_grenade_driver_albedo.png",
+    "orm": "grenade_driver/ofg_grenade_driver_orm.png",
+    "normal": "grenade_driver/ofg_grenade_driver_normal.png",
+    "wear": "grenade_driver/ofg_grenade_driver_wear.png"
+  },
+  "auto_putt_9000": {
+    "albedo": "auto_putt_9000/ofg_auto_putt_9000_albedo.png",
+    "orm": "auto_putt_9000/ofg_auto_putt_9000_orm.png",
+    "normal": "auto_putt_9000/ofg_auto_putt_9000_normal.png",
+    "wear": "auto_putt_9000/ofg_auto_putt_9000_wear.png"
+  }
+}

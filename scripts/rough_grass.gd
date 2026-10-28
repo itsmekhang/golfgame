@@ -256,6 +256,10 @@ static func _per_cell(d: float, params: Dictionary, area: float) -> float:
 	var density: float = params["density"]
 	if params["mode"] == "kolosok":
 		density *= 0.6
+		var band: float = params["band"]
+		var per_metre := lerpf(density, density * 0.3, smoothstep(minf(8.0, band) - 2.0, minf(8.0, band) + 2.0, d))
+		per_metre = lerpf(per_metre, float(params["far"]), smoothstep(band - 2.0, band + 2.0, d))
+		return per_metre * area * params["scale"] * (1.0 - smoothstep(52.0, 60.0, d))
 	if params["mode"] == "wild":
 		var band_w: float = params["band"]
 		if d < band_w:
@@ -295,23 +299,18 @@ static func _sample_tile(layout: CourseLayout, key: Vector2i, params: Dictionary
 	var xf: Array = []
 	var cols: Array = []
 	var limit: int = params.get("max_per_tile", 1000000)
-	var expected := 0.0
+	# A fixed density budget per square metre: partial rough tiles must not get
+	# denser than full ones just because they have fewer eligible cache cells.
+	var cell_budget := float(limit) * area / (TILE * TILE)
+	var cell_radius := cell * 0.71
 	for iz in range(iz0, mini(iz0 + cpt, layout.cache_nz)):
 		for ix in range(ix0, mini(ix0 + cpt, layout.cache_nx)):
 			var i := iz * layout.cache_nx + ix
-			if layout.cache_surface[i] == PhysicsEnums.SurfaceType.ROUGH:
-				expected += _per_cell(layout.cache_turf[i], params, area)
-	# Reduce sampling before generating transforms/hazard queries, rather than
-	# spending a frame generating thousands of clumps only to discard most of them.
-	var tile_scale := minf(1.0, float(limit) / maxf(expected, 1.0))
-	for iz in range(iz0, mini(iz0 + cpt, layout.cache_nz)):
-		for ix in range(ix0, mini(ix0 + cpt, layout.cache_nx)):
-			var i := iz * layout.cache_nx + ix
-			if layout.cache_surface[i] != PhysicsEnums.SurfaceType.ROUGH:
+			var d := layout.cache_turf[i]
+			if d < -cell_radius:
 				continue
 			var cell_xz := Vector2(b.position.x + ix * cell, b.position.y + iz * cell)
-			var d := layout.cache_turf[i]
-			var per_cell := _per_cell(d, params, area) * tile_scale
+			var per_cell := minf(_per_cell(d - cell_radius, params, area), cell_budget)
 			if per_cell <= 0.0:
 				continue
 			var count := int(per_cell)
@@ -319,25 +318,41 @@ static func _sample_tile(layout: CourseLayout, key: Vector2i, params: Dictionary
 				count += 1
 			var cx := b.position.x + ix * cell
 			var cz := b.position.y + iz * cell
-			var in_band: bool = d < params["band"]
 			if count == 0:
 				continue
-			if layout.bunker_near(cell_xz, HAZARD_CLEARANCE) or layout.hazard_near(cell_xz, HAZARD_CLEARANCE):
+			if layout.bunker_near(cell_xz, HAZARD_CLEARANCE - cell_radius) or layout.hazard_near(cell_xz, HAZARD_CLEARANCE - cell_radius):
 				continue
 			var near_hazard := layout.bunker_near(cell_xz, HAZARD_CLEARANCE + cell * 0.71) or layout.hazard_near(cell_xz, HAZARD_CLEARANCE + cell * 0.71)
+			# a building plot is rough too, bar its paving, floors and beds
+			var near_pad := layout.in_pad(cell_xz, cell_radius)
 			for k in range(count):
 				var x := cx + rng.randf_range(-0.5, 0.5) * cell
 				var z := cz + rng.randf_range(-0.5, 0.5) * cell
 				var sample_xz := Vector2(x, z)
-				if not layout.bounds.has_point(sample_xz) or layout.cached_sdf(x, z).x < CourseLayout.FIRST_CUT_WIDTH:
+				if not layout.bounds.has_point(sample_xz):
+					continue
+				# Classify individual roots along the curved mown edge, including
+				# partially rough cells and islands that have no first-cut collar.
+				var turf_distance := layout.cached_sdf(x, z).x
+				if turf_distance < CourseLayout.FIRST_CUT_WIDTH + cell_radius and not layout.holes.is_empty():
+					var surface := layout.surface_at(sample_xz)
+					if surface != PhysicsEnums.SurfaceType.ROUGH and surface != CourseLayout.SURFACE_TREE_PATCH:
+						continue
+				elif turf_distance < CourseLayout.FIRST_CUT_WIDTH:
+					continue
+				var sample_density := minf(_per_cell(turf_distance, params, area), cell_budget)
+				if rng.randf() * per_cell > sample_density:
 					continue
 				if near_hazard and (layout.bunker_near(sample_xz, HAZARD_CLEARANCE) or layout.hazard_near(sample_xz, HAZARD_CLEARANCE)):
 					continue
 				# no grass cards on the pine-straw beds under the trees
 				if layout.straw_at(sample_xz) > 0.45:
 					continue
+				if near_pad and layout.in_paving(sample_xz, 0.1):
+					continue
 				var y := layout.cached_height(x, z)
-				var s := rng.randf_range(0.65, 1.0) * (1.0 if in_band else 1.15)
+				var band: float = params["band"]
+				var s := rng.randf_range(0.65, 1.0) * lerpf(1.0, 1.15, smoothstep(band - 2.0, band + 2.0, turf_distance))
 				var basis := Basis(Vector3.UP, rng.randf_range(0.0, TAU)).scaled(Vector3(s, s * rng.randf_range(0.85, 1.2), s))
 				if params["mode"] == "atlas":
 					basis = basis.scaled(Vector3(0.4, 0.35, 0.4))
@@ -523,7 +538,8 @@ static func _kolosok_mesh(variant: int, lod: int = 0) -> Mesh:
 	centre /= float(picked.size() * 4)
 	# Same first cards and pivots in all tiers, so LOD changes do not move the tuft.
 	var card_count: int = [12, 6, 3][lod]
-	for c in picked.slice(0, card_count):
+	for card_index in range(card_count):
+		var c: Array = picked[card_index]
 		var pos: Array = c[0]
 		var uv: Array = c[1]
 		var card_c := Vector3.ZERO
@@ -543,6 +559,7 @@ static func _kolosok_mesh(variant: int, lod: int = 0) -> Mesh:
 			v = Vector3(mid.x, v.y, mid.z) + across * KOLOSOK_WIDEN
 			st.set_normal(nrm)
 			st.set_uv(uv[k])
+			st.set_uv2(Vector2(card_index, 0.0))
 			st.set_color(Color.WHITE)
 			st.add_vertex(v + shift)
 		for t in [0, 1, 2, 0, 2, 3]:
@@ -608,6 +625,7 @@ static func _material(mode: String) -> ShaderMaterial:
 		mat.shader = load("res://shaders/grass_cards.gdshader")
 		mat.set_shader_parameter("main_texture", load(KOLOSOK_ATLAS))
 		mat.set_shader_parameter("tint", Color(0.58, 0.78, 0.54))
+		mat.set_shader_parameter("rough_color", TerrainBuilder.ROUGH_COLOR)
 		mat.set_shader_parameter("base_darken", Color(0.5, 0.6, 0.4))
 		mat.set_shader_parameter("interracting_object_pos", Vector3(0, -1000, 0))
 		return mat
@@ -668,6 +686,9 @@ static func sample_tile_buffer(layout: CourseLayout, key: Vector2i, params: Dict
 		var t: Transform3D = transforms[order[i]]
 		t.origin -= origin
 		var c: Color = colors[order[i]]
+		# Randomly shuffled prefixes are spatially uniform; this rank lets the
+		# shader fade density per clump while the CPU safely trims hidden prefixes.
+		c.r = (i + 0.5) / order.size()
 		var values := [t.basis.x.x, t.basis.y.x, t.basis.z.x, t.origin.x,
 			t.basis.x.y, t.basis.y.y, t.basis.z.y, t.origin.y,
 			t.basis.x.z, t.basis.y.z, t.basis.z.z, t.origin.z, c.r, c.g, c.b, c.a]

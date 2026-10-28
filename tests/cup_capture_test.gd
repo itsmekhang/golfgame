@@ -50,6 +50,37 @@ func roll_case(start_x: float, offset: float, speed: float, expected: bool, labe
 	check(ball.captured == expected, label)
 	ball.free()
 
+## Rolls a putt across (or past) the cup and checks the lip reaction: a ball that crosses the
+## mouth without dropping must hop, lose speed and (off-centre) turn away from the hole; one
+## that misses the rim must roll on unchanged.
+func lip_case(start_x: float, offset: float, speed: float, label: String, expect_lip: bool = true) -> void:
+	var ball := make_ball()
+	var lipped := [false]
+	ball.lipped_out.connect(func(_p: Vector3) -> void: lipped[0] = true)
+	ball.place(Vector2(CUP.x + start_x, CUP.z + offset))
+	ball.putt(speed, Vector3.RIGHT)
+	var before := Vector3.ZERO
+	var hopped := false
+	for step in range(240):
+		var v := ball.velocity
+		ball._physics_process(GolfBall.DT)
+		if lipped[0] and before == Vector3.ZERO:
+			before = v
+			hopped = ball.velocity.y > 0.1
+			var after := Vector3(ball.velocity.x, 0.0, ball.velocity.z)
+			var loss := 1.0 - after.length() / Vector3(v.x, 0.0, v.z).length()
+			var turned := rad_to_deg(Vector2(v.x, v.z).angle_to(Vector2(after.x, after.z)))
+			var away := signf(after.z) == signf(offset) or offset == 0.0
+			print("    %s: hop %.2f m/s, lost %.0f%% speed, turned %.0f deg" % [label, ball.velocity.y, loss * 100.0, turned])
+			check(hopped and loss > 0.12, label + ' catches the lip: hops and slows')
+			if offset != 0.0:
+				check(absf(turned) > 8.0 and away, label + ' turns away from the hole')
+		if not ball.is_moving or ball.captured:
+			break
+	check(lipped[0] == expect_lip, label + (' catches the lip' if expect_lip else ' never touches the rim'))
+	check(not ball.captured, label + ' does not drop')
+	ball.free()
+
 func run() -> void:
 	layout.bounds = Rect2(-100, -100, 200, 200)
 	SurfacePhysicsCatalog.set_green_speed(9.5)
@@ -62,6 +93,9 @@ func run() -> void:
 	roll_case(-0.12, 0, 3.5, false, 'Overhit centered putt skips past')
 	# Both endpoints miss the new 96 mm capture boundary; only the path grazes it.
 	roll_case(-0.0041, 0.09595, 1.0, true, 'Lip contact between physics samples is caught', 1)
+	lip_case(-0.3, 0.0, 3.5, 'Overhit centred putt')
+	lip_case(-0.3, 0.09, 2.0, 'Firm putt over the edge')
+	lip_case(-0.3, 0.11, 2.0, 'Putt clear of the rim', false)
 	var airborne := make_ball()
 	airborne.place(Vector2(CUP.x - 0.0041, CUP.z))
 	airborne.position.y = 1.0

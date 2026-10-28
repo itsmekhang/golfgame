@@ -10,12 +10,14 @@ var rendered_terrain := TerrainContact.new()
 const SURFACE_BUNKER := 100
 const SURFACE_WATER := 101
 const SURFACE_TEE := 102
-## Intermediate cut: a short collar of semi-rough around every fairway.
+## Intermediate cut along the side rough; tree patches have no mown collar.
 const SURFACE_FIRST_CUT := 103
 const FIRST_CUT_WIDTH := 2.5
+const FIRST_CUT_ZONE_INNER := 0.8  # turf distance inside a first-cut zone (mid first-cut band)
 ## Fringe: the tight collar of turf around every green.
 const SURFACE_FRINGE := 104
 const FRINGE_WIDTH := 2.5
+const SURFACE_TREE_PATCH := 105
 ## Vegetation-spawn dampening border: how far past a prop's own min_dist_to_fairway
 ## (PropScatter) / the fairway edge (NatureSetProps) its density keeps ramping up to
 ## full. Purely a placement/density control, much thicker than the lie transition
@@ -33,14 +35,21 @@ class Hole:
 	## every `fairway_step` metres. Empty = generic capsule fairway.
 	var fairway_profile: PackedVector3Array = PackedVector3Array()
 	var fairway_step: float = 4.0
-	var rough_islands: Array = []  # [Vector2 a, Vector2 b, float radius] capsules of rough kept inside the fairway, with trees
+	var rough_islands: Array = []  # [a, b, radius] tree patches; optional fourth false = treeless side-rough cutout; optional fifth = tree island (no first cut; defaults to the fourth)
 	var fairway_patches: Array = []  # [Vector2 a, Vector2 b, float radius] added mown capsules
-	var planted_trees: Array = []  # [String nature-pack species, Vector2 world XZ]
+	var planted_trees: Array = []  # [String nature-pack species, Vector2 world XZ, optional bool waterside (may stand on a creek bank)]
+	var planted_bushes: Array[Vector2] = []  # authored understory inside the woodland edge
+	var planted_shrubs: Array = []  # [String nature-pack shrub (azaleas...), Vector2 world XZ]
+	var straw_beds: Array = []  # [Vector2 world XZ, float radius] bare pine-straw / dirt ground
+	var bridges: Array = []  # [Vector2 a, Vector2 b, float width, int arches] stone footbridges
+	var first_cut_zones: Array = []  # PackedVector2Array world outlines mown as first cut (over fairway or rough)
 	var extend_creeks: bool = true
 	var green_radius: float = 12.0
 	var green_height: float = 0.6
 	var tee_height_offset: float = 0.0
 	var tee_apron: Vector2 = Vector2.ZERO  # extra level margin, then smooth blend width
+	var tee_offset_radius: float = 30.0  # how far tee_height_offset fades out to zero
+	var opening_grade_length: float = 0.0  # grade a rough opening along the route without mowing it
 	var bunker_rim_lifts: Dictionary = {}
 	var green_center: Vector2 = Vector2.ZERO
 	## Traced green outline: radius (m) per angle bin around `green_center`, bins
@@ -52,6 +61,7 @@ class Hole:
 	## tee = 0). Scaled by PROFILE_SCALE and offset by `tee_h`. Empty = flat.
 	var profile: PackedVector2Array = PackedVector2Array()
 	var tee_h: float = 0.0  # datum height of the tee (set by CourseLayout.build_datum)
+	var tee_datum_offset: float = 0.0  # broad route datum adjustment, distinct from a local tee pad
 	var green_h: float = 0.0  # datum height of the green
 	## How much of the profile's end grade the putting surface keeps (1 = all of it);
 	## capped so a green never inherits more than GREEN_MAX_GRADE from its approach.
@@ -59,7 +69,7 @@ class Hole:
 	var green_landform: float = 0.0  # sculpted height at the green centre (relief cap reference)
 	var bunker_polys: Array = []  # [String id, String role, PackedVector2Array outline]
 	var water_polys: Array = []  # [String name, PackedVector2Array outline]
-	var creek_paths: Array = []  # [PackedVector2Array path, float width] hand-authored streams
+	var creek_paths: Array = []  # [path, width, optional follow_terrain] hand-authored streams
 	var tee_boxes: Array = []  # [Vector2 center, Vector2 dir, Vector2 half (across, along)], back tee first
 	var landforms: Array = []  # {id, s0, s1} named terrain features still to sculpt
 	var woods: Array = []  # PackedVector2Array traced tree-group footprints
@@ -147,6 +157,14 @@ func finalize_features() -> void:
 	_creeks_to_hazards()
 	_hole_bunkers_to_excavations()
 	_extend_creeks()  # after the sand, so streams can steer round bunkers
+	# Connected streams meet an existing broad crossing without a water-height step.
+	for stream: WaterHazard in water_hazards:
+		if stream._flow_path.is_empty(): continue
+		for at_start in [true, false]:
+			var endpoint: Vector2 = stream._flow_path[0 if at_start else -1]
+			for pond: WaterHazard in water_hazards:
+				if not pond.is_creek and pond.contains(endpoint):
+					stream.join_pond_level(at_start, pond.water_level, pond)
 	rough = RoughArea.new()
 	rough.setup(self)
 
@@ -161,6 +179,9 @@ func feature_points(hole: Hole) -> Array[Vector2]:
 			out.append(p)
 	for w in hole.water_polys:
 		for p in w[1]:
+			out.append(p)
+	for creek in hole.creek_paths:
+		for p in creek[0]:
 			out.append(p)
 	for t in hole.tee_boxes:
 		out.append(t[0])
@@ -183,6 +204,7 @@ func _build_turf_areas() -> void:
 		var fw := FairwayArea.new()
 		fw.setup(pts, hole.fairway_half_width, hole.index, rng, hole.fairway_profile, hole.fairway_step)
 		fw.islands = hole.rough_islands
+		fw.cut_zones = hole.first_cut_zones
 		fw.patches = hole.fairway_patches
 		for patch in fw.patches:
 			fw.bounds = fw.bounds.merge(Rect2(patch[0], Vector2.ZERO).expand(patch[1]).grow(float(patch[2]) + FIRST_CUT_WIDTH + 3.0))
@@ -202,7 +224,11 @@ func _build_turf_areas() -> void:
 			te.setup(pts[0], first_dir, hole.index)
 		else:
 			te.setup(hole.tee_boxes[0][0], hole.tee_boxes[0][1], hole.index, hole.tee_boxes[0][2])
-		te.bounds = te.bounds.grow(hole.tee_apron.x + hole.tee_apron.y)
+			if hole.index in [10, 17]:
+				# Keep forward tee boxes mown through these holes' rough carries.
+				for box in hole.tee_boxes.slice(1):
+					te.add_box(box[0], box[1], box[2])
+		te.bounds = te.bounds.grow(maxf(hole.tee_apron.x + hole.tee_apron.y, hole.tee_offset_radius))
 		te.area_name = "%s tee" % hole.name
 		tees.append(te)
 		hole.bbox = Rect2()
@@ -263,9 +289,28 @@ func _hole_water_to_hazards() -> void:
 				r = r.expand(p)
 			var aspect := maxf(r.size.x, r.size.y) / maxf(minf(r.size.x, r.size.y), 1.0)
 			var first := hole.name.split(" ")[0]
-			if aspect > 3.0 or hz.area_m2() < 900.0:
+			var id_lower := String(w[0]).to_lower()
+			# A small, deliberately-authored pond (e.g. hole 11's, shrunk per
+			# user reference to sit right against the green) can drop under
+			# the area heuristic below and get mis-classified as a shallow,
+			# terrain-following creek -- the id's own naming already says
+			# which one it is, so trust that first.
+			if id_lower.contains("pond"):
+				hz.hazard_name = "%s Pond" % first
+				if id_lower.contains("greenside"):
+					# A pond hugging a green drops away at its own edge: a long sloping shore
+					# would drag the green's near side down toward the water.
+					hz.shore_width = 1.2
+			elif id_lower.contains("creek"):
 				hz.is_creek = true
-				hz.shore_width = 2.0
+				hz.follow_terrain = true
+				hz.shore_width = 6.0
+				hz.max_depth = 0.7
+				hz.hazard_name = "%s Creek" % first
+			elif aspect > 3.0 or hz.area_m2() < 900.0:
+				hz.is_creek = true
+				hz.follow_terrain = true
+				hz.shore_width = 6.0
 				hz.max_depth = 0.7
 				hz.hazard_name = "%s Creek" % first
 			else:
@@ -276,6 +321,7 @@ func _hole_water_to_hazards() -> void:
 		rng.seed = 6060 + hole.index
 		for cp in hole.creek_paths:
 			var s := WaterHazard.make_stream(cp[0], float(cp[1]), rng)
+			s.follow_terrain = cp.size() <= 2 or bool(cp[2])
 			s.auto_extend = hole.extend_creeks
 			s.hazard_name = "%s Creek" % hole.name.split(" ")[0]
 			s.finalize(self)
@@ -436,6 +482,19 @@ func surface_at(xz: Vector2) -> int:
 	return surface_from(xz, _hole_fds(xz))
 
 
+## Ball lies follow the visible sand edge, including interpolation between mask
+## samples. Read the existing CPU image; no GPU readback or extra collision work.
+## Generation still uses surface_at() so baking never depends on an older mask.
+func lie_surface_at(xz: Vector2) -> int:
+	if mask_image == null or not bounds.has_point(xz):
+		return surface_at(xz)
+	if hazard_at(xz) != null:
+		return SURFACE_WATER
+	if _sand_mask_at(xz) > 0.5:
+		return SURFACE_BUNKER
+	return _turf_surface_from(_hole_fds(xz))
+
+
 ## Per-hole [distance_to_centreline, along] for `xz`, or null when outside the hole's box.
 func _hole_fds(xz: Vector2) -> Array:
 	_ensure_areas()
@@ -450,7 +509,7 @@ func _hole_fds(xz: Vector2) -> Array:
 		var fw_sd: float = fairways[i].signed_distance_from(xz, cl)
 		var g_sd: float = greens[i].signed_distance(xz) if greens[i].bounds.has_point(xz) else 1.0e9
 		var t_sd: float = tees[i].signed_distance(xz) if tees[i].bounds.has_point(xz) else 1.0e9
-		out[i] = [fw_sd, cl[1], g_sd, t_sd, cl[0], cl[3]]
+		out[i] = [fw_sd, cl[1], g_sd, t_sd, cl[0], cl[3], fairways[i].tree_patch_distance(xz), fairways[i].tree_island_distance(xz), fairways[i].cut_zone_distance(xz)]
 	return out
 
 
@@ -465,8 +524,18 @@ static func turf_sd_from(fds: Array) -> float:
 	for f in fds:
 		if f == null:
 			continue
-		best = minf(best, minf(f[0], minf(f[2], f[3])))
+		best = minf(best, minf(_mown_sd(f), minf(f[2], f[3])))
+		# A first-cut zone reads as the first-cut band: just past the mown edge inside it,
+		# fading into the rough at its own outline.
+		if f[8] < FIRST_CUT_WIDTH:
+			best = minf(best, maxf(f[8] + FIRST_CUT_WIDTH, FIRST_CUT_ZONE_INNER))
 	return best
+
+
+## Fairway distance with the first-cut zones cut out of the mown fairway (like islands, but
+## for the lie and the look only -- terrain shaping keeps the plain fairway distance).
+static func _mown_sd(f: Array) -> float:
+	return f[0] if f[8] >= 8.0 else maxf(f[0], -f[8])
 
 
 static func green_sd_from(fds: Array) -> float:
@@ -484,6 +553,10 @@ func surface_from(xz: Vector2, fds: Array) -> int:
 		return SURFACE_WATER
 	if bunker_at(xz) != null:
 		return SURFACE_BUNKER
+	return _turf_surface_from(fds)
+
+
+func _turf_surface_from(fds: Array) -> int:
 	var first_cut := false
 	var fringe := false
 	for f in fds:
@@ -500,18 +573,42 @@ func surface_from(xz: Vector2, fds: Array) -> int:
 	for f in fds:
 		if f == null:
 			continue
-		if f[0] < 0.0:
+		if _mown_sd(f) < 0.0:
 			return PhysicsEnums.SurfaceType.FAIRWAY
-		if f[0] < FIRST_CUT_WIDTH:
+		if f[8] < 0.0:
 			first_cut = true
+		# Tree islands sit straight in the fairway: rough right off the mown edge.
+		if f[0] < FIRST_CUT_WIDTH and f[7] >= 0.0:
+			first_cut = true
+	if tree_patch_sd_from(fds) < 0.0:
+		return SURFACE_TREE_PATCH
 	if first_cut:
 		return SURFACE_FIRST_CUT
 	return PhysicsEnums.SurfaceType.ROUGH
 
 
+## Signed distance into the nearest tree island (rough ring included); negative inside.
+static func tree_island_sd_from(fds: Array) -> float:
+	var sd := 1.0e9
+	for f in fds:
+		if f != null:
+			sd = minf(sd, f[7])
+	return sd
+
+
+static func tree_patch_sd_from(fds: Array) -> float:
+	var sd := 1.0e9
+	for f in fds:
+		if f != null:
+			sd = minf(sd, f[6])
+	return sd
+
+
 ## Map a gameplay surface to the OpenFairway engine surface type.
 static func engine_surface(surface: int) -> int:
 	match surface:
+		SURFACE_TREE_PATCH:
+			return PhysicsEnums.SurfaceType.ROUGH
 		SURFACE_BUNKER:
 			return PhysicsEnums.SurfaceType.BUNKER
 		SURFACE_WATER:
@@ -528,6 +625,8 @@ static func engine_surface(surface: int) -> int:
 
 static func surface_label(surface: int) -> String:
 	match surface:
+		SURFACE_TREE_PATCH:
+			return "Tree patch"
 		SURFACE_BUNKER:
 			return "Bunker"
 		SURFACE_WATER:
@@ -559,7 +658,14 @@ func base_height_from(x: float, z: float, fds: Array) -> float:
 	var datum := _datum(x, z)
 	var roll := (base - datum) * 0.15  # residual undulation kept on mown turf
 	var flatten := 0.0  # 0 = full noise, 1 = follows the target
-	var target := base
+	var fairway_weight := 0.0
+	var fairway_target := 0.0
+	var green_weight := 0.0
+	var green_blend := 0.0
+	var green_target := 0.0
+	var plain_tee_weight := 0.0
+	var plain_tee_blend := 0.0
+	var plain_tee_target := 0.0
 	var offset := 0.0
 	var tee_weight := 0.0
 	var tee_target := 0.0
@@ -569,33 +675,65 @@ func base_height_from(x: float, z: float, fds: Array) -> float:
 		var hole := holes[i]
 		var fw_sd: float = fds[i][0]
 		var fw_t := (1.0 - smoothstep(0.0, 14.0, fw_sd)) * 0.85
-		if fw_t > flatten:
-			flatten = fw_t
-			target = hole_datum(hole, fds[i][1]) + roll
+		if hole.opening_grade_length > 0.0:
+			# Rough carries need the same continuous ground profile as their
+			# landing fairway; changing the mowing must not introduce a slope break.
+			var origin := Vector2(hole.tee.x, hole.tee.z)
+			var direction := (Vector2(hole.waypoints[1].x, hole.waypoints[1].z) - origin).normalized()
+			var station := (Vector2(x,z) - origin).dot(direction)
+			var grade_t := (1.0 - smoothstep(20.0, 65.0, fds[i][4])) * smoothstep(-55.0, -15.0, station)
+			grade_t *= 1.0 - smoothstep(hole.opening_grade_length - 30.0, hole.opening_grade_length + 20.0, fds[i][1])
+			fw_t = maxf(fw_t, grade_t)
+		# Beyond the green, return gradually to the shared hillside. The traced
+		# left/right widths can differ sharply at the capped routing endpoint;
+		# extending fairway flattening indefinitely turned that cut into a cliff.
+		var route_end := fairways[i].length_m()
+		fw_t *= 1.0 - smoothstep(route_end + 15.0, route_end + 40.0, fds[i][5])
+		flatten = maxf(flatten, fw_t)
+		fairway_weight += fw_t
+		fairway_target += fw_t * (hole_datum(hole, fds[i][1]) + roll)
 		# The putting surface (plus its fringe) follows the route profile's own gentle
 		# grade, continued past the green centre, so a green inherits the hole's
 		# back-to-front or front-to-back tendency and its apron meets it without a
 		# step; the named landforms sculpt the rest. No wide flattened ring: that made
 		# every green a plateau and killed the runoffs around it.
 		var g_t := 1.0 - smoothstep(-1.0, 4.0, fds[i][2])
-		if g_t > flatten:
-			flatten = g_t
-			target = hole.green_h + (hole_datum(hole, fds[i][5]) - hole.green_h) * hole.green_grade_scale + roll * 0.3
-		offset += hole.green_height * g_t
+		green_blend = maxf(green_blend, g_t)
+		green_weight += g_t
+		green_target += g_t * (hole.green_h + (hole_datum(hole, fds[i][5]) - hole.green_h) * hole.green_grade_scale + roll * 0.3)
+		# The green's small lift eases in over 12 m, so it reads as a gentle crown, not a table.
+		offset += hole.green_height * (1.0 - smoothstep(-1.0, 12.0, fds[i][2]))
 		if hole.tee_apron.y > 0.0:
 			# Blend the finished terrain into a level platform, so the downhill
 			# fairway and nearby landforms cannot leave a step at the tee's edge.
 			var weight := 1.0 - smoothstep(hole.tee_apron.x, hole.tee_apron.x + hole.tee_apron.y, fds[i][3])
+			var platform_height := hole.tee_h + 0.3 + hole.tee_height_offset
+			if hole.index in [10, 17]:
+				# Each low tee plateau follows its own station on the uphill
+				# opening. Blend overlapping aprons without a nearest-box step.
+				var pad_weight := 0.0
+				var pad_height := 0.0
+				weight = 0.0
+				for pad_index in range(1 + tees[i].additional_boxes.size()):
+					var pad: TeeArea = tees[i] if pad_index == 0 else tees[i].additional_boxes[pad_index - 1]
+					var w := 1.0 - smoothstep(hole.tee_apron.x, hole.tee_apron.x + hole.tee_apron.y, pad.box_signed_distance(Vector2(x,z)))
+					if w <= 0.0: continue
+					var along: float = fairways[i].centreline(pad.center)[1]
+					pad_height += w * hole_datum(hole, along)
+					pad_weight += w
+					weight = maxf(weight, w)
+				if pad_weight > 0.0:
+					platform_height = pad_height / pad_weight
 			if weight > tee_weight:
 				tee_weight = weight
-				tee_target = hole.tee_h + 0.3 + hole.tee_height_offset
+				tee_target = platform_height
 		else:
 			var t_t := 1.0 - smoothstep(0.0, 6.0, fds[i][3])
-			if t_t > flatten:
-				flatten = t_t
-				target = hole.tee_h + 0.3
-		# Lowered tee areas blend back into the surrounding grade over 30 metres.
-		offset += hole.tee_height_offset * (1.0 - smoothstep(0.0, 30.0, fds[i][3]))
+			plain_tee_blend = maxf(plain_tee_blend, t_t)
+			plain_tee_weight += t_t
+			plain_tee_target += t_t * (hole.tee_h + 0.3)
+		# Lowered tee areas blend back into the surrounding grade over tee_offset_radius.
+		offset += hole.tee_height_offset * (1.0 - smoothstep(0.0, hole.tee_offset_radius, fds[i][3]))
 	if not landform_list.is_empty():
 		var lf := Landforms.offset_split(landform_list, Vector2(x, z))
 		# A putting surface stays relatively flat no matter what is sculpted around it:
@@ -616,7 +754,15 @@ func base_height_from(x: float, z: float, fds: Array) -> float:
 			var capped := GREEN_MAX_RELIEF * tanh(rel / GREEN_MAX_RELIEF)
 			total = g_hole.green_landform + lerpf(rel, capped, g_max)
 		offset += total
-	return lerpf(lerpf(base, target, flatten) + offset, tee_target, tee_weight)
+	# Blend each influence continuously. Selecting whichever weight was largest
+	# switched target heights abruptly where a green/tee met the fairway, leaving
+	# metre-high steps in the surrounding ground and adjacent creek banks.
+	var shaped := lerpf(base, fairway_target / fairway_weight, flatten) if fairway_weight > 0.0 else base
+	if green_weight > 0.0:
+		shaped = lerpf(shaped, green_target / green_weight, green_blend)
+	if plain_tee_weight > 0.0:
+		shaped = lerpf(shaped, plain_tee_target / plain_tee_weight, plain_tee_blend)
+	return lerpf(shaped + offset, tee_target, tee_weight)
 
 
 ## Datum height of a hole `along` metres from the tee: the proposed elevation profile
@@ -668,9 +814,9 @@ var datum_nz := 0
 func build_datum() -> void:
 	var h := 0.0
 	for hole in holes:
-		hole.tee_h = h
+		hole.tee_h = h + hole.tee_datum_offset
 		if hole.profile.is_empty():
-			hole.green_h = h
+			hole.green_h = hole.tee_h
 		else:
 			var end_x := hole.profile[hole.profile.size() - 1].x
 			hole.green_h = hole_datum(hole, end_x)
@@ -784,6 +930,7 @@ var cache_height := PackedFloat32Array()
 var cache_along := PackedFloat32Array()
 var cache_turf := PackedFloat32Array()  # signed distance to mown turf (fairway/tee/green), negative inside
 var cache_green := PackedFloat32Array()  # signed distance to the nearest green
+var cache_tree_island := PackedFloat32Array()  # signed distance into tree islands (no first cut there)
 
 
 ## Sampling the whole course (~660k cells at 2 m) is the dominant load-time cost and
@@ -810,6 +957,8 @@ func build_cache(cell: float = 2.0, full: bool = true) -> void:
 	cache_turf.fill(1.0e9)
 	cache_green.resize(n)
 	cache_green.fill(1.0e9)
+	cache_tree_island.resize(n)
+	cache_tree_island.fill(1.0e9)
 	_baked_rects.clear()
 	if full:
 		ensure_cache_rect(bounds)
@@ -835,15 +984,18 @@ func _cache_sample(xz: Vector2) -> Array:
 	var base := base_height_from(xz.x, xz.y, fds)
 	var h := base + excavation_offset(base, xz)
 	var best := 1.0e9
-	var along := 0.0
+	var nearest := -1
 	for i in range(holes.size()):
 		if fds[i] == null:
 			continue
 		var d: float = fds[i][4]
 		if d < best:
 			best = d
-			along = fds[i][1]
-	return [s, h, along, turf_sd_from(fds), green_sd_from(fds)]
+			nearest = i
+	# Only the mowing stripes read cache_along; they need a value that stays continuous
+	# round doglegs, which fds' nearest-point along is not (FairwayArea.stripe_along).
+	var along := fairways[nearest].stripe_along(xz) if nearest >= 0 else 0.0
+	return [s, h, along, turf_sd_from(fds), green_sd_from(fds), tree_island_sd_from(fds)]
 
 
 func has_cache() -> bool:
@@ -860,6 +1012,13 @@ func cached_surface(xz: Vector2) -> int:
 	if cache_nx == 0:
 		return surface_at(xz)
 	return cache_surface[_cache_index(xz)]
+
+
+## Cached signed distance into the tree islands (negative inside; no first cut there).
+func cached_tree_island(xz: Vector2) -> float:
+	if cache_nx == 0:
+		return 1.0e9
+	return cache_tree_island[_cache_index(xz)]
 
 
 func cached_turf(xz: Vector2) -> float:
@@ -893,18 +1052,19 @@ static func encode_sdf(sd: float) -> float:
 	return clampf(0.5 - sd / (SDF_RANGE * 2.0), 0.0, 1.0)
 
 
-## RG8 texture at the cache resolution: R = turf SDF, G = green SDF (encoded).
+## RGB8 texture: R = turf, G = green, B = tree-patch signed distance (encoded).
 var sdf_image: Image
 var sdf_texture: ImageTexture
 
 
 func _build_sdf_texture() -> void:
 	var data := PackedByteArray()
-	data.resize(cache_nx * cache_nz * 2)
+	data.resize(cache_nx * cache_nz * 3)
 	for i in range(cache_nx * cache_nz):
-		data[i * 2] = int(encode_sdf(cache_turf[i]) * 255.0)
-		data[i * 2 + 1] = int(encode_sdf(cache_green[i]) * 255.0)
-	sdf_image = Image.create_from_data(cache_nx, cache_nz, false, Image.FORMAT_RG8, data)
+		data[i * 3] = int(encode_sdf(cache_turf[i]) * 255.0)
+		data[i * 3 + 1] = int(encode_sdf(cache_green[i]) * 255.0)
+		data[i * 3 + 2] = int(encode_sdf(cache_tree_island[i]) * 255.0)
+	sdf_image = Image.create_from_data(cache_nx, cache_nz, false, Image.FORMAT_RGB8, data)
 	if sdf_texture == null:
 		sdf_texture = ImageTexture.create_from_image(sdf_image)
 	else:
@@ -1022,6 +1182,20 @@ var mask_image: Image
 var mask_texture: ImageTexture
 
 
+## Bilinear red channel at world XZ, matching terrain.gdshader's texel centers.
+## The 50% sand coverage line is the lie boundary; the grass lip is not inflated.
+func _sand_mask_at(xz: Vector2) -> float:
+	var fx := clampf((xz.x - bounds.position.x) / MASK_CELL, 0.0, mask_image.get_width() - 1)
+	var fz := clampf((xz.y - bounds.position.y) / MASK_CELL, 0.0, mask_image.get_height() - 1)
+	var x0 := int(floor(fx))
+	var z0 := int(floor(fz))
+	var x1 := mini(x0 + 1, mask_image.get_width() - 1)
+	var z1 := mini(z0 + 1, mask_image.get_height() - 1)
+	return lerpf(
+		lerpf(mask_image.get_pixel(x0, z0).r, mask_image.get_pixel(x1, z0).r, fx - x0),
+		lerpf(mask_image.get_pixel(x0, z1).r, mask_image.get_pixel(x1, z1).r, fx - x0), fz - z0)
+
+
 func build_feature_mask() -> void:
 	var w := int(ceil(bounds.size.x / MASK_CELL)) + 1
 	var h := int(ceil(bounds.size.y / MASK_CELL)) + 1
@@ -1052,9 +1226,7 @@ func _paint_mask_rect(rect: Rect2) -> void:
 	_ensure_areas()
 	# clear the area first (0 = far outside every feature)
 	var rr := _mask_cell_range(rect)
-	for z in range(rr[1], rr[3] + 1):
-		for x in range(rr[0], rr[2] + 1):
-			mask_image.set_pixel(x, z, Color(0, 0, 0, 0))
+	mask_image.fill_rect(Rect2i(rr[0], rr[1], rr[2] - rr[0] + 1, rr[3] - rr[1] + 1), Color(0, 0, 0, 0))
 	for gr in greens:
 		var gb := gr.bounds.grow(SDF_RANGE)
 		if gb.intersects(rect):
@@ -1128,6 +1300,23 @@ func hazard_at(xz: Vector2) -> WaterHazard:
 	return null
 
 
+## Whether `xz` is on a graded building plot (Course Manager facilities, grown by `grow`
+## metres): no grass, trees or props grow there. Only painted courses have them.
+func in_pad(_xz: Vector2, _grow: float = 0.0) -> bool:
+	return false
+
+
+## Whether `xz` is built on (a plot's paving, floors and beds, within `grow` metres): the rest
+## of a plot is rough, so grass grows there. Only painted courses have plots.
+func in_paving(_xz: Vector2, _grow: float = 0.0) -> bool:
+	return false
+
+
+## The graded building plots ([{"pos", "rot", "half", "h", "foot", "mask"}], PaintedCourse.pads); none here.
+func pads() -> Array:
+	return []
+
+
 ## True if any hazard outline is within `margin` metres of `xz`.
 func hazard_near(xz: Vector2, margin: float) -> bool:
 	for hz in water_hazards:
@@ -1141,8 +1330,23 @@ func hazard_near(xz: Vector2, margin: float) -> bool:
 ## Sum of all excavation (pond bed/bank + bunker floor/lip) offsets at `xz`.
 func excavation_offset(base_h: float, xz: Vector2) -> float:
 	var off := 0.0
+	var water_found := false
 	for hz in water_hazards:
-		off += hz.depth_offset(base_h, xz)
+		var cut: float = hz.depth_offset(base_h, xz)
+		if not is_zero_approx(cut):
+			# Connected channels share a bed; adding their depths excavates a pit
+			# at each confluence even when their water surfaces meet perfectly.
+			off = minf(off, cut) if water_found else cut
+			water_found = true
+	if water_found and off < 0.0:
+		# A bank never drags the putting surface down toward the water: the drop starts
+		# at the green's edge, so a green beside a pond or creek stays flat to its lip.
+		var gsd := 1.0e9
+		for g in greens:
+			if g.bounds.has_point(xz):
+				gsd = minf(gsd, g.signed_distance(xz))
+		if gsd < 2.0:
+			off *= smoothstep(-0.5, 1.5, gsd)
 	for b in bunkers:
 		off += b.depth_offset(base_h, xz)
 	return off
@@ -1197,6 +1401,7 @@ func update_cache_rect(rect: Rect2) -> void:
 			cache_along[i] = smp[2]
 			cache_turf[i] = smp[3]
 			cache_green[i] = smp[4]
+			cache_tree_island[i] = smp[5]
 	_build_sdf_texture()
 
 

@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://fl27muwv63a6"
+path="res://.godot/imported/obsidian_arc_mallet_real_scale.obj-0f056b97a947aa808576a326c792baf3.mesh"
+
+[deps]
+
+files=["res://.godot/imported/obsidian_arc_mallet_real_scale.obj-0f056b97a947aa808576a326c792baf3.mesh"]
+
+source_file="res://assets/Obsidian_Arc_Mallet_Head_Putter/obsidian_arc_mallet_real_scale.obj"
+dest_files=["res://.godot/imported/obsidian_arc_mallet_real_scale.obj-0f056b97a947aa808576a326c792baf3.mesh", "res://.godot/imported/obsidian_arc_mallet_real_scale.obj-0f056b97a947aa808576a326c792baf3.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

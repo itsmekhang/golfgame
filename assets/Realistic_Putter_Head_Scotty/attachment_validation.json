@@ -1,0 +1,26 @@
+{
+  "canonical_head_body_size_metres": [
+    0.114,
+    0.028,
+    0.04
+  ],
+  "ground_origin_overall_mesh_bounds_metres": {
+    "min": [
+      -0.05700000002980232,
+      0.0,
+      -0.02214965783059597
+    ],
+    "max": [
+      0.05700000002980232,
+      0.08041412383317947,
+      0.02199999988079071
+    ]
+  },
+  "shaft_attachment_origin_at_zero": true,
+  "attachment_geometry_reconstruction_max_error_metres": 1.2458473535138795e-08,
+  "measured_striking_face_loft_degrees": 3.5012237654848515,
+  "one_head_mesh_node": true,
+  "includes_shaft_or_grip": false,
+  "includes_images_cameras_or_animations": false,
+  "import_scale": 1.0
+}

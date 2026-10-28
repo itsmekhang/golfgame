@@ -15,7 +15,7 @@ extends Control
 
 signal strike_changed(offset: Vector2)
 
-const RADIUS := 42.0
+const RADIUS := 32.0
 const SWEET_SPOT := 0.16  # fraction of the radius that counts as a pure strike
 const BALL_TEXTURE_PATH := "res://assets/textures/ui/golf_ball_icon.png"
 
@@ -33,6 +33,9 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var c := size * 0.5
+	# Shared HUD palette (UITheme): glass ring, green sweet spot, gold strike marker.
+	draw_circle(c, RADIUS + 5.0, Color(0.02, 0.04, 0.035, 0.7), true, -1.0, true)
+	draw_arc(c, RADIUS + 5.0, 0.0, TAU, 64, Color(1, 1, 1, 0.18), 1.0, true)
 	if _ball_texture != null:
 		draw_texture_rect(_ball_texture, Rect2(c - Vector2.ONE * RADIUS, Vector2.ONE * RADIUS * 2.0), false)
 	else:
@@ -40,10 +43,12 @@ func _draw() -> void:
 		draw_arc(c, RADIUS, 0.0, TAU, 48, Color(0.15, 0.15, 0.15, 0.8), 2.0, true)
 	draw_line(c - Vector2(RADIUS - 3.0, 0.0), c + Vector2(RADIUS - 3.0, 0.0), Color(0.15, 0.15, 0.15, 0.22), 1.0)
 	draw_line(c - Vector2(0.0, RADIUS - 3.0), c + Vector2(0.0, RADIUS - 3.0), Color(0.15, 0.15, 0.15, 0.22), 1.0)
-	draw_arc(c, RADIUS * SWEET_SPOT, 0.0, TAU, 20, Color(0.3, 0.75, 0.25, 0.85), 1.5, true)
+	draw_circle(c, RADIUS * SWEET_SPOT, Color(UITheme.GAIN, 0.22), true, -1.0, true)
+	draw_arc(c, RADIUS * SWEET_SPOT, 0.0, TAU, 20, UITheme.GAIN.darkened(0.25), 1.5, true)
 	var mark := c + Vector2(offset.x, -offset.y) * (RADIUS - 6.0)
-	draw_circle(mark, 6.5, Color(0.95, 0.2, 0.15, 0.95))
-	draw_arc(mark, 6.5, 0.0, TAU, 18, Color(0.1, 0.0, 0.0, 0.9), 1.5, true)
+	draw_circle(mark, 8.0, Color(UITheme.GOLD, 0.3), true, -1.0, true)
+	draw_circle(mark, 5.0, UITheme.GOLD, true, -1.0, true)
+	draw_arc(mark, 5.0, 0.0, TAU, 24, Color("13201b"), 1.6, true)
 
 
 func _gui_input(event: InputEvent) -> void:

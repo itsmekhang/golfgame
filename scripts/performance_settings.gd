@@ -25,7 +25,7 @@ static func grass_distance() -> float:
 ## _ensure_hole_region), so their draw distance no longer has to cover 18 holes'
 ## worth of budget simultaneously -- these can be far more generous than grass_distance().
 static func tree_distance() -> float:
-	return 300.0 if low() else 900.0
+	return 300.0 if low() else 450.0
 
 static func prop_distance() -> float:
 	return 90.0 if low() else 220.0

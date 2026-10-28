@@ -1,0 +1,72 @@
+[
+  {
+    "model": "car_compact",
+    "source_triangles": 7257,
+    "runtime_triangles": 4354,
+    "source_bytes": 1336040,
+    "runtime_bytes": 965544
+  },
+  {
+    "model": "car_coupe",
+    "source_triangles": 6022,
+    "runtime_triangles": 3612,
+    "source_bytes": 1276952,
+    "runtime_bytes": 871784
+  },
+  {
+    "model": "car_hatchback",
+    "source_triangles": 6808,
+    "runtime_triangles": 4084,
+    "source_bytes": 1337356,
+    "runtime_bytes": 934236
+  },
+  {
+    "model": "car_minivan",
+    "source_triangles": 7450,
+    "runtime_triangles": 4469,
+    "source_bytes": 1307432,
+    "runtime_bytes": 873440
+  },
+  {
+    "model": "car_offroad",
+    "source_triangles": 6502,
+    "runtime_triangles": 3900,
+    "source_bytes": 1270468,
+    "runtime_bytes": 822960
+  },
+  {
+    "model": "car_pickup",
+    "source_triangles": 6917,
+    "runtime_triangles": 4150,
+    "source_bytes": 1308720,
+    "runtime_bytes": 863704
+  },
+  {
+    "model": "car_sedan",
+    "source_triangles": 7122,
+    "runtime_triangles": 4273,
+    "source_bytes": 1362732,
+    "runtime_bytes": 923552
+  },
+  {
+    "model": "car_sport",
+    "source_triangles": 6268,
+    "runtime_triangles": 3760,
+    "source_bytes": 1308348,
+    "runtime_bytes": 931064
+  },
+  {
+    "model": "car_suv",
+    "source_triangles": 7950,
+    "runtime_triangles": 4770,
+    "source_bytes": 1332144,
+    "runtime_bytes": 793840
+  },
+  {
+    "model": "car_wagon",
+    "source_triangles": 6982,
+    "runtime_triangles": 4189,
+    "source_bytes": 1336860,
+    "runtime_bytes": 887208
+  }
+]

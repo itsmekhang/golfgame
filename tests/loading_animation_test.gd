@@ -12,6 +12,12 @@ func check(condition: bool, message: String) -> void:
 		failures += 1
 		printerr(message)
 
+func _count(n: Node) -> int:
+	var c := 1
+	for ch in n.get_children():
+		c += _count(ch)
+	return c
+
 func run() -> void:
 	var overlay: GolfLoadingScreen = load("res://scenes/ui/golf_loading_screen.tscn").instantiate()
 	root.add_child(overlay)
@@ -22,25 +28,22 @@ func run() -> void:
 	space.keycode = KEY_SPACE
 	space.pressed = true
 	overlay._input(space)
+	var nodes_before := _count(overlay)
 	for frame in range(900):
 		overlay._process(1.0 / 60.0)
 	check(finishes == 0 and not overlay._departing, "Long load exited before it was ready")
-	check(overlay.get_child_count() == 1, "Animation accumulated nodes during a long load")
-	check(overlay.art.hole_number == 12 and overlay.art.hole_name == "Golden Bell", "Hole details did not reach the illustration")
-	check(overlay.art.pose()["drive"] > 0, "Long load did not reach the cruising phase")
-	# The real drawing commands should stay finite and bounded throughout walking, boarding, and departure.
-	var max_commands := 0
-	for frame in range(ceili(GolfLoadingScreen.DEMO_LENGTH * 60.0)):
-		overlay.art.elapsed = frame / 60.0
-		var commands := overlay.art.build_commands()
-		max_commands = maxi(max_commands, commands.size())
-		for command: Dictionary in commands:
-			if command["kind"] == "polygon":
-				check(not Geometry2D.triangulate_polygon(GolfCartArt._vectors(command["points"])).is_empty(), "Illustration polygon failed Godot triangulation")
-			for point: Array in command.get("points", []):
-				check(is_finite(point[0]) and is_finite(point[1]), "Non-finite animation vertex")
-	check(max_commands < 300, "Animation drawing exceeded its fixed budget")
+	check(_count(overlay) == nodes_before, "Loading screen accumulated nodes during a long load")
+	check(overlay.hole_number == 12 and overlay._name.text == "Golden Bell" and overlay._number.text == "12", "Hole details did not reach the screen")
+	check(overlay._status_label.visible and not overlay._go.visible, "Tee-off prompt shown before the load finished")
+	# Every hole has its postcard stills, and the slideshow keeps cycling them.
+	for n in range(1, 19):
+		check(GolfLoadingScreen._load_stills(n).size() == 3, "Postcard stills missing for hole %d" % n)
+	# (15 s cycles all three stills, so the index may be back at 0; the second layer only
+	# ever gets a still by crossfading to the next one.)
+	check(overlay._slides.size() == 3 and overlay._slide_b.texture != null, "Slideshow did not advance during a long load")
 	overlay.mark_ready()
+	overlay._process(1.0 / 60.0)
+	check(overlay._go.visible, "Tee-off prompt missing once ready")
 	for frame in range(120):
 		overlay._process(1.0 / 60.0)
 	check(finishes == 1 and overlay._completed, "Ready overlay did not finish exactly once")
@@ -95,6 +98,6 @@ func run() -> void:
 	course.queue_free()
 	await process_frame
 	await process_frame
-	print("[loading animation] max vector commands=%d; long load, ready skip, repeated hole changes checked" % max_commands)
+	print("[loading animation] long load, postcard slideshow, ready skip, repeated hole changes checked")
 	print("LOADING ANIMATION TEST: %s" % ("PASS" if failures == 0 else "FAIL"))
 	quit(0 if failures == 0 else 1)

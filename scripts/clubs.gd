@@ -1,7 +1,11 @@
 class_name Clubs
 extends RefCounted
 ## Club bag. Launch numbers are typical launch-monitor values at full power
-## (ball speed mph, vertical launch deg, backspin rpm).
+## (ball speed mph, vertical launch deg, backspin rpm) and live per bag slot in
+## data/club_catalog.json ("stock_launch"). A Club is one swingable entry in the bag: the
+## slot's stock launch numbers plus the bounded modifiers and condition of the specific
+## ClubInstance equipped there (see GameState.bag_clubs). Without a GameState (headless
+## tests, tools) bag() is the plain loaner set with neutral modifiers, exactly the old feel.
 
 class Club:
 	var name: String
@@ -10,6 +14,25 @@ class Club:
 	var vla_deg: float
 	var backspin_rpm: float
 	var is_putter: bool
+	# --- equipment layer (neutral defaults reproduce the stock bag) ---
+	var slot: String = ""
+	var model_id: String = ""
+	var model_name: String = ""
+	var instance_id: String = ""
+	var source_store: String = ""
+	var carry_yd: float = 0.0
+	var distance: float = 1.0  # ball-speed multiplier (bounded by economy.json)
+	var forgiveness: float = 1.0  # >1 softens off-centre penalties, <1 sharpens them
+	var dispersion_deg: float = 0.0  # random push at a full mishit, degrees
+	var spin: float = 1.0  # backspin multiplier
+	var control: float = 1.0  # >1 = heel/toe shaping is more precise (less unintended push)
+	var condition: float = 1.0
+	var illegal: bool = false
+	var illegal_kind: String = ""  # "grenade" | "auto_putt" | ""
+	var is_starter: bool = false
+	var audio_category: String = "general"
+	var feel: String = ""
+
 	func _init(p_name: String, p_short: String, p_speed: float, p_vla: float, p_spin: float, p_putter: bool = false) -> void:
 		name = p_name
 		short = p_short
@@ -19,49 +42,114 @@ class Club:
 		is_putter = p_putter
 
 
-static func bag() -> Array[Club]:
-	return [
-		# Real drivers/woods essentially never generate enough backspin to check or drift
-		# backward on landing -- that's an irons/wedges thing. Low enough here that the
-		# bounce model's steep-impact spinback term (bounce_calculator.gd's Penner branch,
-		# which isn't green-only -- it can fire on any surface at high impact speed) has too
-		# little spin left to meaningfully reverse the roll; these clubs should only ever go
-		# forward and roll out, backing up only from an actual slope/hill, never from spin.
-		Club.new("Driver", "DR", 160.0, 11.5, 1500.0),
-		Club.new("3 Wood", "3W", 148.0, 12.5, 1900.0),
-		Club.new("5 Wood", "5W", 140.0, 13.5, 2400.0),
-		Club.new("4 Iron", "4I", 132.0, 14.0, 4600.0),
-		Club.new("5 Iron", "5I", 127.0, 15.0, 5200.0),
-		Club.new("6 Iron", "6I", 122.0, 16.0, 5800.0),
-		Club.new("7 Iron", "7I", 117.0, 17.5, 6600.0),
-		Club.new("8 Iron", "8I", 111.0, 19.5, 7400.0),
-		Club.new("9 Iron", "9I", 105.0, 21.5, 8200.0),
-		Club.new("Pitching Wedge", "PW", 98.0, 24.5, 9000.0),
-		Club.new("Gap Wedge", "GW", 90.0, 27.0, 9400.0),
-		Club.new("Sand Wedge", "SW", 82.0, 30.0, 9800.0),
-		Club.new("Lob Wedge", "LW", 72.0, 34.0, 9500.0),
-		Club.new("Putter", "PT", 18.0, 1.0, 60.0, true),
-	]
+## The equipped bag when a GameState exists, else the stock loaner set.
+static func bag() -> Array:
+	if GameState.current != null:
+		var b: Array = GameState.current.bag_clubs()
+		if not b.is_empty():
+			return b
+	return stock_bag()
 
 
-## Typical full-power carry (yards) per bag() index, Driver..Lob Wedge (excludes the Putter).
-const STOCK_CARRIES_YD := [265.0, 240.0, 225.0, 200.0, 190.0, 180.0, 165.0, 155.0, 140.0, 125.0, 110.0, 95.0, 75.0]
+static var _stock_cache: Array = []
+
+
+## Stock loaner set straight from the catalog's stock_launch table, neutral modifiers.
+static func stock_bag() -> Array:
+	if not _stock_cache.is_empty():
+		return _stock_cache
+	var out: Array = []
+	for slot in ClubCatalog.bag_order():
+		if slot == "HY":
+			continue  # the loaner set carries no hybrid
+		var c := _stock_club(str(slot))
+		c.dispersion_deg = 0.0
+		out.append(c)
+	_stock_cache = out
+	return out
+
+
+static func _stock_club(slot: String) -> Club:
+	var sl := ClubCatalog.stock_launch(slot)
+	var c := Club.new(str(sl.get("name", slot)), slot, float(sl.get("speed", 100.0)), float(sl.get("vla", 15.0)), float(sl.get("spin", 5000.0)), slot == "PT")
+	c.slot = slot
+	c.carry_yd = float(sl.get("carry_yd", 0.0))
+	c.audio_category = str(sl.get("audio", "general"))
+	return c
+
+
+## Build the swingable Club for `slot` from an owned instance (catalog model + this copy's
+## condition). Modifiers are clamped to the bounds in economy.json so no data edit can push
+## the working shot mechanics outside a playable range.
+static func make_club(slot: String, inst: ClubInstance) -> Club:
+	var c := _stock_club(slot)
+	var m := inst.model()
+	var mods: Dictionary = m.get("mods", {})
+	c.model_id = inst.model_id
+	c.model_name = str(m.get("name", inst.model_id))
+	c.instance_id = inst.id
+	c.source_store = inst.source_store
+	c.condition = inst.condition
+	c.is_starter = ClubCatalog.is_starter(m)
+	c.illegal = ClubCatalog.is_illegal(m)
+	c.feel = str(m.get("feel", ""))
+	if c.illegal:
+		c.illegal_kind = "auto_putt" if c.is_putter else "grenade"
+	c.distance = clampf(float(mods.get("distance", 1.0)), EconomyConfig.modifier_bound("distance_mult_min", 0.9), EconomyConfig.modifier_bound("distance_mult_max", 1.08))
+	c.forgiveness = clampf(float(mods.get("forgiveness", 1.0)), EconomyConfig.modifier_bound("forgiveness_min", 0.75), EconomyConfig.modifier_bound("forgiveness_max", 1.25))
+	var disp_max := EconomyConfig.modifier_bound("putter_dispersion_deg_max", 0.3) if c.is_putter else EconomyConfig.modifier_bound("dispersion_deg_max", 2.5)
+	c.dispersion_deg = clampf(float(mods.get("dispersion_deg", 0.0)), 0.0, disp_max)
+	c.spin = clampf(float(mods.get("spin", 1.0)), EconomyConfig.modifier_bound("spin_mult_min", 0.85), EconomyConfig.modifier_bound("spin_mult_max", 1.25))
+	c.control = clampf(float(mods.get("control", 1.0)), EconomyConfig.modifier_bound("control_min", 0.85), EconomyConfig.modifier_bound("control_max", 1.15))
+	# Illegal gear may override the launch numbers outright (that is the whole joke).
+	if c.illegal and m.has("launch"):
+		var l: Dictionary = m["launch"]
+		c.ball_speed_mph = float(l.get("speed", c.ball_speed_mph))
+		c.vla_deg = float(l.get("vla", c.vla_deg))
+		c.backspin_rpm = float(l.get("spin", c.backspin_rpm))
+		c.carry_yd = float(l.get("carry_yd", c.carry_yd))
+	else:
+		c.carry_yd *= c.distance
+	# Display name: the slot for irons of a set ("7 Iron"), the model name otherwise.
+	if str(m.get("slot", "")) == "IRONS":
+		c.name = "%s (%s)" % [c.name, c.model_name]
+	else:
+		c.name = c.model_name
+	return c
 
 
 ## Best club index for a distance to the pin (yards) - used for auto-select.
 static func suggest(distance_yd: float, on_green: bool) -> int:
 	var b := bag()
+	if b.is_empty():
+		return 0
 	if on_green:
+		for i in range(b.size()):
+			if b[i].is_putter:
+				return i
 		return b.size() - 1
-	for i in range(STOCK_CARRIES_YD.size()):
-		if distance_yd >= STOCK_CARRIES_YD[i] * 0.93:
+	var last_full := 0
+	for i in range(b.size()):
+		if b[i].is_putter:
+			continue
+		last_full = i
+		if distance_yd >= b[i].carry_yd * 0.93:
 			return i
-	return STOCK_CARRIES_YD.size() - 1
+	return last_full
 
 
-## Rough full-swing carry estimate (yards) for a club at a given power fraction (0..1) --
+## Rough full-swing carry estimate (yards) for a bag index at a power fraction (0..1) --
 ## a cheap pre-flight proxy (audio cues, etc.) that doesn't need to run real ball physics.
 static func stock_carry_yd(club_index: int, pfrac: float = 1.0) -> float:
-	if club_index < 0 or club_index >= STOCK_CARRIES_YD.size():
+	var b := bag()
+	if club_index < 0 or club_index >= b.size():
 		return 0.0
-	return STOCK_CARRIES_YD[club_index] * clampf(pfrac, 0.0, 1.0)
+	return b[club_index].carry_yd * clampf(pfrac, 0.0, 1.0)
+
+
+static func index_of_putter() -> int:
+	var b := bag()
+	for i in range(b.size()):
+		if b[i].is_putter:
+			return i
+	return maxi(0, b.size() - 1)

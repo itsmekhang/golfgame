@@ -7,6 +7,8 @@ uniform float checker_rows = 5.0;
 uniform bool distant_mode = false;
 uniform float wind_speed = 3.0;
 uniform float phase_offset = 0.0;
+uniform bool use_fabric_texture = false;
+uniform sampler2D fabric_texture : source_color, filter_linear_mipmap;
 
 void vertex() {
     if (distant_mode) {
@@ -25,6 +27,9 @@ void fragment() {
     float hem = smoothstep(0.007,0.019,edge);
     float checker = mod(floor(UV.x*checker_columns)+floor(UV.y*checker_rows),2.0);
     vec3 checkered = mix(fabric_color.rgb,fabric_color_b.rgb,checker);
+    if (use_fabric_texture) {
+        checkered = texture(fabric_texture,vec2(UV.x,1.0-UV.y)).rgb;
+    }
     vec3 color = checkered * mix(0.65,1.0,hem);
     // UV-bound seams move with the cloth rather than floating over it.
     float seam = 1.0-smoothstep(0.001,0.003,abs(edge-0.023));

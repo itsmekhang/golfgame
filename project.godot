@@ -12,13 +12,14 @@ config_version=5
 
 config/name="OpenFairway Golf"
 config/description="Golf game built on the OpenFairway ball physics engine (GDScript port) with the Quaternius Stylized Nature MegaKit."
-run/main_scene="res://scenes/course.tscn"
+run/main_scene="res://scenes/start_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 SimpleGrass="*res://addons/simplegrasstextured/singleton.tscn"
+GolfState="*res://scripts/economy/game_state.gd"
 
 [display]
 
@@ -30,6 +31,10 @@ window/stretch/aspect="expand"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/openfairway/plugin.cfg", "res://addons/simplegrasstextured/plugin.cfg")
+
+[golf]
+
+admin_always_on=true
 
 [input]
 
@@ -66,6 +71,11 @@ club_prev={
 reset_hole={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":82,"key_label":0,"unicode":114,"location":0,"echo":false,"script":null)
+]
+}
+hub_toggle={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194306,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 ]
 }
 cam_toggle={

@@ -1,0 +1,14 @@
+{
+  "shaft_markers_match_previous_head": true,
+  "socket_origin_is_zero_in_attachment_glb": true,
+  "attachment_geometry_match_max_error_m": 1.0556748483948941e-08,
+  "measured_face_loft_degrees": 3.499998103551787,
+  "body_dimensions_preserved_mm_width_depth_height": [
+    114,
+    40,
+    28
+  ],
+  "mesh_nodes": 1,
+  "material_count": 1,
+  "contains_images": false
+}

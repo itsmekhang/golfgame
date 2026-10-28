@@ -71,7 +71,7 @@ func _init() -> void:
 		course_node.camera.look_at(centre + Vector3(0, 0, -250))
 		print("[shot] high camera; backdrop triangles ", course_node.backdrop_root.mesh.get_faces().size() / 3)
 	if shot:
-		course_node._fire_shot(100.0, Vector2.ZERO)
+		course_node.skip_swing_animation = true; course_node._fire_shot(100.0, Vector2.ZERO)
 		for i in range(90):
 			await process_frame
 	else:

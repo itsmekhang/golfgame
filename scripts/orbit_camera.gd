@@ -5,18 +5,21 @@ extends Camera3D
 ##  - FOLLOW: chases the ball in flight from behind and above, then eases back to AIM.
 
 enum Mode { AIM, FOLLOW, OVERHEAD }
+const DEFAULT_AIM_DISTANCE := 3.0
 
 var mode: Mode = Mode.AIM
 var target: Node3D
 var aim_yaw: float = 0.0  # radians, direction ball will travel (0 = -Z)
 var aim_pitch: float = deg_to_rad(12.0)
-var distance: float = 6.0
+var distance: float = DEFAULT_AIM_DISTANCE
 var height_at_ground: Callable  # (x, z) -> float
 var _follow_vel := Vector3.ZERO
 var _dragging := false
 var _smooth_pos: Vector3
 var _smooth_look: Vector3
 var frozen := false  # debug: stop following the target
+## Impact kick (Grenade driver): random positional jitter that decays over ~0.4 s.
+var shake := 0.0
 ## Bird's-eye view: pan with the arrow keys, wheel changes height. Look direction is
 ## right-drag only (like scouting below) -- A/D used to also spin this view, which fought
 ## with panning; now A/D do nothing here and right-drag both rotates (horizontal) and
@@ -324,6 +327,9 @@ func _process(delta: float) -> void:
 	_smooth_pos = _smooth_pos.lerp(desired, k)
 	_smooth_look = _smooth_look.lerp(look, k)
 	global_position = _smooth_pos
+	if shake > 0.0:
+		global_position += Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * shake * 0.35
+		shake = maxf(0.0, shake - delta * 2.5)
 	if (_smooth_look - _smooth_pos).length() > 0.01:
 		look_at(_smooth_look, Vector3.UP)
 
